@@ -56,7 +56,8 @@ class CollectionsDashboardAccessTest(unittest.TestCase):
                   for e in root.findall("sf:fieldPermissions", NS)}
         self.assertEqual(set(fields), {
             "Case.AccountId", "Case.Description", "Case.Reason", "Case.Subject",
-            "CollectionPlanItem.InvoiceId", "Event.WhatId", "Task.ActivityDate", "Task.WhatId"})
+            "CollectionPlan.AccountId", "CollectionPlan.ClosedDate", "CollectionPlan.DaysPastDue",
+            "CollectionPlan.Duedate", "CollectionPlanItem.InvoiceId", "Event.WhatId", "Task.ActivityDate", "Task.WhatId"})
         self.assertEqual(set(fields.values()), {("true", "false")})
         for tag in ("userPermissions", "applicationVisibilities"):
             self.assertEqual(root.findall(f"sf:{tag}", NS), [], tag)

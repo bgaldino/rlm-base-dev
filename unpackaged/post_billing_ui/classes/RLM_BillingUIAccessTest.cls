@@ -179,7 +179,7 @@ private class RLM_BillingUIAccessTest {
         'Payment' => new List<String>{ 'Balance', 'Status', 'Type', 'AccountId', 'CurrencyIsoCode' }
     };
     private static final List<String> COLLECTIONS_USER_SETS = new List<String>{
-        'BillingCollectionsAndRecoverySpecialist', 'RLM_CollectionsUI', 'RLM_CollectionsDashboard'
+        'BillingCollectionsAndRecoverySpecialist', 'RLM_CollectionsDashboard'
     };
     private static final List<String> COLLECTIONS_LICENSES = new List<String>{
         RLM_BillingUITestUsers.BILLING_PSL, RLM_BillingUITestUsers.BILLING_ADVANCED_PSL
@@ -198,20 +198,23 @@ private class RLM_BillingUIAccessTest {
             + String.join(failures, '\n'));
     }
 
-    // RLM_CollectionsDashboard adds those reads: without it the same user cannot read cases or payments.
+    // RLM_CollectionsDashboard adds those reads: without it the same user cannot read cases, payments, task
+    // dates or plan due dates. The collections user holds no RLM_CollectionsUI: that set ships with the
+    // collections flag, which can be off while billing_ui (this bundle) is on.
     @IsTest
     static void collectionsUserWithoutTheDashboardSetCannotReadCasesOrPayments() {
         User u = RLM_BillingUITestUsers.create(
-            new List<String>{ 'BillingCollectionsAndRecoverySpecialist', 'RLM_CollectionsUI' }, COLLECTIONS_LICENSES);
+            new List<String>{ 'BillingCollectionsAndRecoverySpecialist' }, COLLECTIONS_LICENSES);
         List<String> failures;
         System.runAs(u) {
             failures = unreadable(new Map<String, List<String>>{
                 'Case' => new List<String>{ 'Subject' },
                 'Payment' => new List<String>{ 'Balance' },
-                'Task' => new List<String>{ 'ActivityDate' }
+                'Task' => new List<String>{ 'ActivityDate' },
+                'CollectionPlan' => new List<String>{ 'Duedate' }
             });
         }
-        Assert.areEqual(3, failures.size(), 'Each read comes from RLM_CollectionsDashboard: ' + failures);
+        Assert.areEqual(4, failures.size(), 'Each read comes from RLM_CollectionsDashboard: ' + failures);
     }
 
     // Debit memos need the Manage Debit Memos user permission, which a read-only collections role is not

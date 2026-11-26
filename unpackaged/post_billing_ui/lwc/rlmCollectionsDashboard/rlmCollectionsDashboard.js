@@ -28,6 +28,8 @@ const EXCLUDED_NAMES = {
 };
 const NO_ACCESS_PAYMENT_SCHEDULES = "You don't have access to payment schedules.";
 const NO_ACCESS_COLLECTION_PLANS = "You don't have access to collection plans.";
+const NO_ACCESS_PLAN_TASKS = "You don't have access to collection plan tasks.";
+const NO_ACCESS_WORKLIST = "You don't have access to the records this list is built from.";
 
 /**
  * AR Recovery Agent Mission Control – premium dashboard with Pulse (KPIs), Aging chart, and Action worklist.
@@ -108,14 +110,16 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
 
     @wire(getCollectionPlanTasks, { accountId: '$effectiveAccountId' })
     wiredCpTasks({ error, data }) {
-        if (data) this.cpTasksData = data;
-        else if (error) this.cpTasksData = [];
+        // null from the server (a refused read) and a failed call are both "not available", not "no tasks".
+        if (error) this.cpTasksData = null;
+        else if (data !== undefined) this.cpTasksData = Array.isArray(data) ? data : null;
     }
 
     @wire(getPaymentPromiseSummary, { accountId: '$effectiveAccountId', currencyCode: '$effectiveCurrencyCode' })
     wiredPaymentPromises({ error, data }) {
         if (error) {
-            this.paymentPromiseData = [];
+            // A failed call is not "no promises" either.
+            this.paymentPromiseData = null;
         } else if (data !== undefined) {
             // null from the server: the schedule items could not be read (not "no promises").
             this.paymentPromiseData = Array.isArray(data) ? data : null;
@@ -124,14 +128,16 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
 
     @wire(getMyCollectionPlans)
     wiredMyCollectionPlans({ error, data }) {
-        if (data) this.myCollectionPlansData = Array.isArray(data) ? data : [];
-        else if (error) this.myCollectionPlansData = [];
+        // null from the server (a refused read) and a failed call are both "not available", not "no plans".
+        if (error) this.myCollectionPlansData = null;
+        else if (data !== undefined) this.myCollectionPlansData = Array.isArray(data) ? data : null;
     }
 
     @wire(getCollectionsProgress)
     wiredCollectionsProgress({ error, data }) {
         if (data) this.collectionsProgressData = data;
-        else if (error) this.collectionsProgressData = null;
+        // A failed call is shown like a refused read: not available, not zero averages.
+        else if (error) this.collectionsProgressData = { unavailable: true };
     }
 
     @wire(getWorklist, { accountId: '$effectiveAccountId', currencyCode: '$effectiveCurrencyCode' })
@@ -640,8 +646,16 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         });
     }
 
+    get worklistTabUnavailable() {
+        return (this.worklistData?.unavailable || []).includes(this.selectedWorklistTab);
+    }
+
+    get worklistUnavailableText() {
+        return NO_ACCESS_WORKLIST;
+    }
+
     get noWorklistItems() {
-        return !this.worklistItems || this.worklistItems.length === 0;
+        return !this.worklistTabUnavailable && (!this.worklistItems || this.worklistItems.length === 0);
     }
 
     get worklistTabCriticalActive() {
@@ -696,7 +710,20 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         });
     }
 
+    get cpTasksUnavailable() {
+        return this.cpTasksData === null;
+    }
+
+    get cpTasksUnavailableText() {
+        return NO_ACCESS_PLAN_TASKS;
+    }
+
+    get showNoCpTasks() {
+        return !this.cpTasksUnavailable && !this.hasCpTasks;
+    }
+
     get cpTasksCount() {
+        if (this.cpTasksUnavailable) return NOT_AVAILABLE;
         return this.cpTasks ? this.cpTasks.length : 0;
     }
 
@@ -720,7 +747,20 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         return this.myCollectionPlans && this.myCollectionPlans.length > 0;
     }
 
+    get myCollectionPlansUnavailable() {
+        return this.myCollectionPlansData === null;
+    }
+
+    get myCollectionPlansUnavailableText() {
+        return NO_ACCESS_COLLECTION_PLANS;
+    }
+
+    get showNoMyCollectionPlans() {
+        return !this.myCollectionPlansUnavailable && !this.hasMyCollectionPlans;
+    }
+
     get myCollectionPlansCount() {
+        if (this.myCollectionPlansUnavailable) return NOT_AVAILABLE;
         return this.myCollectionPlans ? this.myCollectionPlans.length : 0;
     }
 

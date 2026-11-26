@@ -270,9 +270,21 @@ public with sharing class RLM_CollectionsDashboardController {
         if (wl.highValueDelinquents.isEmpty()) {
             try { buildWorklistLastResort(wl, invAccountField, today, thirtyDaysAgo); } catch (Exception e) { sectionSkipped('getWorklist', e); }
         }
+        // A section a fallback filled after all is not unavailable; one still empty after a refused read
+        // gets no placeholder row (a "nothing overdue" row there would read as a real answer).
+        Integer highValueRefused = wl.unavailable.indexOf(WORKLIST_HIGH_VALUE);
+        if (!wl.highValueDelinquents.isEmpty() && highValueRefused >= 0) {
+            wl.unavailable.remove(highValueRefused);
+        }
         addPlaceholderRowsIfEmpty(wl, filterAccount ? accountId : null);
         return wl;
     }
+
+    // Keys of WorklistData.unavailable, one per worklist tab: the read the section is built from was
+    // refused or failed, so its list is not "nothing to work on" (todo 435).
+    @TestVisible private static final String WORKLIST_CRITICAL = 'critical';
+    @TestVisible private static final String WORKLIST_HIGH_VALUE = 'highValue';
+    @TestVisible private static final String WORKLIST_DISPUTED = 'disputed';
 
     private static void addPlaceholderRowsIfEmpty(WorklistData wl, Id filterAccountId) {
         List<Account> accts = new List<Account>();
@@ -285,10 +297,10 @@ public with sharing class RLM_CollectionsDashboardController {
         if (accts.isEmpty()) return;
         Id placeholderId = accts[0].Id;
         String placeholderName = accts[0].Name;
-        if (wl.criticalFollowUpInvoices.isEmpty()) {
+        if (wl.criticalFollowUpInvoices.isEmpty() && !wl.unavailable.contains(WORKLIST_CRITICAL)) {
             wl.criticalFollowUpInvoices.add(new CriticalFollowUpInvoiceItem(null, 'No invoices overdue >= 30 days', 0, null, null, '—', null, null));
         }
-        if (wl.highValueDelinquents.isEmpty()) {
+        if (wl.highValueDelinquents.isEmpty() && !wl.unavailable.contains(WORKLIST_HIGH_VALUE)) {
             wl.highValueDelinquents.add(new WorklistItem(placeholderId, '(No high-value delinquents — check Invoice, DueDate & Balance)', 0, null, 'highValue', 'red', null, null));
         }
     }
@@ -310,7 +322,11 @@ public with sharing class RLM_CollectionsDashboardController {
             for (Task t : [SELECT Id, Subject, Status, ActivityDate, WhatId FROM Task WHERE WhatId IN :cpIds WITH USER_MODE ORDER BY ActivityDate DESC NULLS LAST, CreatedDate DESC LIMIT 200]) {
                 results.add(new CpTaskItem(t.Id, t.Subject, t.Status, t.ActivityDate, t.WhatId));
             }
-        } catch (Exception e) { sectionSkipped('getCollectionPlanTasks', e); }
+        } catch (Exception e) {
+            // Not "no tasks": the page says the plans or their tasks could not be read.
+            sectionSkipped('getCollectionPlanTasks', e);
+            return null;
+        }
         return results;
     }
 
@@ -439,7 +455,10 @@ public with sharing class RLM_CollectionsDashboardController {
             String orderField = hasDaysField ? 'DaysInvoiceOverdue DESC NULLS LAST' : 'DueDate ASC';
             List<Invoice> invs = Database.query(invSelect + ' FROM Invoice WHERE ' + invWhere + ' ORDER BY ' + orderField + ' LIMIT 200', AccessLevel.USER_MODE);
             addCriticalFollowUps(wl, invs, hasDaysField, hasBillToContact, Date.today());
-        } catch (Exception e) { sectionSkipped('buildCriticalFollowUpInvoices', e); }
+        } catch (Exception e) {
+            sectionSkipped('buildCriticalFollowUpInvoices', e);
+            wl.unavailable.add(WORKLIST_CRITICAL);
+        }
     }
 
     // One row per queried invoice, with its account name and collection plan. Takes rows so a
@@ -518,7 +537,11 @@ public with sharing class RLM_CollectionsDashboardController {
         List<Invoice> invs = new List<Invoice>();
         try {
             invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
-        } catch (Exception e) { sectionSkipped('buildHighValueDelinquents', e); return; }
+        } catch (Exception e) {
+            sectionSkipped('buildHighValueDelinquents', e);
+            wl.unavailable.add(WORKLIST_HIGH_VALUE);
+            return;
+        }
         addHighValueDelinquents(wl, invs, invAccountField, Date.today());
     }
 
@@ -662,7 +685,10 @@ public with sharing class RLM_CollectionsDashboardController {
                 item.caseNumber = accountCaseNumber.get(accId);
                 wl.disputedInvoices.add(item);
             }
-        } catch (Exception e) { sectionSkipped('buildDisputedFromCases', e); }
+        } catch (Exception e) {
+            sectionSkipped('buildDisputedFromCases', e);
+            wl.unavailable.add(WORKLIST_DISPUTED);
+        }
     }
 
     // Every catch (Exception) in this class is one of two kinds, named by the helper it calls:
@@ -675,7 +701,8 @@ public with sharing class RLM_CollectionsDashboardController {
     //    load, and is logged at WARN; it is a permission or data problem, not an absent schema.
     //    Where the section is a figure (the cards and total balance, payment promises, progress), it is
     //    returned as unavailable (null, or the wrapper's unavailable flag or list), never as a zero the
-    //    page would show as a real amount (todo 435). The lists (worklist, tasks, plans) stay empty.
+    //    page would show as a real amount (todo 435). The lists follow the same rule: tasks and plans
+    //    return null, and a worklist tab whose read was refused is listed in WorklistData.unavailable.
     // Neither throws and neither puts platform exception text in a response.
     private static void probeSkipped(String context, Exception e) {
         System.debug(LoggingLevel.FINE, 'RLM_CollectionsDashboardController.' + context + ' (field or object not present): ' + e.getMessage());
@@ -739,7 +766,9 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public List<CriticalFollowUpInvoiceItem> criticalFollowUpInvoices { get; set; }
         @AuraEnabled public List<WorklistItem> highValueDelinquents { get; set; }
         @AuraEnabled public List<WorklistItem> disputedInvoices { get; set; }
-        public WorklistData() { criticalFollowUpInvoices = new List<CriticalFollowUpInvoiceItem>(); highValueDelinquents = new List<WorklistItem>(); disputedInvoices = new List<WorklistItem>(); }
+        // Tabs whose read was refused or failed (WORKLIST_*): their lists are not "none".
+        @AuraEnabled public List<String> unavailable { get; set; }
+        public WorklistData() { criticalFollowUpInvoices = new List<CriticalFollowUpInvoiceItem>(); highValueDelinquents = new List<WorklistItem>(); disputedInvoices = new List<WorklistItem>(); unavailable = new List<String>(); }
     }
 
     // Invoice.BillingAccountId always exists where this module deploys: other classes in it
@@ -920,7 +949,11 @@ public with sharing class RLM_CollectionsDashboardController {
                 String accountName = accountId != null ? planAccountNames.get(accountId) : null;
                 items.add(new MyCollectionPlanItem(cpId, cpName, dueDate, accountId, accountName, totalInvBal));
             }
-        } catch (Exception e) { sectionSkipped('getMyCollectionPlans', e); }
+        } catch (Exception e) {
+            // Not "no plans": the page says the collection plans could not be read.
+            sectionSkipped('getMyCollectionPlans', e);
+            return null;
+        }
         return items;
     }
 

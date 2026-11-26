@@ -7,6 +7,8 @@ import getDashboardCards from "@salesforce/apex/RLM_CollectionsDashboardControll
 import getWorklist from "@salesforce/apex/RLM_CollectionsDashboardController.getWorklist";
 import getPaymentPromiseSummary from "@salesforce/apex/RLM_CollectionsDashboardController.getPaymentPromiseSummary";
 import getCollectionsProgress from "@salesforce/apex/RLM_CollectionsDashboardController.getCollectionsProgress";
+import getCollectionPlanTasks from "@salesforce/apex/RLM_CollectionsDashboardController.getCollectionPlanTasks";
+import getMyCollectionPlans from "@salesforce/apex/RLM_CollectionsDashboardController.getMyCollectionPlans";
 
 // A figure the user cannot read (todo 435) arrives from the controller as unavailable: null, or
 // listed in the cards' `unavailable`. These tests pin that the page says so instead of showing a
@@ -100,11 +102,11 @@ function cards(unavailable = []) {
   };
 }
 
-async function mount() {
+async function mount(worklist = { criticalFollowUpInvoices: [], highValueDelinquents: [], disputedInvoices: [] }) {
   getOrgDefaultCurrency.mockResolvedValue("USD");
   getCurrencyOptions.mockResolvedValue([{ value: "", label: "All Currencies" }]);
   getAccountOptions.mockResolvedValue([{ value: "", label: "All Accounts" }]);
-  getWorklist.mockResolvedValue({ criticalFollowUpInvoices: [], highValueDelinquents: [], disputedInvoices: [] });
+  getWorklist.mockResolvedValue(worklist);
   const element = createElement("c-rlm-collections-dashboard", { is: RlmCollectionsDashboard });
   document.body.appendChild(element);
   await flushPromises();
@@ -225,5 +227,63 @@ describe("c-rlm-collections-dashboard figures the user cannot read", () => {
     await flushPromises();
     expect(text(element, ".progress-empty")).toEqual(["No collection plan data available."]);
     expect(text(element, ".progress-avg-value")).toEqual(["0", "0"]);
+  });
+  it("says the payment schedules could not be read when the call fails, not '$0.00'", async () => {
+    const element = await mount();
+    getPaymentPromiseSummary.error();
+    await flushPromises();
+
+    expect(text(element, ".payment-promises-empty")).toEqual(["You don't have access to payment schedules."]);
+    expect(text(element, ".payment-promises-label")).toEqual([`Payment Promises (${DASH})`]);
+  });
+
+  it("says the collection plans could not be read when the progress call fails, not zero averages", async () => {
+    const element = await mount();
+    getCollectionsProgress.error();
+    await flushPromises();
+
+    expect(text(element, ".progress-empty")).toEqual(["You don't have access to collection plans."]);
+    expect(text(element, ".progress-avg-value")).toEqual([DASH, DASH]);
+  });
+
+  it.each([
+    ["a refused read", (adapter) => adapter.emit(null)],
+    ["a failed call", (adapter) => adapter.error()]
+  ])("shows the plan tasks and my plans as not available after %s, not a count of 0", async (_, fail) => {
+    const element = await mount();
+    fail(getCollectionPlanTasks);
+    fail(getMyCollectionPlans);
+    await flushPromises();
+
+    expect(text(element, ".cp-tasks-meta")).toEqual([DASH]);
+    expect(text(element, ".cp-tasks-empty")).toEqual(["You don't have access to collection plan tasks."]);
+    expect(text(element, ".my-cp-meta")).toEqual([DASH]);
+    expect(text(element, ".my-cp-empty")).toEqual(["You don't have access to collection plans."]);
+  });
+
+  it("shows empty readable lists as empty, with a count of 0", async () => {
+    const element = await mount();
+    getCollectionPlanTasks.emit([]);
+    getMyCollectionPlans.emit([]);
+    await flushPromises();
+
+    expect(text(element, ".cp-tasks-meta")).toEqual(["0"]);
+    expect(text(element, ".cp-tasks-empty")).toEqual(["No tasks linked to Collection Plans."]);
+    expect(text(element, ".my-cp-meta")).toEqual(["0"]);
+    expect(text(element, ".my-cp-empty")).toEqual(["No collection plans assigned to you."]);
+  });
+
+  it("says a worklist tab could not be read instead of 'No items in this view'", async () => {
+    const element = await mount({
+      criticalFollowUpInvoices: [],
+      highValueDelinquents: [],
+      disputedInvoices: [],
+      unavailable: ["critical"]
+    });
+    await flushPromises();
+
+    expect(text(element, ".worklist-empty")).toEqual([
+      "You don't have access to the records this list is built from."
+    ]);
   });
 });

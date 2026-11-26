@@ -157,26 +157,33 @@ existing org, deploy this bundle before `assemble_and_deploy_ux`, or the console
 org does not have.
 
 A collections user who does not hold `RLM_BillingUI` needs the Billing and Billing Advanced
-licenses, the managed Billing Collections and Recovery Specialist set, `RLM_CollectionsUI` and
-`RLM_CollectionsDashboard`. The specialist set reads accounts, currencies, invoices, payment
-schedules and collection plans; `RLM_CollectionsDashboard` adds the tab, the controller and the
-reads the dashboard makes that the specialist set lacks (measured on 264, todo 435): read on
-Case and Payment, Case AccountId/Subject/Description/Reason, CollectionPlanItem.InvoiceId and
-Task ActivityDate/WhatId (the platform adds Event.WhatId with Task.WhatId, so the file lists it).
-Without them the controller swallows the refused reads and the cards, disputed worklist and
-plan tasks come back empty, which reads as nothing owed.
+licenses, the managed Billing Collections and Recovery Specialist set and `RLM_CollectionsDashboard`,
+nothing else: the set is self-sufficient beside the specialist set, so the dashboard works with
+`billing_ui` on and `collections` off (`RLM_CollectionsUI`, which ships with `collections`, is for the
+Collection Plan record page, not the dashboard). The specialist set reads accounts, currencies,
+invoices, payment schedules, collection plans and plan items; `RLM_CollectionsDashboard` adds the
+tab, the controller and, read-only, every read the controller makes that the specialist set lacks
+(measured on 264, 2026-11-26, todo 435, as a Minimum Access user holding only those two sets): read
+on Case and Payment; Case AccountId/Subject/Description/Reason; CollectionPlan
+AccountId/Duedate/ClosedDate/DaysPastDue; CollectionPlanItem.InvoiceId; Task ActivityDate/WhatId
+(the platform adds Event.WhatId with Task.WhatId, so the file lists it).
 
 Debit memos stay unread, by owner decision: reading `DebitMemo` needs the Manage Debit Memos user
 permission (measured on 264), a manage permission too broad for a read-only collections role, so
-the set does not grant it. The dashboard shows what such a user cannot read as not available
-instead of a zero: the Debit Memos line of the total balance reads "—" with "You don't have
-access to debit memos.", and the Total Balance says it excludes debit memos. The same rule covers
-every figure the dashboard shows (todo 435): a refused invoice, payment, payment schedule or
-collection plan read is returned as unavailable (null, or the cards' `unavailable` list, or the
-progress `unavailable` flag), never as $0.00. `RLM_BillingUIAccessTest`
-runs every controller read as this user, and `RLM_CollectionsDashboardControllerTest` loads the
-dashboard as this user and as the same user without the set. The build assigns the set to the
-running user only.
+the set does not grant it.
+
+The dashboard shows anything its user cannot read as not available, never as a zero or an empty
+"none" (todo 435). Figures: a refused invoice, debit memo, payment, payment schedule or collection
+plan read comes back null or listed in the cards' `unavailable` (or the progress `unavailable`
+flag), and the page shows "—" with "You don't have access to ...": the Debit Memos line of the
+total balance reads "—" and the Total Balance says it excludes debit memos, or shows "—" itself
+when nothing could be read. Lists: a refused read of the plan tasks or the user's plans returns null
+and the page shows "—" for the count with a not-available note; a worklist tab whose read was
+refused is listed in `WorklistData.unavailable`, gets no placeholder row, and says so instead of
+"No items in this view". A failed call (a wire error) is shown the same way.
+`RLM_BillingUIAccessTest` runs every controller read as this user, and
+`RLM_CollectionsDashboardControllerTest` loads the dashboard as this user and as the same user
+without the set. The build assigns the set to the running user only.
 
 ## Do not
 

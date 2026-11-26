@@ -75,14 +75,16 @@ private class RLM_CollectionsDashboardControllerTest {
             Assert.isFalse(fp.PermissionsEdit, 'Read only: ' + fp.Field);
         }
         Assert.areEqual(new Set<String>{
-            'Case.AccountId', 'Case.Description', 'Case.Reason', 'Case.Subject', 'CollectionPlanItem.InvoiceId',
+            'Case.AccountId', 'Case.Description', 'Case.Reason', 'Case.Subject', 'CollectionPlan.AccountId',
+            'CollectionPlan.ClosedDate', 'CollectionPlan.DaysPastDue', 'CollectionPlan.Duedate', 'CollectionPlanItem.InvoiceId',
             'Event.WhatId', 'Task.ActivityDate', 'Task.WhatId'
         }, fields, 'Field reads the specialist set lacks.');
     }
 
     // The dashboard as the collections user it is for, with no RLM_BillingUI: the Billing and Billing
-    // Advanced licenses, the managed Billing Collections and Recovery Specialist set, RLM_CollectionsUI
-    // and RLM_CollectionsDashboard. Every section that reads a record the test can create returns it
+    // Advanced licenses, the managed Billing Collections and Recovery Specialist set and
+    // RLM_CollectionsDashboard (no RLM_CollectionsUI: it ships with the collections flag, which can be off
+    // while billing_ui is on). Every section that reads a record the test can create returns it
     // (invoices cannot be inserted; RLM_BillingUIAccessTest.collectionsUserWithoutBillingUiCanRunTheDashboardReads
     // runs every read the controller makes as this user). Debit memos are the one component this user
     // cannot read (no Manage Debit Memos): the cards say so instead of counting them as zero.
@@ -96,10 +98,10 @@ private class RLM_CollectionsDashboardControllerTest {
     @isTest
     static void collectionsUser_withoutBillingUi_getsEverySectionsData() {
         User withSet = RLM_BillingUITestUsers.create(new List<String>{
-            'BillingCollectionsAndRecoverySpecialist', 'RLM_CollectionsUI', 'RLM_CollectionsDashboard'
+            'BillingCollectionsAndRecoverySpecialist', 'RLM_CollectionsDashboard'
         }, COLLECTIONS_LICENSES);
         User withoutSet = RLM_BillingUITestUsers.create(new List<String>{
-            'BillingCollectionsAndRecoverySpecialist', 'RLM_CollectionsUI'
+            'BillingCollectionsAndRecoverySpecialist'
         }, COLLECTIONS_LICENSES);
         Account a = new Account(Name = 'RLM CD Collections User', OwnerId = withSet.Id);
         insert a;
@@ -113,7 +115,8 @@ private class RLM_CollectionsDashboardControllerTest {
         List<String> dashboardReads = new List<String>{
             'SELECT Subject, Reason FROM Case LIMIT 1',
             'SELECT ActivityDate, WhatId FROM Task LIMIT 1',
-            'SELECT Balance FROM Payment LIMIT 1'
+            'SELECT Balance FROM Payment LIMIT 1',
+            'SELECT Duedate, AccountId, ClosedDate, DaysPastDue FROM CollectionPlan LIMIT 1'
         };
 
         Map<String, Object> granted;
@@ -154,6 +157,11 @@ private class RLM_CollectionsDashboardControllerTest {
 
         Assert.areEqual(dashboardReads, refusedWithoutSet, 'Without the set each of these reads is refused.');
         Assert.isNull(control.get('payments'), 'The refused payment read is unavailable, not zero.');
+        Assert.isTrue((Boolean) control.get('tasksUnavailable'), 'The refused task read is unavailable, not "no tasks".');
+        Assert.isNull(control.get('myPlans'), 'The refused plan field read is unavailable, not "no plans".');
+        Assert.isFalse((Boolean) granted.get('tasksUnavailable'), 'With the set the tasks are read.');
+        Assert.isTrue(((List<String>) granted.get('worklistUnavailable')).isEmpty(),
+            'With the set every worklist tab is read: ' + granted.get('worklistUnavailable'));
         Assert.isTrue(((List<String>) control.get('unavailable')).contains(
             RLM_CollectionsDashboardController.UNAVAILABLE_PAYMENTS), 'And listed as unavailable.');
     }
@@ -166,6 +174,8 @@ private class RLM_CollectionsDashboardControllerTest {
             RLM_CollectionsDashboardController.getWorklist(null, null);
         List<RLM_CollectionsDashboardController.CpTaskItem> tasks =
             RLM_CollectionsDashboardController.getCollectionPlanTasks(accountId);
+        List<RLM_CollectionsDashboardController.MyCollectionPlanItem> myPlans =
+            RLM_CollectionsDashboardController.getMyCollectionPlans();
         RLM_CollectionsDashboardController.WorklistItem disputedRow = byAccount(worklist.disputedInvoices).get(accountId);
         RLM_CollectionsDashboardController.CollectionsProgressData progress =
             RLM_CollectionsDashboardController.getCollectionsProgress();
@@ -176,8 +186,11 @@ private class RLM_CollectionsDashboardControllerTest {
             'unavailable' => cards.unavailable,
             'debitRow' => cards.totalBalanceBreakdown[1],
             'disputed' => disputedRow == null ? 0 : 1,
-            'taskDate' => tasks.isEmpty() ? null : tasks[0].activityDate,
-            'myPlans' => RLM_CollectionsDashboardController.getMyCollectionPlans().size(),
+            // A null list is a refused read (unavailable), not an empty one.
+            'taskDate' => tasks == null || tasks.isEmpty() ? null : tasks[0].activityDate,
+            'tasksUnavailable' => tasks == null,
+            'myPlans' => myPlans == null ? null : myPlans.size(),
+            'worklistUnavailable' => worklist.unavailable,
             'plans' => progress.totalPlans,
             'progressUnavailable' => progress.unavailable,
             'promises' => RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null)
@@ -736,7 +749,7 @@ private class RLM_CollectionsDashboardControllerTest {
         Test.stopTest();
 
         Assert.isTrue(readable.isEmpty(), 'PRECONDITION: the user cannot query ' + readable + ' in user mode.');
-        Assert.isTrue(myPlans.isEmpty(), 'No plan is listed: the user owns none.');
+        Assert.isNull(myPlans, 'An unreadable plan list is unavailable, not "no plans".');
         // Every card component is unavailable, not zero: the page says so instead of showing $0.00.
         Assert.areEqual(new List<String>{
             RLM_CollectionsDashboardController.UNAVAILABLE_INVOICES,
@@ -761,8 +774,13 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.isTrue(worklist.disputedInvoices.isEmpty(), 'The open case is not listed (access or sharing).');
         Assert.isTrue(worklist.highValueDelinquents.isEmpty(), 'No placeholder row (access or sharing).');
         Assert.isTrue(worklist.criticalFollowUpInvoices.isEmpty(), 'No placeholder row (access or sharing).');
+        Assert.areEqual(new List<String>{
+            RLM_CollectionsDashboardController.WORKLIST_CRITICAL,
+            RLM_CollectionsDashboardController.WORKLIST_HIGH_VALUE,
+            RLM_CollectionsDashboardController.WORKLIST_DISPUTED
+        }, worklist.unavailable, 'Each refused tab is unavailable, not "nothing to work on".');
         Assert.isNull(promises, 'An unreadable schedule item is unavailable, not "no promises".');
-        Assert.isTrue(tasks.isEmpty(), 'The plan\'s task is not listed (access or sharing).');
+        Assert.isNull(tasks, 'An unreadable task list is unavailable, not "no tasks".');
         Assert.isTrue(progress.unavailable, 'Unreadable plans are unavailable, not "no plans".');
     }
 

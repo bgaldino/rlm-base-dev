@@ -4,7 +4,7 @@
         <apexClass>RLM_CollectionsDashboardController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
-    <description>Collections Dashboard tab and controller, plus the reads it needs beyond the Billing Collections and Recovery Specialist set: Case, Payment, plan item invoice, task date and record. Assign with that set.</description>
+    <description>Collections Dashboard tab, controller and the reads it needs beyond the Billing Collections and Recovery Specialist set (Case, Payment, plan due/close fields, plan item invoice, task date). Assign with that set.</description>
     <fieldPermissions>
         <editable>false</editable>
         <field>Case.AccountId</field>
@@ -23,6 +23,26 @@
     <fieldPermissions>
         <editable>false</editable>
         <field>Case.Subject</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>CollectionPlan.AccountId</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>CollectionPlan.ClosedDate</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>CollectionPlan.DaysPastDue</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>CollectionPlan.Duedate</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
