@@ -792,18 +792,6 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         return this.dashboardData?.invoiceCount != null ? this.dashboardData.invoiceCount : 0;
     }
 
-    get partiallySettledLabel() {
-        const c = this.dashboardData?.partiallySettledCount ?? 0;
-        const s = this.dashboardData?.partiallySettledSum ?? 0;
-        return `Partially settled: ${c} (${this.formatCurrency(s, this.cardsCurrency)})`;
-    }
-
-    get notSettledLabel() {
-        const c = this.dashboardData?.notSettledCount ?? 0;
-        const s = this.dashboardData?.notSettledSum ?? 0;
-        return `Not settled: ${c} (${this.formatCurrency(s, this.cardsCurrency)})`;
-    }
-
     get currentDueValue() {
         return this.dashboardData?.currentDue != null ? this.dashboardData.currentDue : 0;
     }
@@ -1085,20 +1073,25 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         return 'tab-disputed';
     }
 
+    taskPlanLabel(task) {
+        if (!task.collectionPlanId) return NOT_AVAILABLE;
+        return task.collectionPlanName || NOT_AVAILABLE_CELL;
+    }
+
     get cpTasks() {
         if (!this.cpTasksData || !Array.isArray(this.cpTasksData)) return [];
         return this.cpTasksData.map((t, idx) => {
             const subj = t.subject || '';
             const subjectShort = subj.length > 18 ? subj.slice(0, 15) + '...' : subj;
-            const cpIdShort = t.collectionPlanId ? String(t.collectionPlanId).slice(-8) : '—';
             return {
                 ...t,
                 uniqueKey: `cptask-${t.taskId || idx}`,
                 taskUrl: t.taskId ? `/lightning/r/Task/${t.taskId}/view` : '#',
                 activityDateFormatted: t.activityDate ? this.formatPtpDate(t.activityDate) : '—',
-                cpUrl: t.collectionPlanId ? `/lightning/r/CollectionPlan/${t.collectionPlanId}/view` : '#',
-                subjectShort,
-                cpIdShort
+                // The plan by name: "Not available" if a listed task's plan came back without one, "—" for none.
+                cpUrl: t.collectionPlanId && t.collectionPlanName ? `/lightning/r/CollectionPlan/${t.collectionPlanId}/view` : null,
+                planLabel: this.taskPlanLabel(t),
+                subjectShort
             };
         });
     }

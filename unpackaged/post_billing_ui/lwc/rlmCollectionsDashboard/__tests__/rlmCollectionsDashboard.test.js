@@ -1140,4 +1140,30 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
     expect(rows[1].textContent).not.toContain("003000000000002AAA");
     expect(contactLink(rows[2])).toBeUndefined();
   });
+
+  // A task's plan is labelled by name, never by its record Id, and has no raw-Id tooltip.
+  it("labels a task's collection plan by name", async () => {
+    const element = await mount();
+    getCollectionPlanTasks.emit({
+      items: [
+        { taskId: "00T000000000001AAA", subject: "Call", status: "Open", activityDate: "2026-11-25",
+          collectionPlanId: "0Wn000000000001AAA", collectionPlanName: "CP-0042" },
+        { taskId: "00T000000000002AAA", subject: "Email", status: "Open", activityDate: "2026-11-24",
+          collectionPlanId: "0Wn000000000002AAA" }
+      ],
+      unavailable: false,
+      hasMore: false,
+      filters: ["account"]
+    });
+    await flushPromises();
+
+    const table = element.shadowRoot.querySelector(".cp-tasks-table");
+    expect(table.textContent).toContain("CP-0042");
+    expect(table.textContent).not.toContain("0Wn000000000001AAA");
+    expect(table.textContent).not.toContain("00000001AAA");
+    expect(Array.from(table.querySelectorAll("[title]")).map((node) => node.getAttribute("title"))).not.toContain("0Wn000000000001AAA");
+    const rows = Array.from(table.querySelectorAll("tbody tr"));
+    expect(rows[1].textContent).toContain("Not available");
+    expect(rows[1].querySelector("a.cp-task-cpid")).toBeNull();
+  });
 });

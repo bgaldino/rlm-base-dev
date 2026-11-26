@@ -236,7 +236,7 @@ public with sharing class RLM_CollectionsDashboardController {
         Decimal sumUnpaidInvoiceBalance = null;
         try {
             List<Invoice> unpaidInvoices = (List<Invoice>) boundedRows(
-                'SELECT Id, Balance, TotalAmount, DueDate' + currencySelect() + ' FROM Invoice WHERE ' + invWhere,
+                'SELECT Id, Balance, DueDate' + currencySelect() + ' FROM Invoice WHERE ' + invWhere,
                 new Map<String, Object>{ 'accountId' => accountId, 'currencyCode' => currencyCode }, 'unpaid invoices');
             tallyInvoices(data, unpaidInvoices, Date.today());
             sumUnpaidInvoiceBalance = data.receivablesOutstanding;
@@ -309,10 +309,6 @@ public with sharing class RLM_CollectionsDashboardController {
         markUnavailable(data, UNAVAILABLE_INVOICES, e);
         data.receivablesOutstanding = null;
         data.invoiceCount = null;
-        data.partiallySettledCount = null;
-        data.partiallySettledSum = null;
-        data.notSettledCount = null;
-        data.notSettledSum = null;
         data.currentDue = null;
         data.overdue = null;
         data.agingBuckets = new List<Map<String, Object>>();
@@ -344,17 +340,9 @@ public with sharing class RLM_CollectionsDashboardController {
         Decimal sumCurrentDue = 0;
         Decimal sumOverdue = 0;
         Decimal agingCurrent = 0, aging1_30 = 0, aging31_60 = 0, aging61_90 = 0, aging90Plus = 0;
-        Integer partiallySettledCount = 0;
-        Decimal partiallySettledSum = 0;
-        Integer notSettledCount = 0;
-        Decimal notSettledSum = 0;
 
         for (Invoice inv : unpaidInvoices) {
             Decimal bal = orZero(amountIn(inv, 'Balance'));
-            // Partly settled or not is decided on the invoice's own amounts: converted and rounded, a 10,001 JPY
-            // invoice with 10,000 left could round to "nothing paid".
-            Decimal ownBalance = inv.Balance != null ? inv.Balance : 0;
-            Decimal ownTotal = inv.TotalAmount != null ? inv.TotalAmount : 0;
             sumUnpaidInvoiceBalance += bal;
             if (inv.DueDate != null) {
                 if (inv.DueDate >= today) {
@@ -372,21 +360,10 @@ public with sharing class RLM_CollectionsDashboardController {
                 sumCurrentDue += bal;
                 agingCurrent += bal;
             }
-            if (ownTotal > 0 && ownBalance > 0 && ownBalance < ownTotal) {
-                partiallySettledCount++;
-                partiallySettledSum += bal;
-            } else {
-                notSettledCount++;
-                notSettledSum += bal;
-            }
         }
 
         data.receivablesOutstanding = sumUnpaidInvoiceBalance;
         data.invoiceCount = unpaidInvoices.size();
-        data.partiallySettledCount = partiallySettledCount;
-        data.partiallySettledSum = partiallySettledSum;
-        data.notSettledCount = notSettledCount;
-        data.notSettledSum = notSettledSum;
         data.currentDue = sumCurrentDue;
         data.overdue = sumOverdue;
 
@@ -478,17 +455,22 @@ public with sharing class RLM_CollectionsDashboardController {
             if (accountId != null && String.isNotBlank(String.valueOf(accountId))) {
                 cpWhere += ' AND AccountId = :accountId ';
             }
-            // Every plan in scope, bounded (a cut list of plans would hide their tasks without saying so).
+            // Every plan in scope, bounded (a cut list of plans would hide their tasks without saying so), with
+            // its name: a task's plan is labelled by name, not by its Id.
             List<Id> cpIds = new List<Id>();
-            for (SObject cp : boundedRows('SELECT Id FROM CollectionPlan WHERE ' + cpWhere,
+            Map<Id, String> planNames = new Map<Id, String>();
+            for (SObject cp : boundedRows('SELECT Id, Name FROM CollectionPlan WHERE ' + cpWhere,
                     new Map<String, Object>{ 'accountId' => accountId }, 'collection plans')) {
                 cpIds.add((Id) cp.get('Id'));
+                planNames.put((Id) cp.get('Id'), (String) cp.get('Name'));
             }
             if (cpIds.isEmpty()) return taskList;
             // One more than the list shows, so a list with more tasks says so instead of reading as all of them.
             Integer taskReadLimit = TASK_ROWS + 1;
             for (Task t : [SELECT Id, Subject, Status, ActivityDate, WhatId FROM Task WHERE WhatId IN :cpIds WITH USER_MODE ORDER BY ActivityDate DESC NULLS LAST, CreatedDate DESC LIMIT :taskReadLimit]) {
-                results.add(new CpTaskItem(t.Id, t.Subject, t.Status, t.ActivityDate, t.WhatId));
+                CpTaskItem item = new CpTaskItem(t.Id, t.Subject, t.Status, t.ActivityDate, t.WhatId);
+                item.collectionPlanName = planNames.get(t.WhatId);
+                results.add(item);
             }
             taskList.hasMore = keepFirst(results, TASK_ROWS);
         } catch (Exception e) {
@@ -541,6 +523,9 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public String status { get; set; }
         @AuraEnabled public Date activityDate { get; set; }
         @AuraEnabled public Id collectionPlanId { get; set; }
+        // The plan's name, its label on the row (the tasks are read for the plans read, so a listed task's plan
+        // was read with it).
+        @AuraEnabled public String collectionPlanName { get; set; }
         public CpTaskItem(Id taskId, String subject, String status, Date activityDate, Id collectionPlanId) {
             this.taskId = taskId;
             this.subject = subject;
@@ -1158,11 +1143,23 @@ public with sharing class RLM_CollectionsDashboardController {
     // The standard rates of every currency, active or not (a record keeps the currency it was created in), and
     // today's dated rates. Without advanced currency management there are no dated rates; a user refused them in
     // an org that has them would get standard-rate figures that look real, so that refuses (as pack 452 does).
+    // Set when this call could not read the rates: later sections fail the same way without reading again.
+    private static Boolean ratesUnreadable = false;
+
     private static void loadRates() {
         if (standardRates != null) return;
+        if (ratesUnreadable) throw new CurrencyConversionException('The conversion rates could not be read.');
         Map<String, Decimal> standard = new Map<String, Decimal>();
-        for (SObject ct : Database.query('SELECT IsoCode, ConversionRate FROM CurrencyType', AccessLevel.USER_MODE)) {
-            standard.put((String) ct.get('IsoCode'), (Decimal) ct.get('ConversionRate'));
+        try {
+            failIfForced('currencyRates');
+            for (SObject ct : Database.query('SELECT IsoCode, ConversionRate FROM CurrencyType', AccessLevel.USER_MODE)) {
+                standard.put((String) ct.get('IsoCode'), (Decimal) ct.get('ConversionRate'));
+            }
+        } catch (Exception e) {
+            // A refused or failed CurrencyType read is the rates' failure (noRates), not the section's own.
+            sectionSkipped('loadRates', e);
+            ratesUnreadable = true;
+            throw new CurrencyConversionException('The conversion rates could not be read.');
         }
         Map<String, Decimal> dated = new Map<String, Decimal>();
         try {
@@ -1172,6 +1169,7 @@ public with sharing class RLM_CollectionsDashboardController {
             }
         } catch (Exception e) {
             if (datedRatesExist()) {
+                ratesUnreadable = true;
                 throw new CurrencyConversionException('Dated conversion rates could not be read.');
             }
         }
@@ -1448,10 +1446,6 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public List<Map<String, Object>> totalBalanceBreakdown { get; set; }
         @AuraEnabled public Decimal receivablesOutstanding { get; set; }
         @AuraEnabled public Integer invoiceCount { get; set; }
-        @AuraEnabled public Integer partiallySettledCount { get; set; }
-        @AuraEnabled public Decimal partiallySettledSum { get; set; }
-        @AuraEnabled public Integer notSettledCount { get; set; }
-        @AuraEnabled public Decimal notSettledSum { get; set; }
         @AuraEnabled public Decimal currentDue { get; set; }
         @AuraEnabled public Decimal overdue { get; set; }
         @AuraEnabled public Decimal unappliedPaymentBalance { get; set; }
@@ -1478,10 +1472,6 @@ public with sharing class RLM_CollectionsDashboardController {
             totalBalanceBreakdown = new List<Map<String, Object>>();
             receivablesOutstanding = 0;
             invoiceCount = 0;
-            partiallySettledCount = 0;
-            partiallySettledSum = 0;
-            notSettledCount = 0;
-            notSettledSum = 0;
             currentDue = 0;
             overdue = 0;
             unappliedPaymentBalance = 0;

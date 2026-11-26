@@ -324,7 +324,7 @@
                                             <th scope="col">Subject</th>
                                             <th scope="col">Status</th>
                                             <th scope="col">Due</th>
-                                            <th scope="col">CP ID</th>
+                                            <th scope="col">Collection Plan</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -333,7 +333,12 @@
                                                 <td><a href={task.taskUrl} class="cp-task-subject" title={task.subject}>{task.subjectShort}</a></td>
                                                 <td>{task.status}</td>
                                                 <td class="num">{task.activityDateFormatted}</td>
-                                                <td><a href={task.cpUrl} class="cp-task-cpid" title={task.collectionPlanId}>{task.cpIdShort}</a></td>
+                                                <td>
+                                                    <template if:true={task.cpUrl}>
+                                                        <a href={task.cpUrl} class="cp-task-cpid">{task.planLabel}</a>
+                                                    </template>
+                                                    <template if:false={task.cpUrl}>{task.planLabel}</template>
+                                                </td>
                                             </tr>
                                         </template>
                                     </tbody>

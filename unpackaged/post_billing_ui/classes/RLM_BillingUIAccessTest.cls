@@ -19,10 +19,12 @@
  * READS lists what the controllers select or filter on, per object. Keep it in step with
  * the controllers: a new USER_MODE field there belongs here, and in the permission set.
  * Task has no object permission (access follows the related record), so only its permissionable
- * fields are listed. Left out on purpose: DatedConversionRate (advanced currency management only), InvoiceBatchRun (the
+ * fields are listed. DatedConversionRate is listed for the Collections Dashboard (COLLECTIONS_READS and
+ * DASHBOARD_READS), which converts amounts at today's dated rates where there are any; unreadable() skips it, and
+ * CurrencyType, on a single-currency org. Left out on purpose: InvoiceBatchRun (the
  * batch monitor's page: the managed Billing Operations set reads it, the managed Billing Admin
  * set does not, and the RLM_Billing_Admin and RLM_Billing_Operations groups grant it through
- * RLM_BillingInvoiceDocuments, todo 292), and DisputeItem (the write check covers it).
+ * RLM_BillingInvoiceDocuments, todo 292) and DisputeItem (the write check covers it).
  */
 @IsTest
 private class RLM_BillingUIAccessTest {
@@ -168,7 +170,7 @@ private class RLM_BillingUIAccessTest {
         // Today's dated rates, where advanced currency management has the object.
         'DatedConversionRate' => new List<String>{ 'IsoCode', 'ConversionRate', 'StartDate', 'NextStartDate' },
         'Invoice' => new List<String>{
-            'InvoiceNumber', 'Balance', 'TotalAmount', 'DueDate', 'BillingAccountId',
+            'InvoiceNumber', 'Balance', 'DueDate', 'BillingAccountId',
             'BillToContactId', 'Status', 'CurrencyIsoCode'
         },
         'PaymentSchedule' => new List<String>{ 'ReferenceEntityId' },

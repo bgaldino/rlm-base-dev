@@ -253,13 +253,14 @@ of several currencies as if they were one, or showed a chosen currency's amounts
 corporate one. Now every amount is read as a row with its `CurrencyIsoCode` and converted in Apex to
 the page currency, at today's dated rate where advanced currency management has one, else the standard
 rate, as the on-account cards do (pack 452: the same rate rule, `effectiveRate` in
-`RLM_OnAccountBillingController`). A currency with no rate, or dated rates the user cannot read in an
-org that has them, makes the figure unavailable, never converted at 1, and the page says why rather
+`RLM_OnAccountBillingController`). A currency with no rate, a `CurrencyType` read that is refused or
+fails, or dated rates the user cannot read in an org that has them, makes the figure unavailable (the
+rates are read once per call; after a failure the later sections fail the same way without reading
+again), never converted at 1, and the page says why rather
 than to refresh: "Amounts in other currencies cannot be converted: the conversion rates could not be
 read. Contact your administrator." (reason `noRates`). The Critical list's 2000 threshold is 2000 in
 the page currency: with no currency chosen, one condition per currency (`balanceAtLeast`); with one
-chosen, the read is filtered to it, so the plain threshold applies and no rate is read. Partly settled
-or not is decided on each invoice's own amounts; only the sums are converted. Progress and the user's
+chosen, the read is filtered to it, so the plain threshold applies and no rate is read. Progress and the user's
 plans are shown in the page currency too (choosing a currency re-reads them; they still convert any
 plan in another currency). Every section says which currency its answer is in, and the page formats
 its amounts in that currency, not the browser's guess, showing none before the answer arrives. On a
@@ -275,8 +276,8 @@ missing from it because sharing hides it from the user (Account.Name is required
 is a hidden one), as plain text with no link to the account, whose page the user could not open. A row
 with no account at all shows "—". The Critical list's bill-to contact follows the same rule: its name,
 read in USER_MODE for the listed rows in one batch, "Not available" as plain text when it is refused,
-fails or the contact is hidden, "—" with no contact. The collection plan is labelled by its name, not
-its record Id. Measured on 264 (2026-11-26): the collections user reads `Contact.Name`, so
+fails or the contact is hidden, "—" with no contact. A collection plan is labelled by its name, not its
+record Id, on the worklist and in the plan tasks list (no column or tooltip shows a record Id). Measured on 264 (2026-11-26): the collections user reads `Contact.Name`, so
 `RLM_CollectionsDashboard` grants nothing more for it.
 
 Query-row costs measured on 264 (2026-11-26): a `SUM` aggregate costs a query row for every row it

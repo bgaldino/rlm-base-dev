@@ -691,28 +691,53 @@ private class RLM_CollectionsDashboardControllerTest {
             'A chosen currency: the plain threshold: ' + chosen);
     }
 
-    // Partly settled or not is decided on the invoice's own amounts, not on converted, rounded ones.
+    // Each invoice's balance is converted to the page currency before it is added to the cards and aging.
     @isTest
-    static void tallyInvoices_decidesSettlementOnTheInvoicesOwnAmounts() {
+    static void tallyInvoices_convertsEachBalanceToThePageCurrency() {
         if (!UserInfo.isMultiCurrencyOrganization()) return;
+        String other = convertibleCurrency();
+        if (other == null) return;
         String corporate = corporateCurrency();
-        // The currency with the highest rate: there 10,000 and 10,001 can round to the same converted amount.
-        CurrencyType highest = [SELECT IsoCode FROM CurrencyType WHERE IsActive = true ORDER BY ConversionRate DESC LIMIT 1];
-        if (highest.IsoCode == corporate || converted(10000, highest.IsoCode, corporate) != converted(10001, highest.IsoCode, corporate)) {
-            System.debug(LoggingLevel.WARN, 'SKIPPED: no currency where 10,000 and 10,001 convert to the same amount');
-            return;
-        }
         RLM_CollectionsDashboardController.usePageCurrency(corporate);
         RLM_CollectionsDashboardController.CollectionsDashboardData data = new RLM_CollectionsDashboardController.CollectionsDashboardData();
         List<Invoice> invoices = new List<Invoice>{
-            invoice(new Map<String, Object>{ 'Balance' => 10000, 'TotalAmount' => 10001, 'DueDate' => Date.newInstance(2026, 7, 30),
-                'CurrencyIsoCode' => highest.IsoCode })
+            invoice(new Map<String, Object>{ 'Balance' => 1000, 'DueDate' => Date.newInstance(2026, 7, 30), 'CurrencyIsoCode' => other }),
+            invoice(new Map<String, Object>{ 'Balance' => 1000, 'DueDate' => Date.newInstance(2026, 7, 30), 'CurrencyIsoCode' => corporate })
         };
 
         RLM_CollectionsDashboardController.tallyInvoices(data, invoices, Date.newInstance(2026, 6, 30));
 
-        Assert.areEqual(1, data.partiallySettledCount, 'One unit paid of 10,001: partly settled, though it rounds away converted');
-        assertAmount(converted(10000, highest.IsoCode, corporate), data.receivablesOutstanding, 'The sum is converted');
+        assertAmount(converted(1000, other, corporate) + 1000, data.receivablesOutstanding, 'Each balance converted, then added');
+        assertAmount(converted(1000, other, corporate) + 1000, data.currentDue, 'Current due in the page currency too');
+    }
+
+    // A CurrencyType read that fails is the rates' failure (noRates), not the section's, and it is read once.
+    @isTest
+    static void anUnreadableCurrencyTypeIsNoRates_andIsNotReadAgain() {
+        if (!UserInfo.isMultiCurrencyOrganization()) return;
+        String other = convertibleCurrency();
+        if (other == null) return;
+        Account acc = newAccount('RLM CD Rates Unreadable');
+        insert payment(acc.Id, 100, 'Processed', other);
+        RLM_CollectionsDashboardController.forcedFailures.add('currencyRates');
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.CollectionsDashboardData cards = RLM_CollectionsDashboardController.getDashboardCards(acc.Id, null);
+        Integer queriesBefore = Limits.getQueries();
+        Boolean refusedAgain = false;
+        try {
+            RLM_CollectionsDashboardController.toPageCurrency(100, other);
+        } catch (RLM_CollectionsDashboardController.CurrencyConversionException e) {
+            refusedAgain = true;
+        }
+        Integer queriesAfter = Limits.getQueries();
+        Test.stopTest();
+
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_NO_RATES,
+            cards.unavailableReason.get(RLM_CollectionsDashboardController.UNAVAILABLE_PAYMENTS),
+            'The payment in another currency cannot be converted: noRates, not refused or failed');
+        Assert.isTrue(refusedAgain, 'A later conversion in the same call fails the same way');
+        Assert.areEqual(queriesBefore, queriesAfter, 'Without reading CurrencyType again');
     }
 
     // My Plans and progress amounts are in the page currency. TotalInvoiceBalance is computed by the platform and
@@ -1401,7 +1426,7 @@ private class RLM_CollectionsDashboardControllerTest {
         List<String> agingKeys = new List<String>{ 'current', '1-30', '31-60', '61-90', '90+' };
         // Bucket and invoice amounts are not asserted here: no invoice can exist in a unit test, so
         // they are zero whatever the controller does. They are checked from invoice rows in
-        // tallyInvoices_bucketsByDaysPastDueAndSplitsBySettlement.
+        // tallyInvoices_bucketsByDaysPastDue.
         Assert.areEqual(agingKeys.size(), unfiltered.agingBuckets.size(), 'Five aging buckets.');
         for (Integer i = 0; i < agingKeys.size(); i++) {
             Assert.areEqual(agingKeys[i], unfiltered.agingBuckets[i].get('key'), 'Aging bucket order, bucket ' + i);
@@ -1665,6 +1690,8 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(1, forA.size(), 'Only the task on account A\'s plan.');
         Assert.areEqual(taskA.Id, forA[0].taskId, 'The task id.');
         Assert.areEqual(planA.Id, forA[0].collectionPlanId, 'The task\'s plan.');
+        Assert.areEqual([SELECT Name FROM CollectionPlan WHERE Id = :planA.Id].Name, forA[0].collectionPlanName,
+            'The task\'s plan by name, its label on the page.');
         Assert.areEqual('Call about the plan', forA[0].subject, 'The task subject.');
         Assert.areEqual(Date.today().addDays(1), forA[0].activityDate, 'The task due date.');
         Assert.isTrue(String.isNotBlank(forA[0].status), 'Status defaults on insert.');
@@ -1895,25 +1922,24 @@ private class RLM_CollectionsDashboardControllerTest {
         return (Invoice) JSON.deserialize(JSON.serialize(fields), Invoice.class);
     }
 
-    private static Map<String, Object> amountsDue(Decimal balance, Decimal total, Date dueDate) {
-        return new Map<String, Object>{ 'Balance' => balance, 'TotalAmount' => total, 'DueDate' => dueDate };
+    private static Map<String, Object> amountsDue(Decimal balance, Date dueDate) {
+        return new Map<String, Object>{ 'Balance' => balance, 'DueDate' => dueDate };
     }
 
     // Each unpaid invoice adds its balance to the total and to one aging bucket by days past due
-    // (30, 60 and 90 close their buckets); one not yet due, or with no due date, is current. One
-    // with a balance below its total is partially settled; the rest count as not settled.
+    // (30, 60 and 90 close their buckets); one not yet due, or with no due date, is current.
     @isTest
-    static void tallyInvoices_bucketsByDaysPastDueAndSplitsBySettlement() {
+    static void tallyInvoices_bucketsByDaysPastDue() {
         Date today = Date.newInstance(2026, 6, 30);
         List<Invoice> invoices = new List<Invoice>{
-            invoice(amountsDue(100, 100, today.addDays(5))),
-            invoice(amountsDue(40, 100, today.addDays(-30))),
-            invoice(amountsDue(50, 50, today.addDays(-60))),
-            invoice(amountsDue(60, 0, today.addDays(-90))),
-            invoice(amountsDue(70, 80, today.addDays(-91))),
-            invoice(amountsDue(25, 25, null)),
-            invoice(amountsDue(null, 100, null)),
-            invoice(amountsDue(15, 15, today))
+            invoice(amountsDue(100, today.addDays(5))),
+            invoice(amountsDue(40, today.addDays(-30))),
+            invoice(amountsDue(50, today.addDays(-60))),
+            invoice(amountsDue(60, today.addDays(-90))),
+            invoice(amountsDue(70, today.addDays(-91))),
+            invoice(amountsDue(25, null)),
+            invoice(amountsDue(null, null)),
+            invoice(amountsDue(15, today))
         };
         RLM_CollectionsDashboardController.CollectionsDashboardData data =
             new RLM_CollectionsDashboardController.CollectionsDashboardData();
@@ -1926,11 +1952,6 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(8, data.invoiceCount, 'Every invoice is counted');
         Assert.areEqual(140, data.currentDue, 'Due today, not yet due, or no due date, is current');
         Assert.areEqual(220, data.overdue, 'Past due balances are overdue');
-        Assert.areEqual(2, data.partiallySettledCount, 'A balance below its total is partially settled');
-        Assert.areEqual(110, data.partiallySettledSum, 'The partially settled balances add up');
-        Assert.areEqual(6, data.notSettledCount,
-            'Full balances, a zero total and a blank balance (even under a set total) are not settled');
-        Assert.areEqual(250, data.notSettledSum, 'The not-settled balances add up');
         Map<String, Object> byKey = new Map<String, Object>();
         for (Map<String, Object> bucket : data.agingBuckets) {
             byKey.put((String) bucket.get('key'), bucket.get('amount'));
