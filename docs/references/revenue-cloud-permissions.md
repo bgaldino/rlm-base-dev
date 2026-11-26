@@ -561,9 +561,12 @@ the Billing license. Billing Advanced is not needed for invoice documents.
 
 `RLM_BillingInvoiceDocumentsAccessTest` (`unpackaged/post_personas/classes/`) checks, as Minimum Access users:
 
-- **as the group itself:** the Invoice Batch Run reads. Inside a deploy that changes the group or
-  `RLM_BillingInvoiceDocuments` (measured) the group reads `Outdated` and cannot be assigned, so the test recalculates it with
-  `Test.calculatePermissionSetGroup`, asserts it then reads `Updated`, and assigns and checks it. A group in
+- **as the group itself:** the Invoice Batch Run reads. In a deploy that changes the group or its sets the group
+  may not read `Updated`, so the test recalculates it with `Test.calculatePermissionSetGroup`, asserts it then
+  reads `Updated`, and assigns and checks it. The recalculation was measured in deploys that changed
+  `RLM_BillingInvoiceDocuments`; a deploy that first adds the set to the groups (a first install) was not
+  measured with it (an earlier check-only deploy of that kind, with the previous class version, did see both
+  groups `Outdated` [Measured: 2026-11-26, 264, scratch, check-only probe]). A group in
   `Failed` status, a recalculation that throws, or one that does not reach `Updated` fails the test; there is
   no skip. A probe test, in a deploy that changed the set, saw both groups `Outdated`; the call succeeded and
   they then read `Updated` [Measured: 2026-11-26, 264, scratch, check-only probe]. The current class passed

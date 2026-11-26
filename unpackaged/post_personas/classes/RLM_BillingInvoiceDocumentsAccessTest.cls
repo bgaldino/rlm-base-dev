@@ -6,10 +6,10 @@
  * This class does not read the template file: that read depends on org data and configuration.
  *
  * Which tests check what:
- * - the group itself: the *GroupReadsInvoiceBatchRuns methods. Inside a deploy that changes the group or
- *   RLM_BillingInvoiceDocuments (measured) it reads Outdated and cannot be assigned, so the test recalculates it
- *   (Test.calculatePermissionSetGroup), asserts it then reads Updated, and checks it. A Failed group, a
- *   recalculation that throws, or one that does not reach Updated fails the test.
+ * - the group itself: the *GroupReadsInvoiceBatchRuns methods. In a deploy that changes the group or its
+ *   sets the group may not read Updated; the method recalculates it with
+ *   Test.calculatePermissionSetGroup and fails unless it then reads Updated, then checks it. A Failed
+ *   group or a recalculation that throws also fails the test.
  * - the managed role set plus RLM_BillingInvoiceDocuments (the group's content, minus its
  *   field-access set): the Invoice Batch Run reads, the DocGen access, and the *ReadsInvoiceDocumentData
  *   methods' USER_MODE reads of what the invoice data mappers read as the generating user (Product2,
@@ -220,8 +220,8 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
             groupName + ' failed to recalculate, so its holders do not get its permissions');
         String status = groups[0].Status;
         if (status != 'Updated') {
-            // Outdated inside a deploy that changes the group or RLM_BillingInvoiceDocuments (measured).
-            // Recalculate it inside the test so that deploy still checks it; a throw fails the test.
+            // In a deploy that changes the group or its sets the group may not read Updated: recalculate
+            // it, and fail unless it then reads Updated (a throw also fails the test).
             Test.calculatePermissionSetGroup(groups[0].Id);
             Assert.areEqual('Updated', [SELECT Status FROM PermissionSetGroup WHERE Id = :groups[0].Id].Status,
                 groupName + ' failed to recalculate, so its holders do not get its permissions');
