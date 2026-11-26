@@ -127,17 +127,19 @@ const EXCLUDED_ROWS = { debitMemos: "Debit Memos", unappliedCredits: "Unapplied 
 const EMPTY_WORKLIST = { criticalFollowUpInvoices: [], highValueDelinquents: [], disputedInvoices: [], unavailable: [] };
 
 // Mounts with the filter options answered and every data section still waiting for its wire.
-async function mount({ accountsHaveMore = false } = {}) {
+async function mount({ accountsHaveMore = false, accounts } = {}) {
   getOrgDefaultCurrency.mockResolvedValue("USD");
   getCurrencyOptions.mockResolvedValue([{ value: "", label: "All Currencies" }]);
-  getAccountOptions.mockResolvedValue({
-    options: [
-      { value: "", label: "All Accounts" },
-      { value: "001000000000001AAA", label: "Acme" }
-    ],
-    hasMore: accountsHaveMore,
-    unavailable: false
-  });
+  if (accounts) accounts();
+  else
+    getAccountOptions.mockResolvedValue({
+      options: [
+        { value: "", label: "All Accounts" },
+        { value: "001000000000001AAA", label: "Acme" }
+      ],
+      hasMore: accountsHaveMore,
+      unavailable: false
+    });
   const element = createElement("c-rlm-collections-dashboard", { is: RlmCollectionsDashboard });
   document.body.appendChild(element);
   await flushPromises();
@@ -901,5 +903,27 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
     await flushPromises();
 
     expect(text(element, ".filter-notice")).toEqual(["Accounts could not be searched. Try again."]);
+  });
+
+  // Accounts that could not be read: only "All Accounts", the reason, and no search; the page still loads.
+  it.each([
+    [
+      "refused",
+      () => getAccountOptions.mockResolvedValue({
+        options: [{ value: "", label: "All Accounts" }], hasMore: false, unavailable: true, unavailableReason: "refused"
+      }),
+      "You don't have access to accounts."
+    ],
+    ["failed", () => getAccountOptions.mockRejectedValue(new Error("down")), "Accounts could not be loaded. Refresh the page to try again."]
+  ])("says why there is no account to choose when the accounts read is %s", async (label, accounts, message) => {
+    const element = await mount({ accounts });
+
+    expect(text(element, ".filter-notice")).toEqual([message]);
+    expect(accountSearchInput(element)).toBeNull();
+    const account = Array.from(element.shadowRoot.querySelectorAll("lightning-combobox")).find((box) => box.name === "account");
+    expect(account.options.map((option) => option.label)).toEqual(["All Accounts"]);
+    getDashboardCards.emit(cards());
+    await flushPromises();
+    expect(card(element, "Receivables Outstanding").querySelector(".pulse-card-value").textContent).toBe("$1,455.00");
   });
 });

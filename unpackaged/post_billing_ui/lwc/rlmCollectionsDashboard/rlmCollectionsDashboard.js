@@ -24,6 +24,7 @@ const FAILED = 'failed';
 // rows): the figure or list would be built from a cut-off read, so narrow the filters instead.
 const TOO_MANY = 'tooMany';
 const SUBJECTS = {
+    accounts: 'accounts',
     invoices: 'invoices',
     debitMemos: 'debit memos',
     unappliedCredits: 'payments',
@@ -188,6 +189,8 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     // The first page of accounts (getAccountOptions), restored when the search is cleared.
     listedAccountOptions = [];
     accountOptionsHaveMore = false;
+    // Why the accounts could not be read (refused or failed), or null: the filter then offers only "All Accounts".
+    accountOptionsUnavailableReason = null;
     accountSearch;
     accountSearchTerm = '';
     currencyOptions = [];
@@ -218,13 +221,15 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         Promise.all([
             getOrgDefaultCurrency(),
             getCurrencyOptions(),
-            getAccountOptions()
+            // A failed accounts call is its own failure: the page still loads, unfiltered, and says so.
+            getAccountOptions().catch(() => ({ options: [ALL_ACCOUNTS], hasMore: false, unavailable: true, unavailableReason: FAILED }))
         ])
             .then(([defaultCode, currencyOpts, accountOpts]) => {
                 this.orgDefaultCurrency = defaultCode || 'USD';
                 this.currencyOptions = Array.isArray(currencyOpts) ? currencyOpts : [];
                 this.listedAccountOptions = Array.isArray(accountOpts?.options) ? accountOpts.options : [ALL_ACCOUNTS];
                 this.accountOptionsHaveMore = accountOpts?.hasMore === true;
+                this.accountOptionsUnavailableReason = accountOpts?.unavailable ? knownReason(accountOpts.unavailableReason) : null;
                 this.accountOptions = this.listedAccountOptions;
                 if (!this.selectedCurrency) {
                     this.selectedCurrency = '';
@@ -238,6 +243,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                 ];
                 this.accountOptions = [ALL_ACCOUNTS];
                 this.listedAccountOptions = this.accountOptions;
+                this.accountOptionsUnavailableReason = FAILED;
                 this.selectedCurrency = '';
                 this.dispatchFilterChange();
             })
@@ -279,11 +285,15 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get showAccountSearch() {
-        return this.accountOptionsHaveMore;
+        return this.accountOptionsHaveMore && !this.accountOptionsUnavailableReason;
     }
 
     // What the account filter lists, when it is not every account.
     get accountFilterNotice() {
+        // Accounts that could not be read are not an org with no accounts: say why there is none to choose.
+        if (this.accountOptionsUnavailableReason) {
+            return unavailableText(SUBJECTS.accounts, this.accountOptionsUnavailableReason, scopeOf('plans', []), {});
+        }
         const search = this.accountSearch;
         if (search?.unavailable) return 'Accounts could not be searched. Try again.';
         if (search?.hasMore) return `Showing the first ${search.count} matching accounts by name. Type more of the name to narrow it.`;

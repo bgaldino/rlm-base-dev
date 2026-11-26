@@ -83,7 +83,7 @@ private class RLM_CollectionsDashboardControllerTest {
         readsByCall.put('worklist', new Set<String>(RLM_CollectionsDashboardController.boundedReads));
         RLM_CollectionsDashboardController.boundedReads.clear();
         RLM_CollectionsDashboardController.addCriticalFollowUps(new RLM_CollectionsDashboardController.WorklistData(),
-            invoices, false, false, today);
+            invoices, false, today);
         readsByCall.put('critical', new Set<String>(RLM_CollectionsDashboardController.boundedReads));
         RLM_CollectionsDashboardController.boundedReads.clear();
         RLM_CollectionsDashboardController.addHighValueDelinquents(new RLM_CollectionsDashboardController.WorklistData(),
@@ -488,6 +488,7 @@ private class RLM_CollectionsDashboardControllerTest {
         Test.stopTest();
 
         Assert.isTrue(found.unavailable, 'Unavailable, not "no match"');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_REFUSED, found.unavailableReason, 'A refusal');
         Assert.areEqual(1, found.options.size(), 'Only "All Accounts"');
     }
 
@@ -551,6 +552,53 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(new List<String>{ RLM_CollectionsDashboardController.FILTER_ACCOUNT },
             wl.filtersByTab.get(RLM_CollectionsDashboardController.WORKLIST_DISPUTED),
             'Only the account narrows open cases: the currency is not offered');
+    }
+
+    // The open-case read stops at the first account past the listed ones: many cases on few accounts still list
+    // them and say there are more, and the read is too many only when the allowance runs out first.
+    @isTest
+    static void disputedTab_readsOpenCasesUntilTheAccountAfterTheListedOnes() {
+        Account a = newAccount('RLM CD Stop A');
+        Account b = newAccount('RLM CD Stop B');
+        Account c = newAccount('RLM CD Stop C');
+        // Newest first: A, A, B, A, C.
+        List<Case> cases = new List<Case>{
+            new Case(AccountId = a.Id, Subject = 'A1'), new Case(AccountId = a.Id, Subject = 'A2'),
+            new Case(AccountId = b.Id, Subject = 'B1'), new Case(AccountId = a.Id, Subject = 'A3'),
+            new Case(AccountId = c.Id, Subject = 'C1')
+        };
+        insert cases;
+        for (Integer i = 0; i < cases.size(); i++) {
+            Test.setCreatedDate(cases[i].Id, Datetime.now().addMinutes(-i));
+        }
+
+        Test.startTest();
+        // Two listed, of three accounts: B is the second account, C (fifth row) the one past them.
+        RLM_CollectionsDashboardController.DISPUTED_ROWS = 2;
+        RLM_CollectionsDashboardController.WorklistData listed = RLM_CollectionsDashboardController.getWorklist(null, null);
+        // One listed, an allowance of two rows: the third row (B) is the account past it, within LIMIT allowance+1.
+        RLM_CollectionsDashboardController.DISPUTED_ROWS = 1;
+        RLM_CollectionsDashboardController.ROW_CAP = 2;
+        RLM_CollectionsDashboardController.WorklistData stopped = RLM_CollectionsDashboardController.getWorklist(null, null);
+        // Two listed, an allowance of two rows: rows A, A, B... the allowance runs out before a third account.
+        RLM_CollectionsDashboardController.DISPUTED_ROWS = 3;
+        RLM_CollectionsDashboardController.ROW_CAP = 2;
+        RLM_CollectionsDashboardController.WorklistData spent = RLM_CollectionsDashboardController.getWorklist(null, null);
+        Test.stopTest();
+
+        Assert.areEqual(2, listed.disputedInvoices.size(), 'A and B listed');
+        Assert.areEqual(a.Id, listed.disputedInvoices[0].accountId, 'Newest open case first');
+        Assert.areEqual(b.Id, listed.disputedInvoices[1].accountId, 'Then B');
+        Assert.isTrue(listed.hasMore.containsKey(RLM_CollectionsDashboardController.WORKLIST_DISPUTED), 'C is more');
+
+        Assert.isFalse(stopped.unavailable.contains(RLM_CollectionsDashboardController.WORKLIST_DISPUTED),
+            'The account past the listed one turned up within the allowance: listed, not too many');
+        Assert.areEqual(1, stopped.disputedInvoices.size(), 'A listed');
+        Assert.isTrue(stopped.hasMore.containsKey(RLM_CollectionsDashboardController.WORKLIST_DISPUTED), 'B is more');
+
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_TOO_MANY,
+            spent.unavailableReason.get(RLM_CollectionsDashboardController.WORKLIST_DISPUTED),
+            'The allowance ran out before the account past the listed ones: too many');
     }
 
     // ---- High-Value ranking (todo 435) ----
@@ -1465,14 +1513,20 @@ private class RLM_CollectionsDashboardControllerTest {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
         newAccount('RLM CD Account Options Unreadable');
 
-        List<Map<String, String>> options;
+        RLM_CollectionsDashboardController.AccountOptions result;
         Test.startTest();
         System.runAs(noAccess) {
             Assert.isTrue(userModeQueryFails('SELECT Id FROM Account LIMIT 1'),
                 'PRECONDITION: the user cannot read Account.');
-            options = RLM_CollectionsDashboardController.getAccountOptions().options;
+            result = RLM_CollectionsDashboardController.getAccountOptions();
         }
         Test.stopTest();
+        List<Map<String, String>> options = result.options;
+
+        // Not an org with no accounts: the filter says the user may not read them.
+        Assert.isTrue(result.unavailable, 'Unavailable, not "no accounts"');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_REFUSED, result.unavailableReason, 'A refusal');
+        Assert.isFalse(result.hasMore, 'No search offered');
 
         Assert.areEqual(1, options.size(), 'Only the sentinel is offered; no account is listed.');
         Assert.areEqual('', options[0].get('value'), 'The sentinel has a blank value.');
@@ -1700,7 +1754,7 @@ private class RLM_CollectionsDashboardControllerTest {
         System.runAs(noAccess) {
             Assert.isTrue(userModeQueryFails('SELECT Id FROM Account LIMIT 1'),
                 'PRECONDITION: the user cannot read Account.');
-            RLM_CollectionsDashboardController.addCriticalFollowUps(critical, invoices, false, false, today);
+            RLM_CollectionsDashboardController.addCriticalFollowUps(critical, invoices, false, today);
         }
         Test.stopTest();
 
@@ -1711,8 +1765,8 @@ private class RLM_CollectionsDashboardControllerTest {
             'A refused plan item lookup marks the plan unavailable, not "no plan".');
     }
 
-    // A critical follow-up row per invoice: days overdue from the field when the org has it and it
-    // is set, else from the due date; a blank invoice number or account name shows a dash.
+    // A critical follow-up row per invoice: days overdue from the due date (Invoice.DaysInvoiceOverdue is not
+    // read, even when set); a blank invoice number or account name shows a dash.
     @isTest
     static void addCriticalFollowUps_buildsOneRowPerInvoice() {
         Account acc = newAccount('RLM Critical Follow Up');
@@ -1735,8 +1789,8 @@ private class RLM_CollectionsDashboardControllerTest {
         RLM_CollectionsDashboardController.WorklistData withoutFields = new RLM_CollectionsDashboardController.WorklistData();
 
         Test.startTest();
-        RLM_CollectionsDashboardController.addCriticalFollowUps(withFields, invoices, true, hasContactField, today);
-        RLM_CollectionsDashboardController.addCriticalFollowUps(withoutFields, invoices, false, false, today);
+        RLM_CollectionsDashboardController.addCriticalFollowUps(withFields, invoices, hasContactField, today);
+        RLM_CollectionsDashboardController.addCriticalFollowUps(withoutFields, invoices, false, today);
         Test.stopTest();
 
         Assert.areEqual(2, withFields.criticalFollowUpInvoices.size(), 'One row per invoice');
@@ -1745,7 +1799,7 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(invoiceA, full.invoiceId, 'Rows keep the invoice order');
         Assert.areEqual('INV-1', full.invoiceNumber, 'The invoice number is shown');
         Assert.areEqual(2500, full.balance, 'The balance is shown');
-        Assert.areEqual(45, full.daysInvoiceOverdue, 'The overdue-days field wins over the due date');
+        Assert.areEqual(10, full.daysInvoiceOverdue, 'Days come from the due date, not the platform\'s overdue-days field (45)');
         Assert.areEqual(acc.Id, full.billingAccountId, 'The billing account is shown');
         Assert.areEqual('RLM Critical Follow Up', full.billingAccountName, 'The account name is looked up');
         if (hasContactField) {
@@ -1753,7 +1807,7 @@ private class RLM_CollectionsDashboardControllerTest {
         }
 
         RLM_CollectionsDashboardController.CriticalFollowUpInvoiceItem bare = withFields.criticalFollowUpInvoices[1];
-        Assert.areEqual(33, bare.daysInvoiceOverdue, 'With the field blank, days come from the due date');
+        Assert.areEqual(33, bare.daysInvoiceOverdue, 'Days come from the due date');
         Assert.areEqual(NO_VALUE, bare.invoiceNumber, 'A blank invoice number shows a dash');
         Assert.areEqual(NO_VALUE, bare.billingAccountName, 'No account shows a dash');
         Assert.areEqual(0, bare.balance, 'A blank balance shows zero');

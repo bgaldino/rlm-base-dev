@@ -204,10 +204,16 @@ payment count (one row) and the plan tasks (at most 201 rows). The short lists s
 of rows: the 200 most overdue critical follow-up invoices, the 10 largest High-Value balances, the
 200 accounts with the newest open cases on the Disputed tab, the 200 latest-due plan tasks and the
 user's 50 soonest-due plans. Each knows when there are more (its read goes one row past what it
-shows; High-Value ranks every qualifying account; Disputed every account with an open case), and
+shows; High-Value ranks every qualifying account; Disputed reads open cases until the account past
+the listed ones turns up), and
 then says "Showing the first N of more than N" with its order and the filters that narrow which rows
 it lists (only the account, for Disputed), with "N+" as the count where the list shows one, instead
-of reading as complete. The reads with their own small `LIMIT` (those short lists, the account
+of reading as complete. The Critical list is read, ordered and shown by one key, the due date:
+invoices of 2000 or more due over 30 days ago, earliest due first, with days overdue counted from the
+due date. `Invoice.DaysInvoiceOverdue` is not used: on 264 (measured 2026-11-27) it is a
+platform-calculated, nillable Integer that was null on every Posted invoice in the org checked (none
+there was past due), so ordering on it would put a null-days invoice after others whatever its due
+date. The reads with their own small `LIMIT` (those short lists, the account
 options and the account search), the active currencies and the payment count (`COUNT(Id)`) are not
 bounded further; the account names a tab looks up and the Disputed tab's case text
 (`readDisputeReasons`) are checked against the same allowance before they run, and the High-Value tab
@@ -217,21 +223,32 @@ The account filter lists the first 500 accounts by name (`ACCOUNT_OPTION_ROWS`).
 "Showing the first 500 accounts by name. Search for an account to find another." and offers a search:
 the typed text (two characters or more, matched literally) finds accounts whose name contains it,
 the first 50 by name (`searchAccounts`, USER_MODE), and says when there are more matches. The chosen
-account stays in the list whatever a search finds.
+account stays in the list whatever a search finds. When the accounts cannot be read, the filter offers
+only "All Accounts" (the dashboard still loads, unfiltered, with no error toast) and says why: "You
+don't have access to accounts." or "Accounts could not be loaded. Refresh the page to try again.",
+with no search.
 
 An account name the user may not read shows "Not available" on the worklist and plan rows, as an
 unread plan or promise date does, rather than the "—" of an account with no name.
 
 Query-row costs measured on 264 (2026-11-26): a `SUM` aggregate costs a query row for every row it
 adds up, with or without `GROUP BY`, while `COUNT()` and `COUNT(Id)` cost one, so a summing aggregate
-counts its rows first and adds them up only within the bound.
+counts its rows first and adds them up only within the bound. A SOQL for loop over a list (`for
+(List<Case> chunk : ...)`) fetches 200-row chunks and is charged for what it fetched: one that stopped
+after its first chunk of a 500-row result was charged 400 rows, not 500 (measured 2026-11-27); a loop
+over single rows of `Database.query` or `Database.queryWithBinds` was charged all 500. The Disputed
+tab's open-case read is such a list loop, limited to its allowance plus one row like any bounded read:
+it stops at the first account past the 200 listed ones, so an org with more open cases than the row
+cap still gets its list, and it is too many only when the allowance runs out before that account
+turns up.
 
 Heap, measured on the same org against the 6 MB synchronous limit, for these reads:
 
 - **Invoice reads** (unpaid, high-value and disputed invoices): 10,001 rows with the five fields they
   select take about 1.34 MB.
-- **The open-case read of the Disputed tab:** 10,001 rows with the three fields it selects (`Id`,
-  `CaseNumber`, `AccountId`; no text) take about 1.0 MB.
+- **The open-case read of the Disputed tab** selects three fields (`Id`, `CaseNumber`, `AccountId`; no
+  text) and holds one 200-row chunk at a time plus the listed accounts' cases: 10,001 rows of those
+  fields took about 1.0 MB, so a chunk is a small part of that.
 - **Case text** (subject, description, reason): a description can be 32,000 characters. 200 cases at
   that length take 6.4 MB as one list, over the limit, and a one-row SOQL for loop peaks at the same
   6.46 MB because it fetches 200 rows at a time. So the open-case read carries no text: each account's
@@ -248,9 +265,9 @@ Heap, measured on the same org against the 6 MB synchronous limit, for these rea
   for those ten only; `addHighValueDelinquents_atTheReadCap_listsTheTenLargest` runs the real method at
   that size within the test's limits.
 
-Each invoice and case read is released before the next large read in its tab: on the Disputed tab, once
-the 200 listed accounts are picked, only their cases are kept (not every account's newest case) through
-the case text, name and invoice reads. The payment schedule
+Each invoice and case read is released before the next large read in its tab: on the Disputed tab, only
+the 200 listed accounts' cases are kept from the open-case read (each chunk is dropped as the loop
+moves on) through the case text, name and invoice reads. The payment schedule
 and schedule item reads were not measured; they select two and three short fields.
 
 Figures: an unread invoice, debit memo or payment amount comes back null and listed in the cards'

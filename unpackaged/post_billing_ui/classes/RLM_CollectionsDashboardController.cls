@@ -24,11 +24,14 @@ public with sharing class RLM_CollectionsDashboardController {
             for (Account a : accounts) {
                 result.options.add(new Map<String, String>{ 'value' => a.Id, 'label' => a.Name });
             }
-        } catch (QueryException e) {
-            // The user cannot read Account: offer only "All Accounts" so the rest of the dashboard (currency
-            // options, worklist) still loads, as the other sections do.
+        } catch (Exception e) {
+            // Accounts could not be read: offer only "All Accounts" so the rest of the dashboard still loads
+            // unfiltered, as the other sections do, and say why there is no account to choose.
             sectionSkipped('getAccountOptions', e);
-            return new AccountOptions();
+            AccountOptions unreadable = new AccountOptions();
+            unreadable.unavailable = true;
+            unreadable.unavailableReason = reasonFor(e);
+            return unreadable;
         }
         return result;
     }
@@ -50,10 +53,11 @@ public with sharing class RLM_CollectionsDashboardController {
             for (Account a : accounts) {
                 result.options.add(new Map<String, String>{ 'value' => a.Id, 'label' => a.Name });
             }
-        } catch (QueryException e) {
+        } catch (Exception e) {
             sectionSkipped('searchAccounts', e);
             AccountOptions unreadable = new AccountOptions();
             unreadable.unavailable = true;
+            unreadable.unavailableReason = reasonFor(e);
             return unreadable;
         }
         return result;
@@ -68,6 +72,8 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public List<Map<String, String>> options { get; set; }
         @AuraEnabled public Boolean hasMore { get; set; }
         @AuraEnabled public Boolean unavailable { get; set; }
+        // Why the accounts could not be read: REASON_REFUSED or REASON_FAILED (null when they were).
+        @AuraEnabled public String unavailableReason { get; set; }
         public AccountOptions() {
             options = new List<Map<String, String>>{ new Map<String, String>{ 'value' => '', 'label' => 'All Accounts' } };
             hasMore = false;
@@ -543,49 +549,38 @@ public with sharing class RLM_CollectionsDashboardController {
         } catch (Exception e) { probeSkipped('invoiceHasBillToContactId', e); return false; }
     }
 
-    private static Boolean invoiceHasDaysInvoiceOverdue() {
-        try {
-            return Schema.SObjectType.Invoice.fields.getMap().containsKey('DaysInvoiceOverdue');
-        } catch (Exception e) { probeSkipped('invoiceHasDaysInvoiceOverdue', e); return false; }
-    }
-
     private static void buildCriticalFollowUpInvoices(WorklistData wl, String invAccountField, Boolean filterAccount, Boolean filterCurrency, Id accountId, String currencyCode, Date thirtyDaysAgo) {
         try {
-            Boolean hasDaysField = invoiceHasDaysInvoiceOverdue();
             Boolean hasBillToContact = invoiceHasBillToContactId();
-            Integer thirtyDays = 30;
 
+            // One key, the due date, decides which invoices are critical, their order ("most overdue first") and
+            // the days shown. Invoice.DaysInvoiceOverdue is not used: measured on a 264 org (2026-11-27) it is a
+            // platform-calculated, nillable Integer that was null on every Posted invoice there (none past due),
+            // so filtering or ordering on it would treat a null-days invoice apart from the due date it carries.
             Decimal criticalMinBalance = 2000;
-            String invWhere;
-            if (hasDaysField) {
-                invWhere = ' Balance >= :criticalMinBalance AND (DaysInvoiceOverdue >= :thirtyDays OR (DaysInvoiceOverdue = null AND DueDate != null AND DueDate < :thirtyDaysAgo)) ';
-            } else {
-                invWhere = ' Balance >= :criticalMinBalance AND DueDate < :thirtyDaysAgo ';
-            }
+            String invWhere = ' Balance >= :criticalMinBalance AND DueDate < :thirtyDaysAgo ';
             if (filterAccount) invWhere += ' AND ' + invAccountField + ' = :accountId ';
             if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
 
-            String invSelect = 'SELECT Id, InvoiceNumber, Balance';
-            if (hasDaysField) invSelect += ', DaysInvoiceOverdue';
-            invSelect += ', DueDate';
+            String invSelect = 'SELECT Id, InvoiceNumber, Balance, DueDate';
             invSelect += ', BillingAccountId';
             if (hasBillToContact) invSelect += ', BillToContactId';
 
-            String orderField = hasDaysField ? 'DaysInvoiceOverdue DESC NULLS LAST' : 'DueDate ASC';
-            List<Invoice> invs = Database.query(invSelect + ' FROM Invoice WHERE ' + invWhere + ' ORDER BY ' + orderField
+            List<Invoice> invs = Database.query(invSelect + ' FROM Invoice WHERE ' + invWhere + ' ORDER BY DueDate ASC, Id ASC'
                 + ' LIMIT ' + (CRITICAL_ROWS + 1), AccessLevel.USER_MODE);
             if (keepFirst(invs, CRITICAL_ROWS)) wl.hasMore.put(WORKLIST_CRITICAL, invoiceFilters());
-            addCriticalFollowUps(wl, invs, hasDaysField, hasBillToContact, Date.today());
+            addCriticalFollowUps(wl, invs, hasBillToContact, Date.today());
         } catch (Exception e) {
             sectionSkipped('buildCriticalFollowUpInvoices', e);
             markWorklistUnavailable(wl, WORKLIST_CRITICAL, e);
         }
     }
 
-    // One row per queried invoice, with its account name and collection plan. Takes rows so a
-    // test can pass invoices, which Apex cannot insert.
+    // One row per queried invoice, with its account name and collection plan, and its days overdue from the
+    // due date (the key the list is read and ordered by). Takes rows so a test can pass invoices, which Apex
+    // cannot insert.
     @TestVisible
-    private static void addCriticalFollowUps(WorklistData wl, List<Invoice> invs, Boolean hasDaysField, Boolean hasBillToContact, Date today) {
+    private static void addCriticalFollowUps(WorklistData wl, List<Invoice> invs, Boolean hasBillToContact, Date today) {
         Set<Id> billingAccountIds = new Set<Id>();
         for (Invoice inv : invs) {
             if (inv.get('BillingAccountId') != null) {
@@ -613,12 +608,7 @@ public with sharing class RLM_CollectionsDashboardController {
         }
 
         for (Invoice inv : invs) {
-            Integer daysOverdue;
-            if (hasDaysField && inv.get('DaysInvoiceOverdue') != null) {
-                daysOverdue = (Integer) inv.get('DaysInvoiceOverdue');
-            } else {
-                daysOverdue = inv.DueDate != null ? inv.DueDate.daysBetween(today) : null;
-            }
+            Integer daysOverdue = inv.DueDate != null ? inv.DueDate.daysBetween(today) : null;
             String invNum = inv.InvoiceNumber != null ? inv.InvoiceNumber : '—';
             Id billingAcctId = inv.get('BillingAccountId') != null ? (Id) inv.get('BillingAccountId') : null;
             String billingAcctName = billingAcctId != null ? accountNames.names.get(billingAcctId) : null;
@@ -752,31 +742,39 @@ public with sharing class RLM_CollectionsDashboardController {
         try {
             String caseWhere = ' IsClosed = false AND AccountId != null ';
             if (filterAccount) caseWhere += ' AND AccountId = :accountId ';
-            // The bulk read carries no text: each account's newest open case is picked from ids alone, and only
-            // those cases' subject, description and reason are read (readDisputeReasons). A Description can be
-            // 32,000 characters, so the open cases' text read in bulk could pass the heap limit on its own.
-            Map<Id, Case> shownCaseByAccount = new Map<Id, Case>();
+            // Open cases, newest first, carrying no text: each listed account's newest case is picked from ids, and
+            // only those cases' subject, description and reason are read (readDisputeReasons), since a Description
+            // can be 32,000 characters. The read stops at the first account past the DISPUTED_ROWS listed ones (the
+            // tab then says there are more), so an org with many open cases still gets its list. It runs as a SOQL
+            // for loop, which fetches 200-row chunks and is charged for what it fetched (measured on a 264 org,
+            // 2026-11-27: a loop that stopped after its first chunk of a 500-row result was charged 400 rows, not
+            // 500), within the same allowance as a bounded read (LIMIT one past it). It is too many only when the
+            // allowance runs out before that account turns up.
+            Map<Id, Case> listedCaseByAccount = new Map<Id, Case>();
             List<Id> disputedAccountOrder = new List<Id>();
-            List<Case> openCases = (List<Case>) boundedRows('SELECT Id, CaseNumber, AccountId FROM Case WHERE ' + caseWhere + ' ORDER BY CreatedDate DESC',
-                new Map<String, Object>{ 'accountId' => accountId }, 'open cases');
-            for (Case c : openCases) {
-                if (c.AccountId != null && !shownCaseByAccount.containsKey(c.AccountId)) {
-                    shownCaseByAccount.put(c.AccountId, c);
+            Boolean moreAccounts = false;
+            Integer rowsRead = 0;
+            boundedReads.add('open cases');
+            Integer allowed = requireAllowance('open cases');
+            String caseQuery = 'SELECT Id, CaseNumber, AccountId FROM Case WHERE ' + caseWhere
+                + ' ORDER BY CreatedDate DESC LIMIT ' + (allowed + 1);
+            for (List<Case> chunk : Database.query(caseQuery, AccessLevel.USER_MODE)) {
+                for (Case c : chunk) {
+                    rowsRead++;
+                    if (listedCaseByAccount.containsKey(c.AccountId)) continue;
+                    if (disputedAccountOrder.size() == DISPUTED_ROWS) {
+                        moreAccounts = true;
+                        break;
+                    }
+                    listedCaseByAccount.put(c.AccountId, c);
                     disputedAccountOrder.add(c.AccountId);
                 }
+                if (moreAccounts) break;
             }
-            openCases = null;
+            if (!moreAccounts) requireWithin(rowsRead, allowed, 'open cases');
             if (disputedAccountOrder.isEmpty()) return;
-            // The tab lists the DISPUTED_ROWS accounts with the newest open cases and says when there are more
-            // (only the account filter narrows which accounts have open cases).
-            if (keepFirst(disputedAccountOrder, DISPUTED_ROWS)) {
-                wl.hasMore.put(WORKLIST_DISPUTED, new List<String>{ FILTER_ACCOUNT });
-            }
-            // Only the listed accounts' cases are kept: the map of every account's newest case (up to the read
-            // cap) is released before the case text, name and invoice reads.
-            Map<Id, Case> listedCaseByAccount = new Map<Id, Case>();
-            for (Id accId : disputedAccountOrder) listedCaseByAccount.put(accId, shownCaseByAccount.get(accId));
-            shownCaseByAccount = null;
+            // Only the account filter narrows which accounts have open cases.
+            if (moreAccounts) wl.hasMore.put(WORKLIST_DISPUTED, new List<String>{ FILTER_ACCOUNT });
             Set<Id> disputedAccountIds = new Set<Id>(disputedAccountOrder);
             Map<Id, String> accountDisputeReason = readDisputeReasons(listedCaseByAccount.values());
             RLM_AccountNames.Result accountNames = getAccountNames(disputedAccountIds);
@@ -949,8 +947,10 @@ public with sharing class RLM_CollectionsDashboardController {
     // follow-up invoices, the tasks and getMyCollectionPlans' plans, each read one row past what it lists so
     // the page can say there are more (CRITICAL_ROWS, TASK_ROWS, MY_PLAN_ROWS), and the account options (ACCOUNT_OPTION_ROWS + 1)), the
     // active currencies, the account search (ACCOUNT_SEARCH_ROWS + 1), the payment count (COUNT(Id): one
-    // query row), and two reads checked against the same allowance before they run: the account names
-    // (getAccountNames) and the shown cases' text (readDisputeReasons, DESCRIPTION_BATCH cases per query). A read that finds more rows
+    // query row), two reads checked against the same allowance before they run: the account names
+    // (getAccountNames) and the shown cases' text (readDisputeReasons, DESCRIPTION_BATCH cases per query), and
+    // the Disputed tab's open-case read, a SOQL for loop limited to the same allowance plus one row that stops
+    // at the first account past the listed ones (buildDisputedFromCases). A read that finds more rows
     // than it may take makes its section unavailable as REASON_TOO_MANY, instead of a figure or list built
     // from a cut-off read, and instead of the 50,000-row query limit of a transaction, whose LimitException
     // no catch block can handle and which would fail the whole call. Each read may take the lesser of:
