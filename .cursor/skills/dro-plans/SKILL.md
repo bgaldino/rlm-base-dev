@@ -101,6 +101,7 @@ Read supporting files when their task applies:
 | [authoring-and-deployment.md](authoring-and-deployment.md) | Designing a new configuration or verifying target prerequisites |
 | [csv-and-sfdmu.md](csv-and-sfdmu.md) | Creating/exporting datasets, loading, simulation, or repeat-load checks |
 | [updates-and-runtime.md](updates-and-runtime.md) | Updating used configuration, clearing/removing fields, handling in-flight work, or verifying a DRO step on a fresh build (incl. the tenant callout step) |
+| [fulfillment-operations.md](fulfillment-operations.md) | Running fulfillment after the build: what each screen shows, manual tasks, Auto Task retry, expiry and non-renewal, decomposition sources |
 | [examples-and-grounding.md](examples-and-grounding.md) | Following the repository example, checking documentation, or recording evidence |
 
 Produce a concrete change description: target identity/release, configuration

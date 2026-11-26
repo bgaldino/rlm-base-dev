@@ -108,3 +108,14 @@ once the transaction is final; with persistence, every transaction stores detail
 a storage cost [Help: `ind.rm_enable_rating_waterfall_persistence`]. Read the persisted
 waterfall through the API in
 [SKILL.md](SKILL.md) (APIs).
+
+## Negotiated tiers and rates as of a date
+
+Reported behaviour, none measured here:
+- The quote-time tier table on a first negotiation adds the remaining tiers with POST and uses DELETE
+  only on later edits; since 260 only the last row offers add and delete; no permission separates
+  editing a tier from adding or deleting one [Open: reported, not measured].
+- The asset usage view evaluates rates as of today, and uses the start date only for ramped lines.
+  A future rate is read through asset rate card entries, or through the usage-details API with
+  `effectiveDate` [Open: reported, not measured; the unified dashboard Rates tab shows the winning
+  rate and is described in Help: ind.um_track_usage_with_unified_dashboard].

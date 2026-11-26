@@ -187,8 +187,10 @@ sf apex run --file scripts/apex/clearUsageData.apex --target-org <alias>   # org
 ```
 
 Per-account, the in-org utility is `RLM_AccountUtilities.delAccountRelatedObjects`
-(permission set `RLM_UtilitiesPermset`, assigned on `quantumbit` and `tso` —
-destructive: it clears the account's transactional records **and** its usage graph).
+(destructive: it clears the account's transactional records **and** its usage graph).
+It is **admin-only**: a user without Modify All Data and View All Data is refused before
+anything is read, and `RLM_UtilitiesPermset` is not what enables it. Detail, delete
+blockers and the junction rule: [usage-operations.md](usage-operations.md).
 
 Both use a **convergent loop** — attempt every object each round, stop when a round
 makes no progress — and both clamp each delete to the transaction's remaining DML
@@ -306,6 +308,7 @@ Before a PR that touches usage data or behaviour:
 
 - **Rate Management** — `.cursor/skills/rate-management/SKILL.md` (rate cards, rating procedures)
 - **Usage setup** — [usage-setup.md](usage-setup.md)
+- **Operating, resetting and reading usage** — [usage-operations.md](usage-operations.md)
 - **Data model** — `.cursor/skills/revenue-cloud-data-model/domains/usage.md`
 - **SFDMU plans** — `.cursor/skills/sfdmu-data-plans/SKILL.md`
 - **Troubleshooting** — `.cursor/skills/troubleshooting/SKILL.md`

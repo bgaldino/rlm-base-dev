@@ -577,6 +577,9 @@ assigned to them.
   inferred from its shape]; no named credential, Apex, flow or DRO step in the repo calls through it [Repo:
   `force-app/`, `unpackaged/`, `datasets/`; only its own metadata and the tso `RLM_QuantumBit` name it].
   `DRO_Integrations` does not grant its principal.
+  Its `AwsAccountId` is a committed placeholder: `deploy_quantumbit` sets it in the deploy zip from the
+  sensitive `aws_account_id` option or `RLM_AWS_ACCOUNT_ID`, and leaves the parameter out when neither is
+  set [Repo: `tasks/rlm_external_credentials.py`].
 - Of the shipped plans only `mfg-dro` (not wired into the build) has callout steps through these credentials (eight
   `DFOApexMockService` steps) [Repo: `datasets/sfdmu/mfg/en-US/mfg-dro/FulfillmentStepDefinition.csv`;
   `force-app/main/default/classes/DFOApexMockService.cls`]. `qb-dro`'s one callout step, the tenant step, uses the
