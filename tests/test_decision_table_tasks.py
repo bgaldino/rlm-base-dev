@@ -58,7 +58,7 @@ TERMINAL_CHECK = "the suite ran to completion"
 # ⚠ Raise this when you add checks. It answers COMPLETENESS ("did everything run"), which the
 # terminal sentinel does not — the sentinel only answers COMPLETION ("did the run reach the
 # end"). Both are needed: see the INCOMPLETE branch in _print_summary for the measurement.
-EXPECTED_CHECKS = 142
+EXPECTED_CHECKS = 172
 
 
 def check(label, condition, detail=""):
@@ -1730,6 +1730,82 @@ _msg, _ = validate_lists_run(_rows, {"flag_x": ValueError("bad expression")})
 check("strict fails when a when: cannot evaluate", _msg is not None and "T2" in _msg, _msg)
 _msg, _ = validate_lists_run(_rows, {"flag_x": True}, strict=False)
 check("without strict the same finding only reports", _msg is None, _msg)
+
+# --- option handling: every option read goes through the shared helpers (todo 484) ---
+class _QueryFake:
+    def __init__(self):
+        self.queries = []
+
+    def query(self, soql):
+        self.queries.append(soql)
+        return {"records": [{"Id": "x", "DeveloperName": "T1", "Status": "Active"}]}
+
+
+def opt_run(options, operation="query"):
+    """Run an operation with a fake client; return (error text or None, fake)."""
+    fake = _QueryFake()
+    task = object.__new__(ManageDecisionTables)
+    task.options = dict(options, operation=operation) if operation else dict(options)
+    task.logger = _CapturingLogger()
+    task.org_config = object()
+    task._sf_client = fake
+    try:
+        ManageDecisionTables._run_task(task)
+        return None, fake
+    except Exception as exc:
+        return str(exc), fake
+
+
+def opt_query(label, options, expect, operation="query"):
+    """expect: substring that the first SOQL must contain, or a callable on it. A query MUST have been sent."""
+    err, fake = opt_run(options, operation)
+    if not fake.queries:
+        check(label, False, f"no query was sent (err={err!r})")
+        return
+    soql = fake.queries[0]
+    ok = err is None and (expect(soql) if callable(expect) else expect in soql)
+    check(label, ok, repr((err, soql)))
+
+
+def opt_refused(label, options, needle, operation="query"):
+    err, fake = opt_run(options, operation)
+    check(label, err is not None and needle in err and not fake.queries, repr((err, fake.queries)))
+
+
+print("\n[opt] ManageDecisionTables options use the shared helpers")
+opt_query("padded operation is trimmed and case-folded", {"operation": " Query "}, "FROM DecisionTable", operation=None)
+opt_refused("None operation is refused cleanly, not AttributeError", {"operation": None}, "Unknown operation", operation=None)
+opt_query("default status is Active", {}, "Status = 'Active'")
+opt_query("None status is the default Active", {"status": None}, "Status = 'Active'")
+opt_query("padded status is trimmed", {"status": " Inactive "}, "Status = 'Inactive'")
+opt_query("empty status means no status filter", {"status": ""}, lambda q: "Status =" not in q)
+opt_query("whitespace status means no status filter, not Status = ' '", {"status": "  "}, lambda q: "Status =" not in q)
+opt_refused("list status is refused", {"status": ["Active"]}, "must be a single value")
+opt_query("blank sort_by is the default", {"sort_by": " "}, "ORDER BY LastSyncDate Desc")
+opt_query("padded sort_by is trimmed", {"sort_by": " DeveloperName "}, "ORDER BY DeveloperName")
+opt_refused("int 0 sort_by is a value and invalid", {"sort_by": 0}, "sort_by")
+opt_refused("list sort_by is refused", {"sort_by": ["A"]}, "must be a single value")
+opt_query("blank sort_order is the default", {"sort_order": "  "}, "ORDER BY LastSyncDate Desc")
+opt_query("padded sort_order is trimmed", {"sort_order": " asc "}, "ORDER BY LastSyncDate Asc")
+opt_refused("int 0 sort_order is a value and invalid", {"sort_order": 0}, "sort_order")
+opt_refused("list sort_order is refused", {"sort_order": ["Asc"]}, "must be a single value")
+opt_query("blank limit means no LIMIT", {"limit": " "}, lambda q: "LIMIT" not in q)
+opt_query("padded limit is accepted", {"limit": " 5 "}, lambda q: q.endswith("LIMIT 5"))
+opt_query("int limit is accepted", {"limit": 5}, lambda q: q.endswith("LIMIT 5"))
+opt_refused("int 0 limit is refused", {"limit": 0}, "positive integer")
+opt_refused("list limit is refused", {"limit": [5]}, "must be a single value")
+opt_query("whitespace developer_names means not set", {"developer_names": "  "}, lambda q: "DeveloperName IN" not in q)
+opt_query("empty list developer_names means not set", {"developer_names": []}, lambda q: "DeveloperName IN" not in q)
+opt_query("empty tuple developer_names means not set", {"developer_names": ()}, lambda q: "DeveloperName IN" not in q)
+opt_query("list developer_names filter", {"developer_names": ["A", "B"]}, "DeveloperName IN ('A', 'B')")
+opt_query("string developer_names filter", {"developer_names": " A , B "}, "DeveloperName IN ('A', 'B')")
+opt_refused("list operation is refused", {"operation": ["query"]}, "must be a single value", operation=None)
+opt_refused("whitespace developer_names on activate is 'required'", {"developer_names": " "}, "developer_names is required", operation="activate")
+_err, _fake = opt_run({"strict": ["x"]}, "validate_lists")
+check("list-typed strict is refused with the helper's error", _err is not None and "must be a single value" in _err, repr(_err))
+_err, _fake = opt_run({"strict": " ", "list_anchors": "  "}, "validate_lists")
+check("blank strict and list_anchors fall back to defaults; a query was sent",
+      bool(_fake.queries) and (_err is None or "single value" not in _err), repr((_err, _fake.queries)))
 
 # ⚠ The sentinel. Must remain the LAST check registered in this file — _print_summary keys the
 # abort diagnosis on its presence.

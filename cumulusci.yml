@@ -3333,7 +3333,7 @@ tasks:
     class_path: tasks.rlm_manage_decision_tables.ManageDecisionTables
     options:
       operation: list  # Options: 'list', 'query', 'refresh', 'activate', 'deactivate', 'validate_lists'
-      status: Active   # Filter by status
+      status: Active   # Filter by status; null also means Active, an explicit empty value means no filter
       is_incremental: false  # For refresh: true for incremental, false for full
       sort_by: LastSyncDate
       sort_order: Desc
