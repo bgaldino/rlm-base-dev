@@ -510,9 +510,9 @@ open until a live persona run passes.**
 | Need | Why | How the persona gets it |
 |---|---|---|
 | Billing license (`RevLifecycleMgmtBillingPsl`) | The managed role set in the group requires it | Assigned with the group |
-| DocGen Designer license (`DocGenDesignerPsl`), **`DocGenUser`** and **`DocGenDesigner`** | The groups reach no document generation object at all ("Access to entity 'DocumentTemplate' denied", the same for `DocumentGenerationProcess` and `DocGenerationBatchProcess`). `DocGenUser` opens templates (read) and the on-demand `DocumentGenerationProcess` create, but not the batch create: a user-mode insert of `DocGenerationBatchProcess` is refused ("DML operation INSERT not allowed on DocGenerationBatchProcess"), the likely cause of the `INSUFFICIENT_ACCESS` the batch action returned for a billing persona with `DocGenUser` `[inferred: the action itself was not run here]`. `DocGenDesigner` opens it. Help names DocGen User for generating, so both sets are assigned; they share the one license | **Assigned next to the group** by an admin; the build creates no billing persona users. Not in the group, for the todo 452 reason: existing holders of the billing groups may lack `DocGenDesignerPsl`, and a group gaining a set whose license a holder lacks fails to deploy (measured for `BillingAdvancedPsl` in todo 452). `RLM_Sales_Representative` and `RLM_Sales_Operations` do carry `DocGenUser`; the build's sales rep user holds that license (checked on the measured org) |
+| DocGen Designer license (`DocGenDesignerPsl`), **`DocGenUser`** and **`DocGenDesigner`** | The groups reach no document generation object at all ("Access to entity 'DocumentTemplate' denied", the same for `DocumentGenerationProcess` and `DocGenerationBatchProcess`). `DocGenUser` opens templates (read) and the on-demand `DocumentGenerationProcess` create, but not the batch create: a user-mode insert of `DocGenerationBatchProcess` is refused ("DML operation INSERT not allowed on DocGenerationBatchProcess"), the likely cause of the `INSUFFICIENT_ACCESS` the batch action returned for a billing persona with `DocGenUser`, as reported in todo 292 from an earlier fresh build `[inferred: the action itself was not run here]`. `DocGenDesigner` opens it. Help names DocGen User for generating, so both sets are assigned; they share the one license | **Assigned next to the group** by an admin; the build creates no billing persona users. Not in the group, for the todo 452 reason: existing holders of the billing groups may lack `DocGenDesignerPsl`, and a group gaining a set whose license a holder lacks fails to deploy (measured for `BillingAdvancedPsl` in todo 452). `RLM_Sales_Representative` and `RLM_Sales_Operations` do carry `DocGenUser`; the build's sales rep user holds that license (checked on the measured org) |
 | Invoice Batch Run read, with View All | Batch generation runs from the run record. The managed Billing Admin set grants no access to it ("Access to entity 'InvoiceBatchRun' denied"); the managed Billing Operations set reads it. The object is Private, so read alone shows a user only the runs it owns; View All opens every run. Read and View All on `InvoiceBatchRun` require the same on `BillingBatchScheduler`, which requires the same on a run-criteria object (`InvoiceBatchRunCriteria` here); the deploy refuses each step without the next. None of the three objects has a permissionable field, so the set has no field grants | `RLM_BillingInvoiceDocuments`, in `RLM_Billing_Admin` and `RLM_Billing_Operations` |
-| Access Libraries (`ContentWorkspaces`) | The template file is in the Docgen Document Template Library and is read as the generating user. A library member without this user permission did not read the `DefaultInvoiceTemplate` file (the only file measured; the other library files `[inferred]`); measured as the managed role set plus `RLM_BillingInvoiceDocuments`, and as Minimum Access users without it, through a recreated library group shape or as direct members, not as a persona group (see below). Minimum Access lacks it; Standard User has it. The managed Billing Admin and Billing Operations sets do not carry it (`PermissionsContentWorkspaces` false on both, measured), so the grant is not redundant for these two personas. The other billing persona groups do not get it from this set: the repo's `RLM Tax Admin` profile enables it, and the managed Tax Admin and Accounting Admin sets were not checked for it | `RLM_BillingInvoiceDocuments`, in `RLM_Billing_Admin` and `RLM_Billing_Operations` only |
+| Access Libraries (`ContentWorkspaces`) | The template file is in the Docgen Document Template Library and is read as the generating user. A library member without this user permission did not read the `DefaultInvoiceTemplate` file (the only file measured; the other library files `[inferred]`); measured as the managed role set plus `RLM_BillingInvoiceDocuments`, and as Minimum Access users without it, through a recreated library group shape or as direct members, not as a persona group (see below). Minimum Access lacks it; Standard User has it. The managed Billing Admin and Billing Operations sets do not carry it (`PermissionsContentWorkspaces` false on both, measured), so the grant is not redundant for these two personas. The other billing persona groups do not get it from this set: the repo's `RLM Tax Admin` profile enables it, the managed Credit Memo Operations set was checked and lacks it (`PermissionsContentWorkspaces` false), and the managed Tax Admin and Accounting Admin sets were not checked for it | `RLM_BillingInvoiceDocuments`, in `RLM_Billing_Admin` and `RLM_Billing_Operations` only |
 | Library membership | The default invoice template's file (`DefaultInvoiceTemplate`, and `RLM_InvoiceTemplate`) is in that library | `create_docgen_library` (all internal users, see *Record sharing*). It runs in `prepare_docgen`, under the `docgen` flag, while the groups deploy in `prepare_personas`, under `personas`: a personas build with docgen off has no membership. An org built before that step was added (todo 435) needs `cci task run create_docgen_library --org <alias>` once |
 
 What `DocGenDesigner` opens beyond `DocGenUser` [Measured: same org; user permissions read from `PermissionSet`,
@@ -533,7 +533,7 @@ the Billing license. Billing Advanced is not needed for invoice documents.
 
 - **as the group itself:** the Invoice Batch Run reads. A group in `Failed` status fails the test; one that is
   not `Updated` (inside a deploy that changes it, it reads `Outdated`, measured below; an API edit of its
-  components leaves it `Updating` for a while) is skipped with a "SKIPPED, NOT
+  components leaves it `Updating` for a while `[seen in earlier todo 292 work; no artifact kept]`) is skipped with a "SKIPPED, NOT
   CHECKED" WARN debug line, and then proves nothing. Measured on rlm-base__apexcov-ac1125-r1, whose `RLM_Billing_Admin` and `RLM_Billing_Operations`
   groups did not yet contain `RLM_BillingInvoiceDocuments`, with check-only deploys of the whole bundle and this
   class's tests: 0AfWt00000hUVnBKAW added a probe test that fails by design to print the state, and it showed
@@ -545,11 +545,14 @@ the Billing license. Billing Advanced is not needed for invoice documents.
   template read. The batch create is a real user-mode insert, the only check that meets the DocGen Designer
   user-permission gate. With batch document generation turned off (an org setting deployed by `docgen`, not
   `personas`) the platform refuses it with `INVALID_INPUT` "Enable the batch document generation setting."
-  [Measured: check-only runs with the setting off, 0AfWt00000hUUBBKA4]. With it off, a user without DocGen
-  Designer still gets `CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY`: the access check answers before the setting
-  check. With batch on and server-side generation off (client-side mechanism) the persona gets `INVALID_INPUT`
+  [Measured: check-only runs with the setting off, 0AfWt00000hUUBBKA4]. With batch on and server-side generation off (client-side mechanism) the persona gets `INVALID_INPUT`
   "Enable the server-side document generation setting." [Measured: 0AfWt00000hUViMKAW]; batch on with
-  server-side off and the server-side mechanism is refused at deploy. So the test reads both settings first
+  server-side off and the server-side mechanism is refused at deploy. The access check answers before the
+  setting check in every state: a user with no DocGen set and a user with `DocGenUser` but not `DocGenDesigner`
+  got `CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY` with batch off (0AfWt00000hUUBBKA4), with server-side off
+  (0AfWt00000hUViMKAW) and with both on (0AfWt00000hUUCnKAO), while the `DocGenDesigner` persona got
+  `INVALID_INPUT` naming the missing setting in each off state and succeeded with both on (all check-only
+  runs). So the test reads both settings first
   (`IsBatchDocGnrnEnabled` and `IsServerSideDocGenEnabled`). With no setting row (batch document generation
   not configured, e.g. an org where DocGen was never set up `[inferred: no measured org lacked a row]`) the insert is not attempted and the test logs
   "SKIPPED, NOT CHECKED". The measured org had one setting row and Help speaks of "a Document Generation Setting
@@ -603,9 +606,10 @@ Not measured, and to check in the first live run as the persona:
 - **Omnistudio User** (`OmniStudioExecution`, OmniStudio license): Help lists it for generating PDFs; it is not
   granted. The sales rep persona generates quote documents without that license (todo 435).
 - **Credit Memo Operations** (`RLM_Credit_Memo_Operations`) is not covered.
-- **DocGen User gaining DocGen Designer:** on 264 `DocGenUser` does not carry the DocGen Designer user
-  permission (`PermissionsDocGenDesigner` false, measured). If a later release adds it, `DocGenDesigner`, and the
-  template authoring that comes with it, may no longer be needed for the batch create; nothing watches for this.
+
+On 264 `DocGenUser` does not carry the DocGen Designer user permission (`PermissionsDocGenDesigner` false,
+measured). If a later release adds it, `DocGenDesigner`, and the template authoring that comes with it, may no
+longer be needed for the batch create; nothing watches for this.
 
 ---
 

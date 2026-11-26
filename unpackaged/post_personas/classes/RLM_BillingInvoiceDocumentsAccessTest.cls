@@ -6,7 +6,7 @@
  * This class does not read the template file: that read depends on org data and configuration.
  *
  * Which tests check what:
- * - the group itself: the *Group* methods. A group that is not Updated cannot be assigned (inside a
+ * - the group itself: the *GroupReadsInvoiceBatchRuns methods. A group that is not Updated cannot be assigned (inside a
  *   deploy that changes it, it reads Outdated), so these skip with a "SKIPPED, NOT CHECKED" WARN debug
  *   line and then prove nothing. A Failed group fails the test.
  * - the managed role set plus RLM_BillingInvoiceDocuments (the group's content, minus its
