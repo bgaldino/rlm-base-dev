@@ -64,3 +64,19 @@ def positive_int(value, option: str, exc=ValueError) -> int:
     if number <= 0:
         raise exc(f"{option} must be a positive integer, got {value!r}")
     return number
+
+
+def project_api_version(project_config, error_cls=ValueError, default: Optional[str] = None) -> str:
+    """The project's API version (`project.package.api_version`) as bare text, e.g. `68.0`.
+
+    Not `org_config.api_version`: OrgConfig has no such attribute (BaseConfig.__getattr__ warns on every
+    read and raises AssertionError under CumulusCI STRICT_GETATTR, which `getattr(..., None)` does not catch).
+    When the project sets none, return `default` if given, else raise `error_cls`.
+    """
+    version = getattr(project_config, "project__package__api_version", None)
+    text = str(version).strip().lstrip("v") if version else ""
+    if text:
+        return text
+    if default is not None:
+        return default
+    raise error_cls("No API version: set project.package.api_version in cumulusci.yml")

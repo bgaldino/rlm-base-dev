@@ -11,6 +11,10 @@ Uses the Composite API (25 records per request) for efficiency.
 
 import requests
 
+# Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
+# sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import project_api_version
+
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
@@ -36,8 +40,7 @@ class ActivateRateCardEntries(BaseSalesforceTask):
     def _run_task(self):
         access_token = self.org_config.access_token
         instance_url = self.org_config.instance_url
-        api_version = getattr(self.org_config, "api_version", None) or "68.0"
-        api_version = str(api_version).lstrip("v")
+        api_version = project_api_version(self.project_config, TaskOptionsError, "68.0")
 
         headers = {
             "Authorization": f"Bearer {access_token}",

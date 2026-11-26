@@ -12,6 +12,10 @@ from typing import Any, Dict, List, Tuple
 
 import requests
 
+# Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
+# sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import project_api_version
+
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
@@ -130,8 +134,7 @@ class ConfigurePricingRecipeTableMappings(BaseSalesforceTask):
         instance_url = self.org_config.instance_url
         api_version = (
             self.options.get("api_version")
-            or getattr(self.org_config, "api_version", None)
-            or getattr(self.project_config, "project__package__api_version", "68.0")
+            or project_api_version(self.project_config, TaskOptionsError, "68.0")
         )
         return access_token, instance_url, api_version
 

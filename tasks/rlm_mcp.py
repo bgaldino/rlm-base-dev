@@ -38,6 +38,10 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
+# Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
+# sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import project_api_version
+
 try:
     from cumulusci.core.tasks import BaseTask
     from cumulusci.core.exceptions import TaskOptionsError, CommandException
@@ -173,8 +177,7 @@ class ConfigureMcpServers(BaseTask):
         self.instance_url = self.org_config.instance_url
         self.api_version = (
             self.options.get("api_version")
-            or getattr(self.org_config, "api_version", None)
-            or getattr(self.project_config, "project__package__api_version", "68.0")
+            or project_api_version(self.project_config, TaskOptionsError, "68.0")
         )
 
         self.created: List[str] = []
