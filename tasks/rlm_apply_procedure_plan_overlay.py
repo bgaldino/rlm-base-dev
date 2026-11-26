@@ -15,7 +15,7 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version, soql_quote
+from tasks.soql_utils import option_flag, project_api_version, soql_quote
 
 try:
     from cumulusci.core.exceptions import TaskOptionsError
@@ -42,7 +42,7 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
             "required": False,
         },
         "dry_run": {
-            "description": "If true, log intended changes without writing to the org.",
+            "description": "If true, log intended changes without writing to the org. Blank is the default; a list or an unparseable value is refused.",
             "required": False,
         },
         "verify": {
@@ -86,12 +86,11 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         }
 
     @staticmethod
-    def _bool_option(value: Any, default: bool) -> bool:
-        if value is None:
-            return default
-        if isinstance(value, bool):
-            return value
-        return str(value).strip().lower() in {"1", "true", "yes", "y"}
+    def _bool_option(value: Any, default: bool, option: str = "option") -> bool:
+        """soql_utils.option_flag: None, blank or whitespace is `default`, padded text is read, and a
+        list or a value outside CumulusCI's vocabulary is refused by name ("on" and "off" read false,
+        and "maybe" read false, under the old `in {"1", "true", "yes", "y"}`)."""
+        return option_flag(value, option, TaskOptionsError, default)
 
     @staticmethod
     def _clean_body(
@@ -784,16 +783,20 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         raise TaskOptionsError("Procedure-plan overlay verification failed.")
 
     def _run_task(self):
+        # Booleans first: a refused one fails before the overlay file or the org is read.
+        for name, default in (("dry_run", False), ("verify", True), ("activate_after_apply", True)):
+            self._bool_option(self.options.get(name), default, name)
         overlay = self._load_overlay()
         developer_name = self.options.get("developerName") or overlay.get("developerName")
         if not developer_name:
             raise TaskOptionsError("developerName is required in options or overlay_file")
 
-        dry_run = self._bool_option(self.options.get("dry_run"), False)
-        verify = self._bool_option(self.options.get("verify"), True)
+        dry_run = self._bool_option(self.options.get("dry_run"), False, "dry_run")
+        verify = self._bool_option(self.options.get("verify"), True, "verify")
         activate_after_apply = self._bool_option(
             self.options.get("activate_after_apply"),
             True,
+            "activate_after_apply",
         )
 
         version = self._get_version(str(developer_name))

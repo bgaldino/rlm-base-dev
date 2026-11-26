@@ -97,6 +97,19 @@ with tempfile.TemporaryDirectory() as root:
     check("targets are the .ffxblob files import_cml uploads",
           all(t[0].endswith(".ffxblob") for t in targets), repr(targets))
 
+    # todo 488: data_dirs is a task option, read through requested_names. A YAML list was
+    # stringified ("['a', 'b']") and split into paths that do not exist.
+    for label, value in (("a list", [a, b]), ("a padded list with a trailing comma", [f" {a} ", f"{b},"]),
+                         ("a padded comma string", f" {a} ,, {b} ")):
+        targets = _task(data_dirs=value)._collect_targets()
+        check(f"data_dirs as {label} gives both models",
+              [t[2] for t in targets] == [[a], [b]], repr(targets))
+    for value, needle in ((5, "data_dirs must be a comma-separated string"),
+                          ([a, None], "data_dirs items must be names"),
+                          ([" ", ""], "data_dirs contains no names")):
+        check(f"data_dirs {value!r} is refused, naming the option",
+              _raises(lambda v=value: _task(data_dirs=v)._collect_targets(), needle))
+
     print("The model name comes from ApiName, which keys the ESC rows")
     check("ApiName wins over a differing display Name",
           ValidateCML._infer_expression_set_name(targets[0][0], [a]) == "ModelA")

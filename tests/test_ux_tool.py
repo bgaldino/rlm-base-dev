@@ -137,6 +137,26 @@ def test_features_from_custom_refuses_a_bad_flag_by_name():
         features_from_custom({"tax": "maybe"})
 
 
+@pytest.mark.parametrize("value", ["maybe", ["true"]])
+def test_assemble_task_refuses_a_project_flag_outside_the_vocabulary(monkeypatch, tmp_path, value):
+    # todo 488: AssembleAndDeployUX turns to_bool's UxOptionError into a TaskOptionsError naming
+    # the flag, before anything is assembled or deployed.
+    import tasks.rlm_ux_assembly as task_mod
+
+    ran = []
+    monkeypatch.setattr(task_mod, "UxAssembler", lambda ctx: ran.append("assemble"))
+    monkeypatch.setattr(task_mod, "deploy", lambda *a, **k: ran.append("deploy"))
+    task = task_mod.AssembleAndDeployUX.__new__(task_mod.AssembleAndDeployUX)
+    task.project_config = types.SimpleNamespace(
+        repo_root=str(tmp_path), project__custom={"billing": value}, project__package__api_version="68.0")
+    task.org_config = types.SimpleNamespace(username="me@example.com")
+    task.logger = logging.getLogger("test")
+    task.options = {}
+    with pytest.raises(task_mod.TaskOptionsError, match="UX feature flag billing must be true or false"):
+        task._run_task()
+    assert ran == []
+
+
 def test_resolve_features_precedence(tmp_path):
     name = UX_KNOWN_FLAGS[0]
     defaults, _ = resolve_features(REPO_ROOT)

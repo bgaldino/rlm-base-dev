@@ -70,6 +70,7 @@ check("positive_int accepts a number", positive_int(" 7 ", "limit") == 7)
 
 print("soql_utils: option_flag and non-string list items (todo 488)")
 from tasks.soql_utils import FALSE_WORDS, TRUE_WORDS, option_flag, requested_names  # noqa: E402
+from scripts.ux._flags import to_bool as _ux_to_bool  # noqa: E402
 
 check("option_flag: None, blank and whitespace are the default",
       [option_flag(v, "f") for v in (None, "", "  ")] == [False] * 3
@@ -81,9 +82,11 @@ check("option_flag: padded text, bools and int 0/1 are values",
 check("option_flag: 'on' and 'y' are True, 'off' and 'n' are False (CumulusCI's vocabulary)",
       option_flag("on", "f") is True and option_flag("Y", "f") is True
       and option_flag("off", "f", default=True) is False and option_flag("n", "f", default=True) is False)
-check("option_flag: 'maybe' and 2 are refused, naming the option",
+check("option_flag: 'maybe' and the text '2' are refused, naming the option",
       raises(lambda: option_flag("maybe", "dry_run"), "dry_run must be true or false")
-      and raises(lambda: option_flag(2, "dry_run"), "dry_run must be true or false"))
+      and raises(lambda: option_flag("2", "dry_run"), "dry_run must be true or false"))
+check("option_flag: any int is its truth value, as in CumulusCI (2 and -1 True, 0 False)",
+      option_flag(2, "f") is True and option_flag(-1, "f") is True and option_flag(0, "f", default=True) is False)
 check("option_flag: a list, even of one valid word, is refused, naming the option",
       raises(lambda: option_flag(["true"], "dry_run"), "dry_run must be a single value")
       and raises(lambda: option_flag([], "dry_run"), "dry_run must be a single value"))
@@ -105,9 +108,22 @@ def _ours(value):
 
 
 _words = list(TRUE_WORDS) + list(FALSE_WORDS) + [w.upper() for w in TRUE_WORDS + FALSE_WORDS] + [
-    "maybe", "2", "-1", "t", "f", "enabled", "truee", "nope", True, False, 0, 1]
+    "maybe", "2", "-1", "t", "f", "enabled", "truee", "nope", True, False, 0, 1, 2, -1]
 _drift = [(w, _cci(w), _ours(w)) for w in _words if _cci(w) != _ours(w)]
-check("option_flag agrees with the installed CumulusCI process_bool_arg on every unpadded value", not _drift, repr(_drift))
+check("option_flag agrees with the installed CumulusCI process_bool_arg on every unpadded value, ints included",
+      not _drift, repr(_drift))
+
+
+def _ux(value):
+    try:
+        return _ux_to_bool(value, "f")
+    except Exception:  # UxOptionError
+        return "refused"
+
+
+_ux_drift = [(w, _ours(w), _ux(w)) for w in _words + ["", "  ", " true ", " OFF ", None, ["true"]]
+             if _ours(w) != _ux(w)]
+check("option_flag and scripts/ux/_flags.to_bool agree, blank and padded included", not _ux_drift, repr(_ux_drift))
 check("requested_names refuses a null list item, naming the option",
       raises(lambda: requested_names(["A", None], "developer_names"), "developer_names items must be names"))
 check("requested_names refuses a nested list item and an int item",
@@ -948,6 +964,192 @@ for value, needle in ((["false"], "versionActive must be a single value"),
     err, queries, posts = ppd_run({"versionActive": value})
     check(f"procedure plan: versionActive {value!r} refused by name before any query (a list read True)",
           err is not None and needle in err and queries == [] and posts == [], repr((err, queries, posts)))
+
+
+print("todo 488 round 2: context_service, procedure plan overlay, TPT, FSC, recipe mappings, validate_setup")
+_ctx = load("rlm_context_service")
+
+
+def ctx_run(options, plan):
+    """ManageContextDefinition._run_task on `plan` with every request stubbed; return (error, calls)."""
+    calls = []
+    with tempfile.TemporaryDirectory() as tmp:
+        plan_path = Path(tmp) / "plan.json"
+        plan_path.write_text(json.dumps(plan))
+        t = _ctx.ManageContextDefinition.__new__(_ctx.ManageContextDefinition)
+        t.options = {"plan_file": str(plan_path), **options}
+        t.logger = types.SimpleNamespace(info=lambda *a, **k: None, warning=lambda *a, **k: None)
+        t._prep_runtime = lambda: calls.append("prep")
+        t._resolve_context_definition_id = lambda name: calls.append("resolve") or "CTX"
+        t._validate_plan = lambda cid, p: calls.append("validate")
+        t._is_context_active = lambda cid: calls.append("is_active") or True
+        t._set_context_active = lambda cid, active, dry_run: calls.append(("deactivate", dry_run))
+        t._fetch_context_definition = lambda cid: calls.append("fetch") or {}
+        t._post_context_tags = lambda cid, payload, dry_run: calls.append(("tags", dry_run))
+        t._log_verification = lambda detail, p: calls.append("verify")
+        t._activate_context_definition = lambda cid, dry_run: calls.append(("activate", dry_run))
+        try:
+            t._run_task()
+            return None, calls
+        except Exception as exc:
+            return str(exc), calls
+
+
+PLAN = {"developerName": "D", "contextTags": [{"name": "T"}]}
+err, calls = ctx_run({"dry_run": " true ", "verify": "on", "activate": "Y", "deactivate_before": " yes "}, PLAN)
+check("context: padded and CumulusCI words read true (they read false under `in {1, true, yes}`)",
+      err is None and ("deactivate", True) in calls and ("tags", True) in calls and "verify" in calls
+      and ("activate", True) in calls, repr((err, calls)))
+err, calls = ctx_run({"dry_run": "", "verify": "  ", "activate": False}, {**PLAN, "activate": True})
+check("context: blank options are false, and a set activate (False) beats the plan's activate",
+      err is None and ("tags", False) in calls and "verify" not in calls
+      and not any(isinstance(c, tuple) and c[0] == "activate" for c in calls), repr((err, calls)))
+err, calls = ctx_run({"activate": "  "}, {**PLAN, "activate": True, "deactivateBefore": True})
+check("context: a blank activate / deactivate_before falls back to the plan's own fields",
+      err is None and ("activate", False) in calls and ("deactivate", False) in calls, repr((err, calls)))
+err, calls = ctx_run({"validate_only": " true "}, PLAN)
+check("context: a padded validate_only validates and stops", err is None and calls[-1] == "validate", repr((err, calls)))
+err, calls = ctx_run({"translate_plan": "  "}, PLAN)
+check("context: a blank translate_plan is its default (true) and the run completes", err is None and "fetch" in calls,
+      repr((err, calls)))
+for options, needle in (({"dry_run": ["true"]}, "dry_run must be a single value"),
+                        ({"verify": "maybe"}, "verify must be true or false"),
+                        ({"translate_plan": "maybe"}, "translate_plan must be true or false"),
+                        ({"activate": ["true"]}, "activate must be a single value"),
+                        ({"deactivate_before": "maybe"}, "deactivate_before must be true or false"),
+                        ({"validate_only": "maybe"}, "validate_only must be true or false")):
+    err, calls = ctx_run(options, PLAN)
+    check(f"context: {options!r} refused by name before the plan or any request",
+          err is not None and needle in err and calls == [], repr((err, calls)))
+
+_ppo = load("rlm_apply_procedure_plan_overlay")
+
+
+def ppo_run(options):
+    calls = []
+    t = _ppo.ApplyProcedurePlanOverlay.__new__(_ppo.ApplyProcedurePlanOverlay)
+    t.options = {"developerName": "D", **options}
+    t.logger = types.SimpleNamespace(info=lambda *a, **k: None, warning=lambda *a, **k: None)
+    t._load_overlay = lambda: calls.append("overlay") or {}
+
+    def get_version(name):
+        calls.append("get_version")
+        raise RuntimeError("stop: first request")
+    t._get_version = get_version
+    try:
+        t._run_task()
+        return "no error", calls
+    except RuntimeError:
+        return "reached", calls
+    except Exception as exc:
+        return str(exc), calls
+
+
+check("procedure plan overlay: padded and blank booleans reach the first request",
+      ppo_run({"dry_run": " on ", "verify": "", "activate_after_apply": "  "}) == ("reached", ["overlay", "get_version"]))
+check("procedure plan overlay: _bool_option reads CumulusCI's words (\"on\" was false) and blank is the default",
+      _ppo.ApplyProcedurePlanOverlay._bool_option(" on ", False, "dry_run") is True
+      and _ppo.ApplyProcedurePlanOverlay._bool_option("  ", True, "verify") is True
+      and _ppo.ApplyProcedurePlanOverlay._bool_option(0, True, "verify") is False)
+for name in ("dry_run", "verify", "activate_after_apply"):
+    for value, needle in ((["true"], "must be a single value"), ("maybe", "must be true or false")):
+        err, calls = ppo_run({name: value})
+        check(f"procedure plan overlay: {name} {value!r} refused by name before the overlay or any request",
+              f"{name} {needle}" in err and calls == [], repr((err, calls)))
+
+_tpt = load("rlm_manage_transaction_processing_types")
+_fsc = load("rlm_manage_fulfillment_scope_cnfg")
+
+
+def upsert_run(module, cls, options, records):
+    """`operation: upsert` over `records` with the org stubbed; return (error, calls)."""
+    calls = []
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "in.json"
+        path.write_text(json.dumps(records))
+        klass = getattr(module, cls)
+        t = klass.__new__(klass)
+        t.options = {"operation": "upsert", "input_file": str(path), **options}
+        t.logger = types.SimpleNamespace(info=lambda *a, **k: None, warning=lambda *a, **k: None,
+                                         error=lambda *a, **k: None)
+        t._get_api_context = lambda: calls.append("context") or ("tok", "https://x", "68.0")
+        t._describe = lambda *a: calls.append("describe") or {"fields": [{"name": "DeveloperName", "type": "string"}]}
+        t._query = lambda *a: calls.append("query") or []
+        t._create_record = lambda *a, **k: calls.append("create") or "NEW"
+        t._update_record = lambda *a, **k: calls.append("update")
+        try:
+            t._run_task()
+            return None, calls
+        except Exception as exc:
+            return str(exc), calls
+
+
+for module, cls, label in ((_tpt, "ManageTransactionProcessingTypes", "transaction processing types"),
+                           (_fsc, "ManageFulfillmentScopeCnfg", "fulfillment scope cnfg")):
+    for value, writes in ((" true ", False), ("on", False), ("", True), ("  ", True), (" false ", True), (0, True)):
+        err, calls = upsert_run(module, cls, {"dry_run": value}, [{"DeveloperName": "A"}])
+        check(f"{label}: dry_run {value!r} -> create={writes} (\"on\" and padded \" true \" wrote)",
+              err is None and "query" in calls and ("create" in calls) is writes, repr((err, calls)))
+    for value, needle in ((["true"], "dry_run must be a single value"), ("maybe", "dry_run must be true or false")):
+        err, calls = upsert_run(module, cls, {"dry_run": value}, [{"DeveloperName": "A"}])
+        check(f"{label}: dry_run {value!r} refused by name before any request",
+              err is not None and needle in err and calls == [], repr((err, calls)))
+
+_prtm = load("rlm_configure_pricing_recipe_table_mappings")
+
+
+def prtm_run(options, table_found=True):
+    calls = []
+    t = _prtm.ConfigurePricingRecipeTableMappings.__new__(_prtm.ConfigurePricingRecipeTableMappings)
+    t.options = dict(options)
+    t.logger = types.SimpleNamespace(info=lambda *a, **k: None, warning=lambda *a, **k: calls.append("warn"))
+    t._load_mappings = lambda: [{"pricingRecipeDeveloperName": "R", "decisionTableDeveloperName": "T",
+                                 "pricingComponentType": "C"}]
+    t._get_api_context = lambda: calls.append("context") or ("tok", "https://x", "68.0")
+    t._get_recipe_ids = lambda *a: calls.append("recipes") or {"R": "RID"}
+    t._get_table_ids = lambda *a: calls.append("tables") or ({"T": "TID"} if table_found else {})
+    t._get_existing_mappings = lambda *a: calls.append("existing") or {}
+    t._post_tooling = lambda *a: calls.append("post")
+    try:
+        t._run_task()
+        return None, calls
+    except Exception as exc:
+        return str(exc), calls
+
+
+for value, posts in ((" true ", False), ("on", False), ("", True), ("off", True)):
+    err, calls = prtm_run({"dry_run": value})
+    check(f"recipe mappings: dry_run {value!r} -> post={posts}", err is None and "existing" in calls
+          and ("post" in calls) is posts, repr((err, calls)))
+err, calls = prtm_run({"skip_missing_tables": " on "}, table_found=False)
+check("recipe mappings: a padded skip_missing_tables 'on' skips the missing table", err is None and "warn" in calls,
+      repr((err, calls)))
+err, calls = prtm_run({"skip_missing_tables": "  "}, table_found=False)
+check("recipe mappings: a blank skip_missing_tables is false: the missing table fails",
+      err is not None and "not found" in err, repr((err, calls)))
+for options, needle in (({"dry_run": ["true"]}, "dry_run must be a single value"),
+                        ({"skip_missing_tables": "maybe"}, "skip_missing_tables must be true or false")):
+    err, calls = prtm_run(options)
+    check(f"recipe mappings: {options!r} refused by name before any request (it was read after the lookups)",
+          err is not None and needle in err and calls == [], repr((err, calls)))
+
+_vs = load("rlm_validate_setup")
+_t = _vs.ValidateSetup.__new__(_vs.ValidateSetup)
+for value, default, want in ((" false ", True, False), ("off", True, False), ("n", True, False),
+                             ("  ", True, True), (None, False, False), (" true ", False, True), (0, True, False)):
+    _t.options = {"auto_fix": value}
+    check(f"validate_setup: auto_fix {value!r} (default {default}) is {want} (\" false \" and \"off\" read true)",
+          _t._bool_option("auto_fix", default) is want)
+for value, needle in ((["false"], "auto_fix must be a single value"), ("maybe", "auto_fix must be true or false")):
+    _t.options = {"auto_fix": value}
+    check(f"validate_setup: auto_fix {value!r} is refused by name", raises(lambda: _t._bool_option("auto_fix", True), needle))
+_t = _vs.ValidateSetup.__new__(_vs.ValidateSetup)
+_t.options = {"fail_on_error": "maybe"}
+_t.logger = types.SimpleNamespace(info=lambda *a, **k: None, warning=lambda *a, **k: None, error=lambda *a, **k: None)
+_ran = []
+_t._check_python = lambda *a, **k: _ran.append("check")
+check("validate_setup: _run_task refuses a bad boolean before any check runs",
+      raises(lambda: _t._run_task(), "fail_on_error must be true or false") and _ran == [])
 
 
 print()

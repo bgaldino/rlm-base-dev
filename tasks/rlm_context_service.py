@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 import requests
 
 # Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version, soql_quote
+from tasks.soql_utils import option_flag, option_text, project_api_version, soql_quote
 
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -100,7 +100,29 @@ class ManageContextDefinition(SFDXBaseTask, BaseSalesforceTask):
         )
         self.api_version = project_api_version(self.project_config, TaskOptionsError)
 
+    # Task options, read through soql_utils.option_flag: None, blank or whitespace is the default,
+    # padded text is read, and a list or a value outside CumulusCI's vocabulary is refused by name.
+    # (It was `str(v).lower() in {"1", "true", "yes"}`: " true ", "on" and "y" read false.)
+    # Plan-file fields (create, activate, deactivateBefore, isTransient, isDefault) keep their own
+    # parsing: they are plan data, not task options.
+    def _flag(self, name: str, default: bool = False) -> bool:
+        return option_flag(self.options.get(name), name, TaskOptionsError, default)
+
+    def _flag_or_plan(self, name: str, plan_value: Any) -> bool:
+        """The task option when it is set (not None or blank); otherwise the plan's own value."""
+        if option_text(self.options.get(name), name, TaskOptionsError) is None:
+            return str(plan_value if plan_value is not None else "").lower() in {"1", "true", "yes"}
+        return self._flag(name)
+
+    def _validate_flags(self) -> None:
+        """Refuse a bad boolean option before the plan file is read or any request is made."""
+        for name, default in (("dry_run", False), ("validate_only", False), ("translate_plan", True), ("verify", False)):
+            self._flag(name, default)
+        for name in ("activate", "deactivate_before"):
+            self._flag_or_plan(name, None)
+
     def _run_task(self):
+        self._validate_flags()
         self._prep_runtime()
         plan_file = self.options.get("plan_file")
         if not plan_file or not os.path.isfile(plan_file):
@@ -130,6 +152,12 @@ class ManageContextDefinition(SFDXBaseTask, BaseSalesforceTask):
         self._run_plan_for_context(plan)
 
     def _run_plan_for_context(self, plan: Dict[str, Any]):
+        # Every boolean option, before this context's first request.
+        dry_run = self._flag("dry_run")
+        validate_only = self._flag("validate_only")
+        activate = self._flag_or_plan("activate", plan.get("activate"))
+        verify = self._flag("verify")
+        deactivate_before = self._flag_or_plan("deactivate_before", plan.get("deactivateBefore", "false"))
         context_id = self.options.get("context_definition_id") or plan.get("contextDefinitionId")
         developer_name = self.options.get("developer_name") or plan.get("developerName")
         if not context_id:
@@ -137,8 +165,7 @@ class ManageContextDefinition(SFDXBaseTask, BaseSalesforceTask):
                 raise TaskOptionsError("context_definition_id or developer_name is required")
             context_id = self._resolve_context_definition_id(developer_name)
             if not context_id:
-                create = str(plan.get("create", "false")).lower() in {"1", "true", "yes"}
-                validate_only = str(self.options.get("validate_only", "")).lower() in {"1", "true", "yes"}
+                create = str(plan.get("create", "false")).lower() in {"1", "true", "yes"}  # plan field
                 if create:
                     if validate_only:
                         # No existing definition to validate against — log and skip creation.
@@ -147,9 +174,6 @@ class ManageContextDefinition(SFDXBaseTask, BaseSalesforceTask):
                             developer_name,
                         )
                         return
-                    dry_run = str(self.options.get("dry_run", "")).lower() in {"1", "true", "yes"}
-                    activate = str(self.options.get("activate", plan.get("activate", ""))).lower() in {"1", "true", "yes"}
-                    verify = str(self.options.get("verify", "")).lower() in {"1", "true", "yes"}
                     context_id = self._create_context_definition_record(plan, dry_run)
                     if not context_id and not dry_run:
                         raise TaskOptionsError(f"Failed to create context definition: {developer_name}")
@@ -160,18 +184,13 @@ class ManageContextDefinition(SFDXBaseTask, BaseSalesforceTask):
 
         self.logger.info(f"Using ContextDefinitionId: {context_id}")
 
-        dry_run = str(self.options.get("dry_run", "")).lower() in {"1", "true", "yes"}
-        validate_only = str(self.options.get("validate_only", "")).lower() in {"1", "true", "yes"}
-        translate_plan = str(self.options.get("translate_plan", "true")).lower() in {"1", "true", "yes"}
-        activate = str(self.options.get("activate", plan.get("activate", ""))).lower() in {"1", "true", "yes"}
-        verify = str(self.options.get("verify", "")).lower() in {"1", "true", "yes"}
+        translate_plan = self._flag("translate_plan", True)
 
         self._validate_plan(context_id, plan)
         if validate_only:
             self.logger.info("Validation only; skipping API updates.")
             return
 
-        deactivate_before = str(self.options.get("deactivate_before", plan.get("deactivateBefore", "false"))).lower() in {"1", "true", "yes"}
         if deactivate_before and self._is_context_active(context_id):
             self._set_context_active(context_id, False, dry_run)
 
@@ -317,7 +336,7 @@ class ManageContextDefinition(SFDXBaseTask, BaseSalesforceTask):
         → applies mapping rules → posts tags → activates.
         This ordering ensures IDs are available at each step.
         """
-        translate_plan = str(self.options.get("translate_plan", "true")).lower() in {"1", "true", "yes"}
+        translate_plan = self._flag("translate_plan", True)
 
         # 1. Create nodes. contextNodeDefinitions supports an optional 'parentNodeName' reference
         #    so parent nodes can be specified before child nodes in the list.
@@ -1435,7 +1454,7 @@ class ManageContextDefinition(SFDXBaseTask, BaseSalesforceTask):
                             f"Attribute mapping exists for {mapping_name} -> {node_name}.{attr_name} "
                             f"but MappedContextDefinition is not set; updating via sObject API."
                         )
-                        dry_run = str(self.options.get("dry_run", "")).lower() in {"1", "true", "yes"}
+                        dry_run = self._flag("dry_run")
                         self._set_mapped_context_definition(node_mapping_id, mapped_ctx_def_name, dry_run=dry_run)
                     continue
                 if attr_mapping_id and requested_input and requested_input != existing_input_name:

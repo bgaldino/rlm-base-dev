@@ -1076,7 +1076,7 @@ class ValidateCML(BaseTask):
         },
         "data_dirs": {
             "description": (
-                "Comma-separated constraints data directories. Each directory's own "
+                "Constraints data directories, a list or comma-separated. Each directory's own "
                 "blobs/*.ffxblob (the model import_cml uploads) is validated against that "
                 "directory's ESC associations. Replaces cml_dir/data_dir when set."
             ),
@@ -1099,7 +1099,9 @@ class ValidateCML(BaseTask):
         uploads nothing. Otherwise an explicit ``cml_dir`` is required and its
         files are checked against the single optional ``data_dir``.
         """
-        data_dirs = _split_list_values(self.options.get("data_dirs") or "")
+        # A task option, so requested_names (a list is read, not stringified; a non-string item is
+        # refused by name); _split_list_values stays for CML source text.
+        data_dirs = requested_names(self.options.get("data_dirs"), "data_dirs", TaskOptionsError)
         if data_dirs:
             targets = []
             problems = []

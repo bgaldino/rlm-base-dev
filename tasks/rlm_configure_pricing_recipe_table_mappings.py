@@ -14,7 +14,7 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version, soql_quote
+from tasks.soql_utils import option_flag, project_api_version, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -46,19 +46,29 @@ class ConfigurePricingRecipeTableMappings(BaseSalesforceTask):
             "required": False,
         },
         "dry_run": {
-            "description": "If true, log intended changes without writing to org.",
+            "description": "If true, log intended changes without writing to org. Blank is the default; a list or an unparseable value is refused.",
             "required": False,
         },
         "skip_missing_tables": {
             "description": (
                 "If true, warn and skip mappings whose DecisionTable DeveloperName "
-                "is not found in the org. Defaults to false so flow prerequisites fail fast."
+                "is not found in the org. Defaults to false (also when blank) so flow prerequisites "
+                "fail fast. A list or an unparseable value is refused."
             ),
             "required": False,
         },
     }
 
+    def _flags(self):
+        """(dry_run, skip_missing_tables) through soql_utils.option_flag: blank is false, padded text
+        is read, and a list or a value outside CumulusCI's vocabulary is refused by name."""
+        return (
+            option_flag(self.options.get("dry_run"), "dry_run", TaskOptionsError),
+            option_flag(self.options.get("skip_missing_tables"), "skip_missing_tables", TaskOptionsError),
+        )
+
     def _run_task(self):
+        self._flags()  # they are used after the recipe and table lookups: refuse before any request
         operation = (self.options.get("operation") or "ensure").strip().lower()
         if operation not in {"ensure", "list"}:
             raise TaskOptionsError("operation must be 'ensure' or 'list'")
@@ -315,11 +325,7 @@ class ConfigurePricingRecipeTableMappings(BaseSalesforceTask):
         recipe_ids: Dict[str, str],
         table_ids: Dict[str, str],
     ):
-        dry_run = str(self.options.get("dry_run", "")).lower() in {"1", "true", "yes"}
-        skip_missing_tables = (
-            str(self.options.get("skip_missing_tables", "false")).lower()
-            in {"1", "true", "yes"}
-        )
+        dry_run, skip_missing_tables = self._flags()
 
         existing = self._get_existing_mappings(
             access_token, instance_url, api_version, list(recipe_ids.values())

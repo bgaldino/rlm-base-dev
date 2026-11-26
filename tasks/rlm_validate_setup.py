@@ -30,6 +30,9 @@ import subprocess
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
+# Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import option_flag
+
 try:
     from cumulusci.core.exceptions import TaskOptionsError
     from cumulusci.core.tasks import BaseTask
@@ -1047,9 +1050,7 @@ class ValidateSetup(BaseTask):
     # ── utility ───────────────────────────────────────────────────────────────
 
     def _bool_option(self, key: str, default: bool) -> bool:
-        val = self.options.get(key)
-        if val is None:
-            return default
-        if isinstance(val, bool):
-            return val
-        return str(val).lower() not in ("false", "0", "no")
+        """soql_utils.option_flag: None, blank or whitespace is `default`, padded text is read, and a
+        list or a value outside CumulusCI's vocabulary is refused by name. (It was "anything but
+        false/0/no is true", so " false ", "off" and "maybe" all read true.)"""
+        return option_flag(self.options.get(key), key, TaskOptionsError, default)
