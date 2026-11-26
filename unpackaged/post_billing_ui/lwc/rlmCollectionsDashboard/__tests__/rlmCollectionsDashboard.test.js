@@ -110,6 +110,9 @@ function cards(unavailable = [], reasons = {}) {
   };
 }
 
+// The breakdown row of each total component.
+const EXCLUDED_ROWS = { debitMemos: "Debit Memos", unappliedCredits: "Unapplied Credits", unappliedPayments: "Unapplied Payments" };
+
 const EMPTY_WORKLIST = { criticalFollowUpInvoices: [], highValueDelinquents: [], disputedInvoices: [], unavailable: [] };
 
 // Mounts with the filter options answered and every data section still waiting for its wire.
@@ -191,13 +194,47 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
     );
   });
 
+  // Every total component is a bounded read, so each can be too many: the note then says to narrow, not refresh.
+  it.each([
+    ["debitMemos", "debit memos"],
+    ["unappliedCredits", "unapplied credits"],
+    ["unappliedPayments", "unapplied payments"]
+  ])("says the total excludes %s when there are too many to total", async (key, name) => {
+    const element = await mount();
+    getDashboardCards.emit(cards([key], { [key]: "tooMany" }));
+    await flushPromises();
+
+    expect(element.shadowRoot.querySelector(".total-balance-note").textContent).toBe(
+      `Excludes ${name}: too many records to total here. Choose an account or currency to narrow it.`
+    );
+    expect(breakdown(element, EXCLUDED_ROWS[key]).title).toBe(
+      "Too many records to total here. Choose an account or currency to narrow it."
+    );
+  });
+
+  it("names each excluded component's reason, and what to do, when all three reasons are mixed", async () => {
+    const element = await mount();
+    getDashboardCards.emit(cards(["debitMemos", "unappliedCredits", "unappliedPayments"], {
+      unappliedCredits: "tooMany",
+      unappliedPayments: "failed"
+    }));
+    await flushPromises();
+
+    expect(element.shadowRoot.querySelector(".total-balance-note").textContent).toBe(
+      "Excludes debit memos (you don't have access), unapplied credits (too many records to total) and " +
+        "unapplied payments (could not be loaded). Choose an account or currency to narrow it. " +
+        "Refresh the page to try again."
+    );
+  });
+
   it("names refused and failed components apart when both are excluded", async () => {
     const element = await mount();
     getDashboardCards.emit(cards(["debitMemos", "unappliedPayments"], { unappliedPayments: "failed" }));
     await flushPromises();
 
     expect(element.shadowRoot.querySelector(".total-balance-note").textContent).toBe(
-      "Excludes debit memos (you don't have access) and unapplied payments (could not be loaded)."
+      "Excludes debit memos (you don't have access) and unapplied payments (could not be loaded). " +
+        "Refresh the page to try again."
     );
     expect(card(element, "Unapplied Payments").querySelector(".pulse-card-meta").textContent).toBe(
       LOAD_FAILED("Payments")

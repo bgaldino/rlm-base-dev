@@ -49,6 +49,24 @@ function unavailableText(subject, reason, narrowable = true) {
     return `${subject.charAt(0).toUpperCase()}${subject.slice(1)} could not be loaded. Refresh the page to try again.`;
 }
 
+// The total balance note's wording per reason, as the cards and tooltips word it: `alone` when every
+// excluded component has that reason, `short` beside each name when the reasons are mixed, and `action`,
+// said once after a mixed list, for the reasons the user can act on.
+const NOTE_CLAUSES = {
+    [REFUSED]: { alone: "you don't have access to them.", short: "you don't have access" },
+    [TOO_MANY]: {
+        alone: 'too many records to total here. Choose an account or currency to narrow it.',
+        short: 'too many records to total',
+        action: 'Choose an account or currency to narrow it.'
+    },
+    [FAILED]: {
+        alone: 'they could not be loaded. Refresh the page to try again.',
+        short: 'could not be loaded',
+        action: 'Refresh the page to try again.'
+    }
+};
+const NOTE_ORDER = [REFUSED, TOO_MANY, FAILED];
+
 function listNames(names) {
     return names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
@@ -527,22 +545,26 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         return unavailableText(SUBJECTS.invoices, this.sections.invoices.reason);
     }
 
-    // Names the total's components that could not be read, and why: "Excludes debit memos: you don't have
-    // access to them." / "...: they could not be loaded. Refresh the page to try again." / both, when mixed.
+    // Names the total's components that could not be read, and why, in the cards' words: "Excludes debit
+    // memos: you don't have access to them." for one reason; for mixed reasons each name carries its reason,
+    // then what the user can do ("Choose an account or currency ..." for too many, "Refresh ..." for failed).
+    // Every component (debit memos, unapplied credits and payments) can be refused, failed or too many.
     get totalBalanceNote() {
         const total = this.sections.total;
         if (total.status === 'loading' || this.sections.cards !== READY) return '';
         if (total.status === 'unavailable') return unavailableText(SUBJECTS.invoices, total.reason);
         const excluded = this.unavailableKeys.filter((key) => EXCLUDED_NAMES[key]);
         if (excluded.length === 0) return '';
-        const refused = excluded.filter((key) => this.cardReason(key) === REFUSED).map((key) => EXCLUDED_NAMES[key]);
-        const failed = excluded.filter((key) => this.cardReason(key) !== REFUSED).map((key) => EXCLUDED_NAMES[key]);
-        // (Only the invoices read is capped, so a refusal or a failure are the reasons left here.)
-        if (failed.length === 0) return `Excludes ${listNames(refused)}: you don't have access to them.`;
-        if (refused.length === 0) {
-            return `Excludes ${listNames(failed)}: they could not be loaded. Refresh the page to try again.`;
+        const groups = NOTE_ORDER.map((reason) => ({
+            reason,
+            names: excluded.filter((key) => this.cardReason(key) === reason).map((key) => EXCLUDED_NAMES[key])
+        })).filter((group) => group.names.length > 0);
+        if (groups.length === 1) {
+            return `Excludes ${listNames(groups[0].names)}: ${NOTE_CLAUSES[groups[0].reason].alone}`;
         }
-        return `Excludes ${listNames(refused)} (you don't have access) and ${listNames(failed)} (could not be loaded).`;
+        const parts = groups.map((group) => `${listNames(group.names)} (${NOTE_CLAUSES[group.reason].short})`);
+        const actions = groups.map((group) => NOTE_CLAUSES[group.reason].action).filter(Boolean);
+        return [`Excludes ${listNames(parts)}.`, ...actions].join(' ');
     }
 
     get invoiceCountLabel() {

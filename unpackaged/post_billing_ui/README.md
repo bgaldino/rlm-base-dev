@@ -187,18 +187,38 @@ catch block can handle and which would fail the whole call (every card, or every
 once). Each read may take the lesser of `ROW_CAP` (10,000 rows) and what the call has left less
 `ROW_HEADROOM` (1,000 rows); one row more makes its section unavailable as `tooMany`, shown as "Too
 many records to total here. Choose an account or currency to narrow it." (progress, which the
-filters do not narrow, says "Too many collection plans to total here."). The guarantee is per
-call, not per read: whatever the data, a call stays under 49,250 query rows. Its bounded reads stop
-at 49,001 (the first read that would pass that is reported as too many instead), and the only fixed
-reads after them are the payment count (one row) and the plan tasks (at most 200 rows). Measured on 264
-(2026-11-26): a `SUM` aggregate costs a query row for every row it adds up, with or without `GROUP
-BY`, while `COUNT()` and `COUNT(Id)` cost one, so a summing aggregate counts its rows first and adds
-them up only within the bound; and 10,001 invoice rows with the fields these reads select take about
-1.34 MB of the 6 MB synchronous heap, so the 10,000-row cap needs no lowering for heap. The reads
-with their own small `LIMIT` (the 200 critical follow-up invoices, the 200 plan tasks, the user's 50
-plans, the 500 account options), the active currencies and the payment count (`COUNT(Id)`) are not bounded further; the
-account names a tab looks up are checked against the same allowance, and the High-Value tab looks up
-names and plans for its ten listed accounts only.
+filters do not narrow, says "Too many collection plans to total here."). A read whose allowance is
+zero runs no query and is too many at once. The guarantee is per call, not per read: whatever the
+data, a call stays under 49,250 query rows. A bounded read takes at most its allowance plus one row,
+so the bounded reads of a call stop at 49,001 query rows, after which every later bounded read has
+no allowance and is reported as too many without querying; the only fixed reads after them are the
+payment count (one row) and the plan tasks (at most 200 rows). The reads with their own small
+`LIMIT` (the 200 critical follow-up invoices, the 200 plan tasks, the user's 50 plans, the 500
+account options), the active currencies and the payment count (`COUNT(Id)`) are not bounded
+further; the account names a tab looks up are checked against the same allowance, and the
+High-Value tab looks up names and plans for its ten listed accounts only.
+
+Query-row costs measured on 264 (2026-11-26): a `SUM` aggregate costs a query row for every row it
+adds up, with or without `GROUP BY`, while `COUNT()` and `COUNT(Id)` cost one, so a summing aggregate
+counts its rows first and adds them up only within the bound.
+
+Heap, measured on the same org against the 6 MB synchronous limit, for these reads:
+
+- **Invoice reads** (unpaid, high-value and disputed invoices): 10,001 rows with the five fields they
+  select take about 1.34 MB.
+- **The open-case read of the Disputed tab:** 10,001 rows with the three fields it selects (`Id`,
+  `CaseNumber`, `AccountId`; no text) take about 1.0 MB.
+- **Case text** (subject, description, reason): a description can be 32,000 characters. 200 cases at
+  that length take 6.4 MB as one list, over the limit, and a one-row SOQL for loop peaks at the same
+  6.46 MB because it fetches 200 rows at a time. So the open-case read carries no text: each account's
+  newest open case is picked from ids, and only those cases' text is read, 50 per query
+  (`DESCRIPTION_BATCH`), keeping a 200-character excerpt. Read that way, 200 cases at the maximum
+  length peaked at 1.65 MB, and the excerpts kept took 48 KB.
+- **The Disputed tab** lists at most 200 accounts (`DISPUTED_ROWS`), newest open case first. More is
+  `tooMany`, so a list is never cut short and its case text never passes that measured 200.
+
+Each invoice and case read is released before the next large read in its tab. The payment schedule
+and schedule item reads were not measured; they select two and three short fields.
 
 Figures: an unread invoice, debit memo or payment amount comes back null and listed in the cards'
 `unavailable` with its `unavailableReason` (unread payment schedule amounts make

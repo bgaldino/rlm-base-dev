@@ -188,6 +188,72 @@ private class RLM_CollectionsDashboardControllerTest {
         };
     }
 
+    // A spent allowance runs no query: the section is too many at once, so later reads cannot each cost a row.
+    @isTest
+    static void aReadWithNoAllowanceLeft_runsNoQueryAndSaysTooMany() {
+        RLM_CollectionsDashboardController.ROW_CAP = 0;
+
+        Test.startTest();
+        Integer queriesBefore = Limits.getQueries();
+        Integer rowsBefore = Limits.getQueryRows();
+        RLM_CollectionsDashboardController.CollectionsProgressData progress = RLM_CollectionsDashboardController.getCollectionsProgress();
+        Integer queriesRun = Limits.getQueries() - queriesBefore;
+        Integer rowsRead = Limits.getQueryRows() - rowsBefore;
+        Test.stopTest();
+
+        Assert.areEqual(0, queriesRun, 'No query with no allowance');
+        Assert.areEqual(0, rowsRead, 'No query rows with no allowance');
+        Assert.isTrue(progress.unavailable, 'Unavailable, not "no plans"');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_TOO_MANY, progress.unavailableReason, 'Too many');
+    }
+
+    // The Disputed tab lists at most DISPUTED_ROWS accounts: more is too many, not a list cut short.
+    @isTest
+    static void disputedTab_withMoreAccountsThanItLists_saysTooMany() {
+        Account a = newAccount('RLM CD Disputed Bound A');
+        Account b = newAccount('RLM CD Disputed Bound B');
+        insert new List<Case>{ new Case(AccountId = a.Id, Subject = 'RLM CD bound A'), new Case(AccountId = b.Id, Subject = 'RLM CD bound B') };
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.DISPUTED_ROWS = 1;
+        RLM_CollectionsDashboardController.WorklistData over = RLM_CollectionsDashboardController.getWorklist(null, null);
+        RLM_CollectionsDashboardController.DISPUTED_ROWS = 2;
+        RLM_CollectionsDashboardController.WorklistData exact = RLM_CollectionsDashboardController.getWorklist(null, null);
+        Test.stopTest();
+
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_TOO_MANY,
+            over.unavailableReason.get(RLM_CollectionsDashboardController.WORKLIST_DISPUTED), 'Two disputed accounts, one listed: too many');
+        Assert.isTrue(over.disputedInvoices.isEmpty(), 'No rows from the first account alone');
+        Assert.isFalse(exact.unavailable.contains(RLM_CollectionsDashboardController.WORKLIST_DISPUTED), 'Two of two are listed');
+        Assert.areEqual(2, exact.disputedInvoices.size(), 'Both accounts are listed');
+    }
+
+    // Case text is read DESCRIPTION_BATCH cases per query, each account's reason from its own case.
+    @isTest
+    static void readDisputeReasons_readsTheShownCasesInBatches() {
+        List<Account> accounts = new List<Account>{ new Account(Name = 'RLM CD Batch 1'), new Account(Name = 'RLM CD Batch 2'),
+            new Account(Name = 'RLM CD Batch 3') };
+        insert accounts;
+        List<Case> shown = new List<Case>();
+        for (Integer i = 0; i < accounts.size(); i++) {
+            shown.add(new Case(AccountId = accounts[i].Id, Subject = 'RLM CD batch subject ' + i, Description = 'Note ' + i));
+        }
+        insert shown;
+        RLM_CollectionsDashboardController.DESCRIPTION_BATCH = 2;
+
+        Test.startTest();
+        Integer queriesBefore = Limits.getQueries();
+        Map<Id, String> reasons = RLM_CollectionsDashboardController.readDisputeReasons(shown);
+        Integer queriesRun = Limits.getQueries() - queriesBefore;
+        Test.stopTest();
+
+        Assert.areEqual(2, queriesRun, 'Three cases, two per query: two queries');
+        for (Integer i = 0; i < accounts.size(); i++) {
+            Assert.isTrue(reasons.get(accounts[i].Id).startsWith('RLM CD batch subject ' + i + SUBJECT_SEPARATOR + 'Note ' + i),
+                'Each account\'s reason comes from its own case: ' + reasons.get(accounts[i].Id));
+        }
+    }
+
     // ---- the collections user (todo 435) ----
 
     private static final List<String> COLLECTIONS_LICENSES = new List<String>{

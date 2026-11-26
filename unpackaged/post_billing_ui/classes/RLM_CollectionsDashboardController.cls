@@ -590,30 +590,25 @@ public with sharing class RLM_CollectionsDashboardController {
         try {
             String caseWhere = ' IsClosed = false AND AccountId != null ';
             if (filterAccount) caseWhere += ' AND AccountId = :accountId ';
-            String caseFields = 'Id, CaseNumber, AccountId, Subject, Description';
-            if (Schema.SObjectType.Case.fields.getMap().containsKey('Reason')) caseFields += ', Reason';
-            List<Case> openCases = (List<Case>) boundedRows('SELECT ' + caseFields + ' FROM Case WHERE ' + caseWhere + ' ORDER BY CreatedDate DESC',
+            // The bulk read carries no text: each account's newest open case is picked from ids alone, and only
+            // those cases' subject, description and reason are read (readDisputeReasons). A Description can be
+            // 32,000 characters, so the open cases' text read in bulk could pass the heap limit on its own.
+            Map<Id, Case> shownCaseByAccount = new Map<Id, Case>();
+            List<Id> disputedAccountOrder = new List<Id>();
+            List<Case> openCases = (List<Case>) boundedRows('SELECT Id, CaseNumber, AccountId FROM Case WHERE ' + caseWhere + ' ORDER BY CreatedDate DESC',
                 new Map<String, Object>{ 'accountId' => accountId }, 'open cases');
-            Map<Id, String> accountDisputeReason = new Map<Id, String>();
-            Map<Id, Id> accountCaseId = new Map<Id, Id>();
-            Map<Id, String> accountCaseNumber = new Map<Id, String>();
-            Set<Id> disputedAccountIds = new Set<Id>();
             for (Case c : openCases) {
-                if (c.AccountId == null) continue;
-                disputedAccountIds.add(c.AccountId);
-                if (!accountCaseId.containsKey(c.AccountId)) {
-                    accountCaseId.put(c.AccountId, c.Id);
-                    accountCaseNumber.put(c.AccountId, c.CaseNumber);
-                }
-                if (!accountDisputeReason.containsKey(c.AccountId)) {
-                    String reason = '';
-                    if (String.isNotBlank(c.Subject)) reason = c.Subject;
-                    if (String.isNotBlank(c.Description)) reason += (String.isNotBlank(reason) ? ' – ' : '') + (c.Description.length() > 200 ? c.Description.substring(0, 200) + '...' : c.Description);
-                    try { if (c.get('Reason') != null) reason += (String.isNotBlank(reason) ? ' [' : '') + String.valueOf(c.get('Reason')) + (String.isNotBlank(reason) ? ']' : ''); } catch (Exception e) { probeSkipped('buildDisputedFromCases', e); }
-                    accountDisputeReason.put(c.AccountId, String.isNotBlank(reason) ? reason : 'Open case');
+                if (c.AccountId != null && !shownCaseByAccount.containsKey(c.AccountId)) {
+                    shownCaseByAccount.put(c.AccountId, c);
+                    disputedAccountOrder.add(c.AccountId);
                 }
             }
-            if (disputedAccountIds.isEmpty()) return;
+            openCases = null;
+            if (disputedAccountOrder.isEmpty()) return;
+            // More disputed accounts than the tab lists is too many (narrow by account), not a list cut short.
+            requireWithin(disputedAccountOrder.size(), DISPUTED_ROWS, 'disputed accounts');
+            Set<Id> disputedAccountIds = new Set<Id>(disputedAccountOrder);
+            Map<Id, String> accountDisputeReason = readDisputeReasons(shownCaseByAccount.values());
             Map<Id, String> accountNames = getAccountNames(disputedAccountIds);
             Date today = Date.today();
 
@@ -623,13 +618,13 @@ public with sharing class RLM_CollectionsDashboardController {
             String invWhere = ' Balance > 0 AND ' + invAccountField + ' IN :disputedAccountIds ';
             // The page's currency filter applies to the rollup, as it does to every other invoice read.
             if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
-            List<Invoice> disputedInvs = (List<Invoice>) boundedRows('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere,
-                new Map<String, Object>{ 'disputedAccountIds' => disputedAccountIds, 'currencyCode' => currencyCode }, 'disputed invoices');
             Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
             Map<Id, Integer> accountMaxDaysOverdue = new Map<Id, Integer>();
             Map<Id, Id> invoiceToAccountId = new Map<Id, Id>();
             Set<Id> invoiceIds = new Set<Id>();
-            for (Invoice inv : disputedInvs) {
+            // The rows are held only for this loop (the rollup keeps sums and ids), not into the lookups below.
+            for (Invoice inv : (List<Invoice>) boundedRows('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere,
+                    new Map<String, Object>{ 'disputedAccountIds' => disputedAccountIds, 'currencyCode' => currencyCode }, 'disputed invoices')) {
                 Id accId = (Id) inv.get(invAccountField);
                 if (accId == null) continue;
                 invoiceToAccountId.put(inv.Id, accId);
@@ -670,13 +665,13 @@ public with sharing class RLM_CollectionsDashboardController {
                 } catch (Exception e) { sectionSkipped('buildDisputedFromCases', e); ptpLookupFailed = true; }
             }
 
-            for (Id accId : disputedAccountIds) {
+            for (Id accId : disputedAccountOrder) {
                 Decimal bal = accountBalance.get(accId) != null ? accountBalance.get(accId) : 0;
                 Integer daysOverdue = accountMaxDaysOverdue.get(accId);
                 Date ptpDate = accountPtpDate.get(accId);
                 WorklistItem item = new WorklistItem(accId, accountNames.get(accId), bal, daysOverdue, 'disputed', 'amber', ptpDate, accountDisputeReason.get(accId));
-                item.caseId = accountCaseId.get(accId);
-                item.caseNumber = accountCaseNumber.get(accId);
+                item.caseId = shownCaseByAccount.get(accId).Id;
+                item.caseNumber = shownCaseByAccount.get(accId).CaseNumber;
                 // A promise lookup that was refused, failed or found too many rows is not "no promise".
                 item.ptpUnavailable = ptpLookupFailed;
                 wl.disputedInvoices.add(item);
@@ -685,6 +680,51 @@ public with sharing class RLM_CollectionsDashboardController {
             sectionSkipped('buildDisputedFromCases', e);
             markWorklistUnavailable(wl, WORKLIST_DISPUTED, e);
         }
+    }
+
+    // The Disputed tab lists at most this many accounts (newest open case first). More is too many: the tab
+    // reads each listed account's case text, which only a bounded number of accounts keeps within the heap.
+    @TestVisible private static Integer DISPUTED_ROWS = 200;
+    // Case text is read this many cases at a time, and only a 200-character excerpt is kept. Measured on a 264
+    // org (2026-11-26): 200 cases with 32,000-character descriptions (the field's maximum) take 6.4 MB of heap
+    // as one list, over the 6 MB synchronous limit, and a one-row SOQL for loop peaks at the same 6.46 MB
+    // (it fetches 200 rows at a time). Read 50 per query as here, the same 200 cases peaked at 1.65 MB and the
+    // excerpts kept took 48 KB.
+    @TestVisible private static Integer DESCRIPTION_BATCH = 50;
+
+    // Each shown case's dispute reason by account: its subject, a 200-character excerpt of its description,
+    // and its reason, or 'Open case'. Reads DESCRIPTION_BATCH cases per query, so a query's rows stay small
+    // whatever the descriptions hold.
+    @TestVisible
+    private static Map<Id, String> readDisputeReasons(List<Case> shownCases) {
+        Map<Id, Id> accountByCase = new Map<Id, Id>();
+        for (Case c : shownCases) {
+            accountByCase.put(c.Id, c.AccountId);
+        }
+        requireWithin(accountByCase.size(), rowAllowance(), 'cases');
+        String fields = 'Id, Subject, Description';
+        if (Schema.SObjectType.Case.fields.getMap().containsKey('Reason')) fields += ', Reason';
+        List<Id> caseIds = new List<Id>(accountByCase.keySet());
+        Map<Id, String> reasons = new Map<Id, String>();
+        for (Integer start = 0; start < caseIds.size(); start += DESCRIPTION_BATCH) {
+            List<Id> batch = new List<Id>();
+            for (Integer i = start; i < Math.min(start + DESCRIPTION_BATCH, caseIds.size()); i++) {
+                batch.add(caseIds[i]);
+            }
+            for (Case c : (List<Case>) Database.queryWithBinds('SELECT ' + fields + ' FROM Case WHERE Id IN :batch',
+                    new Map<String, Object>{ 'batch' => batch }, AccessLevel.USER_MODE)) {
+                reasons.put(accountByCase.get(c.Id), disputeReason(c));
+            }
+        }
+        return reasons;
+    }
+
+    private static String disputeReason(Case c) {
+        String reason = '';
+        if (String.isNotBlank(c.Subject)) reason = c.Subject;
+        if (String.isNotBlank(c.Description)) reason += (String.isNotBlank(reason) ? ' – ' : '') + (c.Description.length() > 200 ? c.Description.substring(0, 200) + '...' : c.Description);
+        try { if (c.get('Reason') != null) reason += (String.isNotBlank(reason) ? ' [' : '') + String.valueOf(c.get('Reason')) + (String.isNotBlank(reason) ? ']' : ''); } catch (Exception e) { probeSkipped('disputeReason', e); }
+        return String.isNotBlank(reason) ? reason : 'Open case';
     }
 
     // Every catch (Exception) in this class is one of two kinds, named by the helper it calls:
@@ -724,12 +764,14 @@ public with sharing class RLM_CollectionsDashboardController {
     // than it may take makes its section unavailable as REASON_TOO_MANY, instead of a figure or list built
     // from a cut-off read, and instead of the 50,000-row query limit of a transaction, whose LimitException
     // no catch block can handle and which would fail the whole call. Each read may take the lesser of:
-    //  - ROW_CAP rows. Heap measured on a 264 org (2026-11-26): 10,001 invoice rows with the five fields these
-    //    reads select take about 1.34 MB of the 6 MB synchronous heap.
-    //  - the rows the transaction has left, less ROW_HEADROOM. So whatever the data, the bounded reads of one
-    //    call stop at 50,000 - ROW_HEADROOM + 1 query rows (the first read that would pass that finds itself
-    //    too many instead), and the only fixed reads after them, the payment count (one row) and the 200 plan
-    //    tasks, keep the call under 49,250.
+    //  - ROW_CAP rows. Heap measured on a 264 org (2026-11-26), against the 6 MB synchronous limit: 10,001
+    //    invoice rows with the five fields the invoice reads select take about 1.34 MB; 10,001 case rows with
+    //    the three fields the open-case read selects (no text) about 1.0 MB. Case text: DESCRIPTION_BATCH.
+    //  - the rows the transaction has left, less ROW_HEADROOM. A read with an allowance of zero runs no query.
+    //    So whatever the data, the bounded reads of one call stop at 50,000 - ROW_HEADROOM + 1 query rows
+    //    (a read takes at most its allowance plus one row, after which every later bounded read has none and
+    //    is too many without querying), and the only fixed reads after them, the payment count (one row) and
+    //    the 200 plan tasks, keep the call under 49,250.
     // Query-row costs measured on the same org: a row read costs one per row returned; SUM costs one per row
     // it adds up, with or without GROUP BY; COUNT() and COUNT(Id) cost one; GROUP BY COUNT(Id) one per group.
     // So boundedAggregate counts the rows first (one query row) and adds them up only within the bound.
@@ -762,10 +804,20 @@ public with sharing class RLM_CollectionsDashboardController {
         }
     }
 
+    // The next read's allowance; with none left the read is too many without querying, so a call whose rows
+    // are spent runs no further query (a LIMIT 1 read would still cost a row).
+    private static Integer requireAllowance(String what) {
+        Integer allowed = rowAllowance();
+        if (allowed == 0) {
+            throw new TooManyRowsException('No query rows left to read ' + what + '.');
+        }
+        return allowed;
+    }
+
     // A record read, bounded: LIMIT one more than allowed, so a read with too many rows is seen as one.
     private static List<SObject> boundedRows(String soql, Map<String, Object> binds, String what) {
         boundedReads.add(what);
-        Integer allowed = rowAllowance();
+        Integer allowed = requireAllowance(what);
         List<SObject> rows = Database.queryWithBinds(soql + ' LIMIT ' + (allowed + 1), binds, AccessLevel.USER_MODE);
         requireWithin(rows.size(), allowed, what);
         return rows;
@@ -775,7 +827,7 @@ public with sharing class RLM_CollectionsDashboardController {
     private static List<AggregateResult> boundedAggregate(String fromWhere, String selectList, String groupBy,
             Map<String, Object> binds, String what) {
         boundedReads.add(what);
-        Integer allowed = rowAllowance();
+        Integer allowed = requireAllowance(what);
         Integer rowCount = Database.countQueryWithBinds('SELECT COUNT() ' + fromWhere + ' LIMIT ' + (allowed + 1), binds,
             AccessLevel.USER_MODE);
         requireWithin(rowCount, allowed, what);
