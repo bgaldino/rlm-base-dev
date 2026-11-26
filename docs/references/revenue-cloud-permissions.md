@@ -528,7 +528,7 @@ RevenueLifecycleManagementBillingOperations, so the test reads the setting row a
 | Access Libraries (`ContentWorkspaces`) | The template file is in the Docgen Document Template Library and is read as the generating user. A library member without this user permission did not read the `DefaultInvoiceTemplate` file (the only file measured; the other library files `[inferred]`); measured as the managed role set plus `RLM_BillingInvoiceDocuments`, and as Minimum Access users without it, through a recreated library group shape or as direct members, headlessly not as a persona group; live as an `RLM_Billing_Admin` persona on Minimum Access (see below). Minimum Access lacks it; Standard User has it. The managed Billing Admin and Billing Operations sets do not carry it (`PermissionsContentWorkspaces` false on both, measured), so the grant is not redundant for these two personas. The other billing persona groups do not get it from this set: the repo's `RLM Tax Admin` profile enables it, the managed Credit Memo Operations set was checked and lacks it (`PermissionsContentWorkspaces` false), and the managed Tax Admin and Accounting Admin sets were not checked for it | `RLM_BillingInvoiceDocuments`, in `RLM_Billing_Admin` and `RLM_Billing_Operations` only |
 | Library membership | The default invoice template's file (`DefaultInvoiceTemplate`, and `RLM_InvoiceTemplate`) is in that library | `create_docgen_library` (all internal users, see *Record sharing*). It runs in `prepare_docgen`, under the `docgen` flag, while the groups deploy in `prepare_personas`, under `personas`: a personas build with docgen off has no membership. An org built before that step was added (todo 435) needs `cci task run create_docgen_library --org <alias>` once |
 | Invoice document data | The invoice document's data mappers (`BillingDocumentGenerationGetInvoiceDetails` and `BillingDocumentGenerationTransformInvoiceDetails`, for `DefaultInvoiceTemplate`) read as the generating user: Invoice, InvoiceLineRelationship, InvoiceLine, Account (billing and shipping address, phone), Contact, User (company street, city, phone), ContentDocument, Product2 and UnitOfMeasure. A persona missing a read still gets a Success status, not an error, and a PDF that is **empty, or without addresses**: without Product2 and UnitOfMeasure the PDF was empty, and without the Account fields it had data but no addresses [Measured: 2026-11-26, 264, scratch, Login As persona, UI buttons]. Missing reads on Contact, User and ContentDocument were not tested. Product2 and UnitOfMeasure read together fill in the invoice data and lines (either alone does not); the Account billing address, shipping address and phone reads fill in the addresses. The managed Billing Admin set reads Account but not Product2, UnitOfMeasure or those Account fields; the managed Billing Operations set reads Product2 and UnitOfMeasure but not the fields [Measured: 2026-11-26, 264, scratch, check-only probe as Minimum Access users]. Account object read comes from the role sets, so the set adds only the field reads | `RLM_BillingInvoiceDocuments`: Read on Product2 and UnitOfMeasure, read (not edit) on `Account.BillingAddress`, `Account.ShippingAddress` and `Account.Phone` |
-| Lightning Experience User and app access | A persona must open the Invoice Batch Run and Invoice records in Lightning, from an app that shows them. The live run supplied the Lightning Experience User user permission and app and tab visibility through a separate test set (see the re-run below); whether the build gives a billing persona these was not checked | Not from `RLM_BillingInvoiceDocuments`; the live run used a separate set |
+| Lightning Experience User and app access | To use the UI buttons, a persona opens the Invoice Batch Run and Invoice records in Lightning from an app it can see (supplied in the live run, not isolated). The build's own sets in the billing groups (`RLM_BillingAccountFieldAccess`, `RLM_BillingInvoiceDocuments`) grant neither the Lightning Experience User user permission nor app or tab visibility, and the build creates no billing persona users, so the profile and any app set are the admin's step. Whether the managed Billing Admin and Billing Operations sets carry them was not checked | Not from the build's own sets: the admin assigns it (profile or a set); the live run used a separate set |
 
 **Live persona run** [Measured: 2026-11-26, 264, scratch, Login As persona, UI buttons]: a Minimum Access persona and a Standard User persona, each holding the Billing and DocGen Designer licenses, `RLM_Billing_Admin` (with this set as it was before the invoice document data reads were added), `DocGenUser` and `DocGenDesigner`, used the UI buttons with `DefaultInvoiceTemplate`.
 
@@ -560,15 +560,17 @@ the Billing license. Billing Advanced is not needed for invoice documents.
 
 `RLM_BillingInvoiceDocumentsAccessTest` (`unpackaged/post_personas/classes/`) checks, as Minimum Access users:
 
-- **as the group itself:** the Invoice Batch Run reads. A group in `Failed` status fails the test; one that is
-  not `Updated` (inside a deploy that changes it, it reads `Outdated`, measured below; an API edit of its
-  components leaves it `Updating` for a while `[seen in the todo 292 log, 2026-10-28, on RLM_RCB, not on the billing persona groups]`) is skipped with a "SKIPPED, NOT
-  CHECKED" WARN debug line, and then proves nothing. Measured on an org whose `RLM_Billing_Admin` and
-  `RLM_Billing_Operations` groups did not yet contain `RLM_BillingInvoiceDocuments`, with check-only deploys of the
-  whole bundle and this class's tests [Measured: 2026-11-26, 264, scratch, check-only probe]: one added a probe test that fails by design to print the state,
-  and it showed both groups `Outdated` inside the deploy transaction with the set already among their
-  components; the same deploy without the probe passed. That the group methods skipped is
-  inferred from that status and their timings (about 100 ms, no user created); no debug log was captured;
+- **as the group itself:** the Invoice Batch Run reads. A group in `Failed` status fails the test. Inside a
+  deploy that changes the group (or the set) the group reads `Outdated` and cannot be assigned, so the test
+  recalculates it with `Test.calculatePermissionSetGroup` and then assigns and checks it; it skips with a
+  "SKIPPED, NOT CHECKED" WARN line only if that call throws. Measured in check-only deploys of the set, both
+  groups and this class: a probe test saw both groups `Outdated` inside the deploy transaction, the call
+  succeeded and they read `Updated` after it, and both group methods ran (each created a user) and passed, in
+  the same deploy that changed the set [Measured: 2026-11-26, 264, scratch, check-only probe]. Before this the
+  group methods skipped in such a deploy (inferred from their timings), so a production deploy that changed a
+  group never checked it. (An
+  API edit of a group's components also leaves it `Updating` for a while `[seen in the todo 292 log,
+  2026-10-28, on RLM_RCB, not on the billing persona groups]`.)
 - **as the managed role set plus `RLM_BillingInvoiceDocuments`** (the group's content without its field-access
   set): the Invoice Batch Run reads, and with both DocGen sets the batch create, the on-demand create and
   template read. The batch create is a real user-mode insert, the only check that meets the DocGen Designer
@@ -588,10 +590,9 @@ the Billing license. Billing Advanced is not needed for invoice documents.
   `INVALID_INPUT` is a "SKIPPED, NOT CHECKED" WARN line and any other status code fails. An attempted and
   asserted insert logs "CHECKED: <role> batch process create asserted (setting <state>)". With both flags on, the other settings do not stop the insert: it succeeds with the client-side
   generation mechanism and with an hourly batch percentage limit (`batchDocGnrnPctLimitPerHour`) of 0 [Measured: 2026-11-26, 264, scratch, check-only probe]. It decides by status code and setting, never by message text. The Billing
-  Operations run-read, group and DocGen methods pass without the set's grants: the managed Operations set and the
-  DocGen sets supply that access, and the View All the set adds is checked only by the metadata test. They trip on
-  the set only if it is deleted (the user factory asserts it exists); the group method's `Failed` status check is
-  the one assertion there that a change to the set itself can trip, if it leaves the group unable to recalculate. In both DocGen methods (Admin and
+  Operations run-read, group and DocGen methods pass without the set's grants (the managed Operations set and the
+  DocGen sets supply that access); the set itself is checked by the metadata tests, the Billing Admin methods and
+  both invoice-document-data reads. In both DocGen methods (Admin and
   Operations) the DocGen assertions check the managed DocGen sets assigned next to the group; the Admin one
   depends on the set only through its run reads, which the Admin run-read method already checks;
 - **the invoice document data reads**, as the managed role set plus `RLM_BillingInvoiceDocuments`: a USER_MODE

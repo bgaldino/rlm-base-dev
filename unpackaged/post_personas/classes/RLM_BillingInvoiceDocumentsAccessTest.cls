@@ -6,9 +6,10 @@
  * This class does not read the template file: that read depends on org data and configuration.
  *
  * Which tests check what:
- * - the group itself: the *GroupReadsInvoiceBatchRuns methods. A group that is not Updated cannot be
- *   assigned (inside a deploy that changes it, it reads Outdated), so these skip with a "SKIPPED, NOT
- *   CHECKED" WARN debug line and then prove nothing. A Failed group fails the test.
+ * - the group itself: the *GroupReadsInvoiceBatchRuns methods. Inside a deploy that changes the group it
+ *   reads Outdated and cannot be assigned, so the test recalculates it (Test.calculatePermissionSetGroup)
+ *   and then checks it; only if that call throws does it skip with a "SKIPPED, NOT CHECKED" WARN line.
+ *   A Failed group fails the test.
  * - the managed role set plus RLM_BillingInvoiceDocuments (the group's content, minus its
  *   field-access set): the Invoice Batch Run reads, the DocGen access, and the *ReadsInvoiceDocumentData
  *   methods' USER_MODE reads of what the invoice data mappers read as the generating user (Product2,
@@ -16,11 +17,10 @@
  * - the set's metadata: exactly Read and View All on the run chain, exactly Read on Product2 and
  *   UnitOfMeasure, exactly read on the three Account fields, Access Libraries, and membership of
  *   RLM_Billing_Admin and RLM_Billing_Operations.
- * The Billing Operations run-read, group and DocGen methods pass without RLM_BillingInvoiceDocuments'
- * grants: the managed Operations set and the DocGen sets supply that access, and the View All the set
- * adds is checked only by the metadata test. They trip on the set only if it is deleted (user() asserts
- * it exists); the group method's Failed-status check is the one assertion there that a change to the
- * set itself can trip. In both *WithBothDocGenSets* methods the DocGen assertions check the managed
+ * The Billing Operations run-read, group and DocGen methods pass without the set's grants (the managed
+ * Operations set and the DocGen sets supply that access); the set itself is checked by the metadata
+ * tests, the Billing Admin methods and both invoice-document-data reads.
+ * In both *WithBothDocGenSets* methods the DocGen assertions check the managed
  * DocGen sets assigned next to the group. The Operations one passes with the set emptied, apart from the
  * set-exists check; the Admin one depends on the set only through its run reads, which
  * billingAdminRoleWithInvoiceDocumentsSetReadsInvoiceBatchRuns already checks.
@@ -216,13 +216,20 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
         Assert.areEqual(1, groups.size(), groupName + ' is deployed with this class (unpackaged/post_personas)');
         Assert.areNotEqual('Failed', groups[0].Status,
             groupName + ' failed to recalculate, so its holders do not get its permissions');
-        if (groups[0].Status != 'Updated') {
-            // Outdated inside a deploy that changes the group (measured); Updating after an API edit of its components.
-            System.debug(LoggingLevel.WARN, 'SKIPPED, NOT CHECKED: ' + groupName + ' is ' + groups[0].Status
-                + ', not Updated, so it cannot be assigned; rerun this test once the group is Updated.');
-            return;
+        String status = groups[0].Status;
+        if (status != 'Updated') {
+            // Outdated inside a deploy that changes the group (measured). Recalculate it inside the test
+            // so the deploy that changes the group still checks it.
+            try {
+                Test.calculatePermissionSetGroup(groups[0].Id);
+            } catch (Exception e) {
+                System.debug(LoggingLevel.WARN, 'SKIPPED, NOT CHECKED: ' + groupName + ' is ' + status
+                    + ' and could not be recalculated in the test (' + e.getMessage() + ').');
+                return;
+            }
         }
-        System.debug(LoggingLevel.WARN, 'CHECKED: ' + groupName + ' is Updated; asserting its Invoice Batch Run reads.');
+        System.debug(LoggingLevel.WARN, 'CHECKED: ' + groupName + ' (was ' + status
+            + '); asserting its Invoice Batch Run reads.');
         User u = user(new List<String>(), groups[0].Id, new List<String>{ BILLING_PSL });
         System.runAs(u) {
             List<String> failures = unreadable(BATCH_RUN_OBJECTS);
