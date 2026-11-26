@@ -896,8 +896,9 @@ CHECKS = [
                   "unpackaged/post_quote_est_tax_settings/", "orgs/", "force-app/main/default/settings/",
                   "templates/",
                   # todo 481: the SalesforceContractsExtCredentials AwsAccountId is a placeholder
-                  # deploy_quantumbit fills in the deploy zip. The suite scans every XML file under
-                  # unpackaged/, force-app/ and templates/ for a committed 12-digit parameterValue.
+                  # deploy_quantumbit fills in the deploy zip. The suite scans every file, of any
+                  # type, under unpackaged/, force-app/ and templates/ for a committed 12-digit
+                  # parameterValue.
                   "tests/test_external_credentials.py", "unpackaged/", "force-app/",
                   # It also asserts the launchers forward RLM_AWS_ACCOUNT_ID by name only.
                   "docker/rlm", "docker/compose.yaml", ".devcontainer/devcontainer.json"],

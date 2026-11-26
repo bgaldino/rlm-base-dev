@@ -16,6 +16,7 @@ is never written.
 """
 import importlib.util
 import io
+import json
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -280,7 +281,9 @@ def option_sets(config):
         yield f"task {name}", name, (spec or {}).get("options") or {}
     for fname, flow in (config.get("flows") or {}).items():
         for key, step in ((flow or {}).get("steps") or {}).items():
-            opts = (step or {}).get("options") or {}
+            if not isinstance(step, dict):
+                continue  # a null step (`3:` with nothing under it) deploys nothing
+            opts = step.get("options") or {}
             if step.get("task"):
                 yield f"flow {fname}.{key}", step["task"], opts
             elif step.get("flow"):
@@ -312,7 +315,8 @@ synthetic = {
         2: {"task": "deploy_post_tso", "options": {"path": BUNDLE}},
         3: {"flow": "sub", "options": {OWNER: {"path": BUNDLE}, "deploy_post_tso": {"path": "./" + BUNDLE}}},
         4: {"flow": "sub", "options": {"other": {"aws_account_id": "x"}}},
-        5: {"task": "noop"}}}},
+        5: {"task": "noop"},
+        6: None}}},
 }
 check("the scanner finds a task option other than path, a list item, a task step and a subflow step, "
       "and passes deploy_quantumbit itself",
@@ -325,21 +329,34 @@ check("nothing but deploy_quantumbit deploys post_quantumbit (or a subpath), in 
       "flow step or subflow step", not others, others)
 set_ids = account_id_options(cfg)
 check("cumulusci.yml sets aws_account_id nowhere (tasks, flow steps, subflow steps)", not set_ids, set_ids)
-twelve = re.findall(r"(?<![0-9])[0-9]{12}(?![0-9])", CCI_TEXT)
-check("cumulusci.yml contains no 12-digit number", not twelve, len(twelve))
+# Line numbers only: the message must never echo the value.
+twelve = [n for n, line in enumerate(CCI_TEXT.splitlines(), 1) if re.search(r"(?<![0-9])[0-9]{12}(?![0-9])", line)]
+check("cumulusci.yml contains no 12-digit number", not twelve, f"line(s) {twelve}")
 
 print("docker forwarding")
 RLM = (REPO / "docker/rlm").read_text()
-check("docker/rlm forwards RLM_AWS_ACCOUNT_ID by name in both the one-off and up flags",
-      RLM.count("RUN_FLAGS+=(-e RLM_AWS_ACCOUNT_ID)") == 1 and RLM.count("up_flags+=(-e RLM_AWS_ACCOUNT_ID)") == 1)
+
+
+def forwards(flags):
+    """The whole, uncommented guarded line that forwards the variable by name onto ``flags``."""
+    return re.compile(r'^\s*\[ -n "\$\{RLM_AWS_ACCOUNT_ID:-\}" \] && ' + flags
+                      + r'\+=\(-e RLM_AWS_ACCOUNT_ID\)\s*$', re.M)
+
+
+check("docker/rlm forwards RLM_AWS_ACCOUNT_ID by name, guarded, in both the one-off and up flags",
+      len(forwards("RUN_FLAGS").findall(RLM)) == 1 and len(forwards("up_flags").findall(RLM)) == 1)
 check("docker/rlm never puts the value on the docker command line", "RLM_AWS_ACCOUNT_ID=" not in RLM)
 compose = yaml.safe_load((REPO / "docker/compose.yaml").read_text())
 envs = [e for svc in compose.get("services", {}).values() for e in (svc.get("environment") or [])]
 check("docker/compose.yaml lists the bare name, so the value comes from the shell",
       "RLM_AWS_ACCOUNT_ID" in envs and not any(str(e).startswith("RLM_AWS_ACCOUNT_ID=") for e in envs), envs)
-DEVCONTAINER = (REPO / ".devcontainer/devcontainer.json").read_text()
+# devcontainer.json is JSON with // comment lines; drop them and parse, so a commented-out entry
+# doesn't count.
+DEVCONTAINER = json.loads("\n".join(line for line in (REPO / ".devcontainer/devcontainer.json").read_text().splitlines()
+                                     if not line.lstrip().startswith("//")))
 check("the dev container forwards it from the editor's environment",
-      '"RLM_AWS_ACCOUNT_ID": "${localEnv:RLM_AWS_ACCOUNT_ID}"' in DEVCONTAINER)
+      DEVCONTAINER.get("remoteEnv", {}).get("RLM_AWS_ACCOUNT_ID") == "${localEnv:RLM_AWS_ACCOUNT_ID}",
+      DEVCONTAINER.get("remoteEnv"))
 
 print()
 if failures:
