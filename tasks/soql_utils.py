@@ -40,11 +40,15 @@ FALSE_WORDS = ("no", "n", "false", "off", "0")
 
 
 def option_flag(value, option: str, exc=ValueError, default: bool = False) -> bool:
-    """A boolean option. None, blank or whitespace is `default`; otherwise `option_text`, then
-    CumulusCI's process_bool_arg vocabulary (true/false, yes/no, y/n, on/off, 1/0, any case).
+    """A boolean option, read the way CumulusCI's process_bool_arg reads it, plus blank handling.
 
-    A list, tuple, set or dict is refused, and so is any other value ("maybe", 2), naming the option.
+    None, blank or whitespace is `default`. A bool or any int is its truth value (0 False, 2 and -1
+    True), as process_bool_arg does. Text is stripped, then matched against its vocabulary
+    (true/false, yes/no, y/n, on/off, 1/0, any case). Anything else ("maybe", "2") is refused naming
+    the option, and so is a list, tuple, set or dict (`option_text`).
     """
+    if isinstance(value, int):  # bool is an int
+        return bool(value)
     text = option_text(value, option, exc)
     if text is None:
         return default

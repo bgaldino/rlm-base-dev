@@ -156,7 +156,7 @@ What the helpers do with each shape:
 | Helper | None, blank, whitespace | Padded | int `0` | A list | Refused, naming the option |
 |---|---|---|---|---|---|
 | `option_text` | unset (`None`) | stripped | the value `"0"` | refused | a list, tuple, set or dict |
-| `option_flag` | `default` (False unless given) | stripped | False | refused | anything outside CumulusCI's `process_bool_arg` words (true/false, yes/no, y/n, on/off, 1/0) |
+| `option_flag` | `default` (False unless given) | stripped | False; any int is its truth value (`2` and `-1` True), as in `process_bool_arg` | refused | text outside CumulusCI's `process_bool_arg` words (true/false, yes/no, y/n, on/off, 1/0), e.g. `"maybe"` or `"2"` |
 | `requested_names` | no names (`[]`; so is `[]`) | each name stripped | refused | flattened, split on commas, de-duplicated | an int, an all-blank list, or a list item that is not a string (`- ~`, `- [A, B]`) |
 
 Don't hand-roll a boolean parse (`str(v).lower() == "true"` misreads `" true "` and
