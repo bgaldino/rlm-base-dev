@@ -514,8 +514,9 @@ Access users holding the Billing license and each group or its content (the text
 measured), and, for the invoice document data and the live run, as Login As personas through the UI
 [Measured: 2026-11-26, 264, scratch builds]. The Invoice Batch Run reads were checked as the group itself, with
 the set in `RLM_Billing_Admin` and `RLM_Billing_Operations`: the group methods ran (each created a user) and the
-debug log shows "CHECKED: RLM_Billing_Admin is Updated" and "CHECKED: RLM_Billing_Operations is
-Updated" [Measured: 2026-11-26, 264, scratch, post-deploy test run]. The batch process create (checked as each managed role set plus `RLM_BillingInvoiceDocuments`
+debug log showed a CHECKED line for each group [Measured: 2026-11-26, 264, scratch, post-deploy test run]. That
+run logged the previous wording ("CHECKED: RLM_Billing_Admin is Updated"); the class now logs, for example,
+"CHECKED: RLM_Billing_Admin (was Updated); asserting its Invoice Batch Run reads". The batch process create (checked as each managed role set plus `RLM_BillingInvoiceDocuments`
 and both DocGen sets, not as the group) was asserted the same way: the debug log shows "CHECKED:
 RevenueLifecycleManagementBillingAdmin batch process create asserted (setting ENABLED)" and the same for
 RevenueLifecycleManagementBillingOperations, so the test reads the setting row and asserts the insert [Measured: 2026-11-26, 264, scratch, post-deploy test run]. **A live persona run found the empty-PDF gap the invoice document data reads close, and a re-run with the shipped sets plus a test app-visibility set gave complete PDFs (on demand on a Minimum Access persona, batch on a Standard User persona). Batch generation on a Minimum Access persona does not start, even with the shipped sets plus a test app-visibility set (todo 292, open).**
@@ -560,15 +561,14 @@ the Billing license. Billing Advanced is not needed for invoice documents.
 
 `RLM_BillingInvoiceDocumentsAccessTest` (`unpackaged/post_personas/classes/`) checks, as Minimum Access users:
 
-- **as the group itself:** the Invoice Batch Run reads. A group in `Failed` status fails the test. Inside a
-  deploy that changes the group (or the set) the group reads `Outdated` and cannot be assigned, so the test
-  recalculates it with `Test.calculatePermissionSetGroup` and then assigns and checks it; it skips with a
-  "SKIPPED, NOT CHECKED" WARN line only if that call throws. Measured in check-only deploys of the set, both
-  groups and this class: a probe test saw both groups `Outdated` inside the deploy transaction, the call
-  succeeded and they read `Updated` after it, and both group methods ran (each created a user) and passed, in
-  the same deploy that changed the set [Measured: 2026-11-26, 264, scratch, check-only probe]. Before this the
-  group methods skipped in such a deploy (inferred from their timings), so a production deploy that changed a
-  group never checked it. (An
+- **as the group itself:** the Invoice Batch Run reads. Inside a deploy that changes the group or one of its
+  sets the group reads `Outdated` and cannot be assigned, so the test recalculates it with
+  `Test.calculatePermissionSetGroup`, asserts it then reads `Updated`, and assigns and checks it. A group in
+  `Failed` status, a recalculation that throws, or one that does not reach `Updated` fails the test; there is
+  no skip. Measured in check-only deploys of a changed set, both groups and this class: a probe test saw both
+  groups `Outdated` inside the deploy transaction, the call succeeded and they then read `Updated`, and the
+  class passed 14/14 [Measured: 2026-11-26, 264, scratch, check-only probe]. That the group methods ran rather
+  than skipped is inferred from their timings (2 to 3 s each against about 100 ms for the earlier skip). (An
   API edit of a group's components also leaves it `Updating` for a while `[seen in the todo 292 log,
   2026-10-28, on RLM_RCB, not on the billing persona groups]`.)
 - **as the managed role set plus `RLM_BillingInvoiceDocuments`** (the group's content without its field-access

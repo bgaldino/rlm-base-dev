@@ -2486,8 +2486,9 @@ tasks:
       members) added as a library member. Without the membership only the build admin can read
       the templates, and every other user's document generation fails (todo 435). Idempotent;
       rerun it on an org built before todo 435. Members also need the Access Libraries user
-      permission (ContentWorkspaces), which this task does not grant: Standard User and the RLM
-      persona profiles have it, Minimum Access does not (todo 292).
+      permission (ContentWorkspaces) to read the files (measured for DefaultInvoiceTemplate;
+      other files inferred), which this task does not grant: Standard User and the RLM persona
+      profiles have it, Minimum Access does not (todo 292).
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/createDocgenTemplateLibrary.apex
