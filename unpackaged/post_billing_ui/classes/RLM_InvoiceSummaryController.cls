@@ -49,8 +49,10 @@ public with sharing class RLM_InvoiceSummaryController {
         data.cashCollected = 0;
         data.openInvoices = 0;
 
-        // Convert all amounts to running user's currency (matches
-        // RLM_OnAccountBillingController which relies on SUM() auto-conversion)
+        // Every amount here is converted into the running user's default currency at the standard
+        // (CurrencyType) rates. RLM_OnAccountBillingController differs: it converts its SUM()
+        // balances into the account's currency, at dated rates where advanced currency management
+        // has them, else standard rates.
         Boolean isMultiCurrency = UserInfo.isMultiCurrencyOrganization();
         String targetCurrency = UserInfo.getDefaultCurrency();
         Map<String, Decimal> convRates = new Map<String, Decimal>();
@@ -131,7 +133,7 @@ public with sharing class RLM_InvoiceSummaryController {
         // ── 6. Paid — invoices fully settled in last 30 days ────
         // Count is # of fully-settled invoices in window.
         // Amount uses NetPaymentsApplied (actual cash applied to those invoices).
-        String paidInvQuery = 'SELECT Id, NetPaymentsApplied';
+        String paidInvQuery = 'SELECT ' + paidReadFields;
         if (isMultiCurrency) paidInvQuery += ', CurrencyIsoCode';
         paidInvQuery += ' FROM Invoice WHERE BillingAccountId = :accountId'
                      + ' AND Status = \'Posted\''
@@ -158,6 +160,11 @@ public with sharing class RLM_InvoiceSummaryController {
 
         return data;
     }
+
+    // The fields the paid-invoice read selects (CurrencyIsoCode is added in a multi-currency org).
+    // Not final, so a test can name a field the org lacks and reach the read's failure path.
+    @TestVisible
+    private static String paidReadFields = 'Id, NetPaymentsApplied';
 
     @TestVisible
     private static final String RATES_UNREADABLE =
@@ -318,9 +325,9 @@ public with sharing class RLM_InvoiceSummaryController {
     }
 
     // A currency with no rate is never converted at 1, which would show a foreign amount as if it
-    // were in the user's currency. Inside the dispute, debit memo and promise-to-pay steps the
-    // throw makes that part unavailable (their catch); for the invoices it fails the summary with
-    // this fixed sentence.
+    // were in the user's currency. Inside the dispute, debit memo, promise-to-pay and paid-invoice
+    // steps the throw makes that part unavailable (their catch); only for the open invoices does it
+    // fail the summary, with this fixed sentence.
     @TestVisible
     private static Decimal convertCurrency(Decimal amount, String fromCurr, String toCurr, Map<String, Decimal> rates) {
         if (fromCurr == toCurr || amount == 0) return amount;

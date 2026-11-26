@@ -622,6 +622,7 @@ private class RLM_InvoiceSummaryControllerTest {
         System.runAs(u) {
             Assert.isNotNull(userModeError('SELECT Id FROM Case LIMIT 1'), 'PRECONDITION: the user cannot read Case.');
             Assert.isNull(userModeError('SELECT Id, Balance FROM Invoice LIMIT 1'), 'PRECONDITION: the user can read Invoice.');
+            Assert.isNull(RLM_InvoiceSummaryController.openCaseIds(acc.Id), 'Case refused: null, not a system-mode read.');
             try {
                 data = RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
             } catch (Exception e) {
@@ -660,6 +661,47 @@ private class RLM_InvoiceSummaryControllerTest {
         Test.stopTest();
         Assert.areEqual(RLM_InvoiceSummaryController.INVOICES_UNREADABLE, message,
             'The user-facing sentence is fixed; no platform text is echoed.');
+    }
+
+    // openCaseIds reads in user mode: a user who can read Case and see the case (View All) but not
+    // Case.AccountId, the field it filters on, is refused (null). A system-mode read would ignore
+    // that field refusal and return the case, so this pins the access level.
+    @isTest
+    static void openCaseIds_forAUserWhoCannotReadCaseAccountId_isNull() {
+        User u = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL }, new List<String>(), new List<String>{ 'Case' });
+        Account acc = new Account(Name = 'RLM Invoice Summary No Case Account Field');
+        insert acc;
+        Case openCase = new Case(AccountId = acc.Id, Subject = 'RLM open case, account field unreadable');
+        insert openCase;
+        Id caseId = openCase.Id;
+        Set<Id> caseIds;
+        Test.startTest();
+        System.runAs(u) {
+            Assert.isNull(userModeError('SELECT Id FROM Case LIMIT 1'), 'PRECONDITION: the user can read Case.');
+            Assert.areEqual(1, Database.countQuery('SELECT COUNT() FROM Case WHERE Id = :caseId', AccessLevel.USER_MODE),
+                'PRECONDITION: the user can see the case (View All).');
+            Assert.isNotNull(userModeError('SELECT Id FROM Case WHERE AccountId != null LIMIT 1'),
+                'PRECONDITION: the user cannot read Case.AccountId.');
+            caseIds = RLM_InvoiceSummaryController.openCaseIds(acc.Id);
+        }
+        Test.stopTest();
+        Assert.isNull(caseIds, 'Case.AccountId refused: null (unavailable), not the case found by a system-mode read.');
+    }
+
+    // A failed paid-invoice read leaves the paid amount and count unavailable (null), not zero, and
+    // the rest of the card still loads. Simulated by naming a field Invoice lacks.
+    @isTest
+    static void getInvoiceSummary_whenThePaidInvoiceReadFails_leavesPaidUnavailable() {
+        Account acc = new Account(Name = 'RLM Invoice Summary Paid Read Fails');
+        insert acc;
+        RLM_InvoiceSummaryController.paidReadFields = 'Id, NetPaymentsApplied, RLM_NoSuchField__c';
+        Test.startTest();
+        RLM_InvoiceSummaryController.InvoiceSummaryData data = RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+        Test.stopTest();
+        Assert.isNull(data.paidAmount, 'The paid amount is unavailable (null), not zero.');
+        Assert.isNull(data.paidCount, 'The paid count is unavailable (null), not zero.');
+        Assert.areEqual(0, data.totalInvoices, 'The open invoices are still read.');
     }
 
     private static RLM_InvoiceSummaryController.InvoiceSummaryData zeroedSummary() {
