@@ -108,7 +108,7 @@ cci task run manage_expression_sets --org <org> -o operation list -o limit 10
 cci task run manage_expression_sets --org <org> -o operation query -o limit 5
 ```
 
-Unlike `manage_flows`, `query` only logs a count of the sets; it returns no rows to the caller.
+Like `manage_flows`, `query` logs a count of the sets and returns the rows to the caller as `return_values["expression_sets"]` (the flows task uses `"flows"`).
 
 ### Filtering
 

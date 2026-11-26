@@ -213,6 +213,61 @@ def test_failure_messages_are_distinct_and_carry_the_right_guidance():
     )
 
 
+class _Resp:
+    pass
+
+
+def _extend_task(responses, **options):
+    """Task with a scripted _make_request; records every request made."""
+    t = _new_task()
+    t.options = {"developerName": "Dev", "baseReference": "Base", "defaultMapping": "Map", **options}
+    t.context_id = "CTX"
+    t._last_response_status = 404
+    t.calls = []
+
+    def fake(method, url, **kw):
+        t.calls.append((method, url))
+        return responses.pop(0) if responses else {}
+
+    t._make_request = fake
+    return t
+
+
+def _raises(fn, exc, *needles):
+    try:
+        fn()
+    except exc as e:
+        return all(n in str(e) for n in needles)
+    except Exception:
+        return False
+    return False
+
+
+def test_nothing_to_extend_paths_fail_without_further_requests():
+    from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
+    t = _extend_task([None])
+    check("unreadable definition raises", _raises(t._process_context_id, CumulusCIException, "Nothing was extended"))
+    check("  and makes only the one GET", len(t.calls) == 1)
+    t = _extend_task([{"contextDefinitionVersionList": []}])
+    check("no version raises", _raises(t._process_context_id, CumulusCIException, "no", "versions", "baseReference"))
+    check("  and makes only the one GET", len(t.calls) == 1)
+    t = _extend_task([{"contextDefinitionVersionList": [{"contextMappings": [{"name": "Other", "contextMappingId": "1"}]}]}])
+    check("missing default mapping raises naming what exists",
+          _raises(t._process_context_id, TaskOptionsError, "'Map'", "Other"))
+    check("  and no PATCH/activation follows", all(c[0] == "get" for c in t.calls) and len(t.calls) == 1)
+    t = _extend_task([], plan_file="/nonexistent/plan.json")
+    check("unreadable plan_file raises", _raises(t._apply_plan_if_present, TaskOptionsError, "plan_file"))
+    check("  and makes no request", t.calls == [])
+
+
+def test_existing_default_mapping_is_still_success():
+    t = _extend_task([{"contextDefinitionVersionList": [{"contextMappings": [{"name": "Map", "contextMappingId": "M1"}]}]}],
+                     activate="false")
+    t._existing_definition = True
+    t._process_context_id()
+    check("mapping found: PATCH issued, no raise", [c[0] for c in t.calls] == ["get", "patch"])
+
+
 def main():
     tests = [v for k, v in sorted(globals().items())
              if k.startswith("test_") and callable(v)]

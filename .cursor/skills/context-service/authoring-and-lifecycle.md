@@ -112,6 +112,12 @@ Contracts** (non-extraction) are the ones most likely to be absent on a lean
 edition and skip. Confirm what a given org actually provisioned with
 `list_contexts.py` before assuming a base exists.
 
+Only an absent base with `allow_skip_if_unavailable` is a skip. Once the definition
+exists, the task **fails** (it does not log and pass) when it cannot read the
+definition, finds no version, finds no mapping named `defaultMapping`, or cannot
+load `plan_file`; each message says what was not found. A rerun on an already
+extended definition (`DUPLICATE_VALUE`, mapping already default) still succeeds.
+
 **Edition-optional vs. always-present (`allow_skip_if_unavailable`).** Most
 `extend_context_*` tasks set `allow_skip_if_unavailable: true` so they no-op
 gracefully when the standard base context is not provisioned on the target

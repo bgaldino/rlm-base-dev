@@ -4,7 +4,7 @@ import time
 import requests
 from requests.exceptions import ConnectionError, Timeout, ChunkedEncodingError
 
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.salesforce import BaseSalesforceTask
 from cumulusci.tasks.sfdx import SFDXBaseTask
@@ -358,15 +358,23 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
             f"connect/context-definitions/{self.context_id}"
         )
         response = self._make_request("get", url, headers=headers)
-        if response is not None:
-            version_list = response.get("contextDefinitionVersionList", [])
-            self.logger.info(f"      Found {len(version_list)} version(s)")
-            if version_list:
-                self._process_version_list(version_list)
-            else:
-                self.logger.warning(
-                    "      No versions listed: skipped setting the default mapping, applying plan_file and activation."
-                )
+        if response is None:
+            raise CumulusCIException(
+                f"Could not read context definition {self.context_id} to find its versions "
+                f"(HTTP {self._last_response_status}). Nothing was extended: no default mapping, "
+                "plan_file or activation was applied. Check that the running user can read "
+                "context definitions, then re-run."
+            )
+        version_list = response.get("contextDefinitionVersionList", [])
+        self.logger.info(f"      Found {len(version_list)} version(s)")
+        if not version_list:
+            raise CumulusCIException(
+                f"Context definition '{self.options.get('developerName')}' ({self.context_id}) has no "
+                "versions, so there is nothing to extend: no default mapping, plan_file or activation "
+                "was applied. Check that baseReference "
+                f"'{self.options.get('baseReference')}' names a definition that has a version in this org."
+            )
+        self._process_version_list(version_list)
 
     # Process the version list obtained from context definitions to obtain context mappings
     def _process_version_list(self, version_list):
@@ -382,9 +390,11 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
                 self._update_context_mappings()
                 break
         else:
-            self.logger.warning(
-                f"      No mapping named '{default_mapping}' found: skipped setting the default "
-                "mapping, applying plan_file and activation."
+            available = ", ".join(sorted(str(m.get("name")) for m in context_mappings)) or "none"
+            raise TaskOptionsError(
+                f"No mapping named '{default_mapping}' in the first version of context definition "
+                f"'{self.options.get('developerName')}' (mappings found: {available}). Nothing was extended: "
+                "no default mapping, plan_file or activation was applied. Check the defaultMapping option."
             )
 
     # Update context mappings, typically for marking certain context mappings the default
@@ -438,8 +448,7 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
             with open(plan_file, "r", encoding="utf-8") as handle:
                 plan = json.load(handle)
         except Exception as exc:
-            self.logger.error(f"Failed to load plan_file {plan_file}: {exc}")
-            return
+            raise TaskOptionsError(f"Could not load plan_file {plan_file}: {exc}") from exc
 
         if plan.get("contextNodes"):
             self.logger.info(f"      → Posting {len(plan['contextNodes'])} context node(s)...")
