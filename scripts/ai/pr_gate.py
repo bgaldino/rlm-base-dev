@@ -893,9 +893,11 @@ CHECKS = [
         # tui-cci because tests/build_harness/test_tui_launcher.py copies and executes that
         # root launcher: nothing else in the matrix claimed it, so a launcher regression could
         # pass the gate with its own existing test unrun.
+        # tasks/rlm_quote_to_cash.py: the CCI wrapper of `cli quote-to-cash`, loaded by
+        # tests/txn_data_harness/test_quote_to_cash.py.
         triggers=["scripts/build_harness/", "scripts/txn_data_harness/",
                   "tests/build_harness/", "tests/txn_data_harness/", "pyproject.toml",
-                  "tui-cci"],
+                  "tui-cci", "tasks/rlm_quote_to_cash.py"],
         deps=["pytest", "PyYAML", "textual", "requests"], min_python=(3, 11), gating=True,
     ),
     dict(
