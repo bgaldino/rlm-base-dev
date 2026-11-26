@@ -1990,7 +1990,8 @@ def apply_rules(client: SfRestClient, account_id: str,
         raise SettlementError(
             "apply-rules", "rules application answered an unexpected shape "
             f"(isSuccess {success!r}, appliedRules {type(rules).__name__}, "
-            f"rulesApplicationSummary {type(summary).__name__})")
+            f"rulesApplicationSummary {type(summary).__name__}; "
+            f"errors {result.get('errors')})")
     return result
 
 

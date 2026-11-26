@@ -181,7 +181,10 @@ What was measured (264, Line Level, the build's rules EA, OI, HI; the
 responses reported Match Balance and Prioritize Oldest Invoices):
 
 - Without `--target-date`, only invoices posted that UTC day were candidates;
-  pass `--target-date YYYY-MM-DD` to include older ones.
+  pass `--target-date YYYY-MM-DD` to include older ones. With nothing
+  eligible the platform answers "We couldn't find eligible invoices" and
+  `apply-rules` exits 1: in a US evening, the run's own invoice may already
+  be on the previous UTC day.
 - A payment matching one candidate's balance went to it. Payments with no
   match went to the candidate with the highest balance, with Prioritize
   Oldest Invoices reported; all candidates were posted the same day, so which

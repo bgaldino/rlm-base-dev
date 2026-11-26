@@ -565,8 +565,9 @@ The probes, in the order they ran (invoice numbers are that org's
 
 - **Without `targetDate` only invoices posted that UTC day were candidates.**
   The calls ran at about 06:10Z (22:10 the previous day in the org's time
-  zone); invoices with `PostedDate` the previous day were skipped (probes 2
-  and 3), and passing that date included them (probe 4). `PostedDate` is the
+  zone); probe 3's payment skipped two invoices posted the previous day that
+  matched its balance exactly, and passing that date made such an invoice a
+  match (probe 4). `PostedDate` is the
   UTC date (an invoice created at 00:03Z carries the next day's date). So the
   default is inferred to be "posted on or after today, UTC" from one evening's
   calls; the dev guide only says `targetDate` selects invoices posted on or
@@ -576,10 +577,19 @@ The probes, in the order they ran (invoice numbers are that org's
   date could not separate them. Each unmatched payment went to the candidate
   with the highest balance, the earliest created among equals: probe 2 to
   DOC-23 (all at 495.00), probe 3 to DOC-25 (495.00, over DOC-23 at 395.00),
-  probe 5 to DOC-28 (495.00, over DOC-23 and DOC-25). That fits highest-balance
-  placement as well as any oldest ordering. The response does not say which
+  probe 5 to DOC-28 (495.00, over DOC-23 and DOC-25). That fits highest-balance placement, or an oldest ordering by a date they
+  all share with ties broken by balance; oldest by creation does not fit
+  probe 3. The response does not say which
   rule placed each row; probe 5's credit may have been placed by Match Balance
   (49.50 was what the payment left).
+- **Nothing to apply.** (2026-11-26, about 07:04Z) With no payment or credit
+  memo the platform counts as open (the account's only non-zero payment was
+  Canceled): `isSuccess` true, `appliedRules` [], every count 0. With an open
+  50.00 payment and `targetDate` 2026-12-31, so no invoice eligible:
+  `{"errors": [{"message": "We couldn&#39;t find eligible invoices to apply
+  rules-based credits and payments. "}], "isSuccess": false}`, no `errorCode`,
+  no summary, nothing applied; the same payment then applied without a
+  `targetDate`.
 - Not measured: ties among eligible invoices on Match Balance, Credits First,
   Match ID (a payment that names an invoice), a credit memo alone, header
   level, more than 2,000 invoices (`areAllInvoicesConsidered` false). Help's
@@ -598,7 +608,7 @@ the platform considers everything open there, a run's freed balances or
 anyone else's. Exit
 0 when the platform reports `isSuccess` true and either nothing was applied or
 the checks passed with at least one balance checked (the pass line gives the
-checked and skipped counts); 1 when the platform reports failure, a check
+checked and skipped counts); 1 when the platform reports failure (no eligible invoice included), a check
 fails, no balance could be checked, or the response counts more payment (or
 credit) applications than new payment (or credit) rows were found (each
 applied payment or memo writes at least one row); 2 when the account

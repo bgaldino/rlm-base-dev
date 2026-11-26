@@ -147,14 +147,30 @@ def test_apply_rules_posts_once_with_the_optional_target_date():
     dict(OK, rulesApplicationSummary={"totalPaymentApplications": 1}),
     dict(OK, rulesApplicationSummary={"totalPaymentApplications": 1,
                                       "totalCreditMemoApplications": None}),
+    dict(OK, rulesApplicationSummary=dict(OK["rulesApplicationSummary"],
+                                          totalPaymentApplications="1")),
+    dict(OK, rulesApplicationSummary=dict(OK["rulesApplicationSummary"],
+                                          totalCreditMemoApplications=True)),
+    dict(OK, rulesApplicationSummary=dict(OK["rulesApplicationSummary"],
+                                          fetchedPaymentsCount=True)),
+    {"isSuccess": False, "rulesApplicationSummary": [1]},
+    {"isSuccess": False, "rulesApplicationSummary": {"totalPaymentApplications": "1"}},
 ])
 def test_apply_rules_refuses_a_response_it_cannot_read(result):
     with pytest.raises(lifecycle.SettlementError, match="rules application answered"):
         lifecycle.apply_rules(QueryOrg(post_result=result), ACCOUNT)
 
 
+def test_apply_rules_names_the_platform_errors_in_an_unexpected_shape():
+    result = {"errors": [{"errorCode": "INVALID_ACCOUNT", "message": "m"}]}
+    with pytest.raises(lifecycle.SettlementError, match="INVALID_ACCOUNT"):
+        lifecycle.apply_rules(QueryOrg(post_result=result), ACCOUNT)
+
+
 @pytest.mark.parametrize("result", [
     {"isSuccess": False, "errors": [{"errorCode": "X", "message": "m"}]},
+    {"errors": [{"message": "We couldn&#39;t find eligible invoices to apply rules-based "
+                            "credits and payments. "}], "isSuccess": False},
     dict(OK, isSuccess=False),
     dict(OK, appliedRules=[], rulesApplicationSummary={"totalPaymentApplications": 0,
                                                        "totalCreditMemoApplications": 0}),
@@ -307,7 +323,7 @@ def test_more_new_rows_than_the_count_pass(monkeypatch):
 @pytest.mark.parametrize("result", [
     dict(OK, isSuccess=False),
     dict(OK, errors=[{"errorCode": "X", "message": "m"}]),
-    {k: v for k, v in OK.items() if k != "isSuccess"},
+    {"errors": [{"message": "We couldn&#39;t find eligible invoices"}], "isSuccess": False},
 ])
 def test_a_reported_failure_fails_before_verify(monkeypatch, capsys, result):
     org = Org(monkeypatch, result=result)
