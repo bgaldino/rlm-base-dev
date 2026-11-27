@@ -49,7 +49,7 @@
         "AdjustmentMethod": {
           "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
           "description": "Method used to apply discount. Valid values are: • Range—Apply the discount to all items after you reach the discount tier. For example, suppose that you give a 10% discount for 50 or more items. If a customer orders 50 products, and the type is range, apply the 10% discount to all 50 items. • Slab—Apply discounts in tiers. For example, suppose that you order 30 products, and the type is slab, you can apply a 10% discount to units 1–9, a 20% discount to units 10–19, and a 30% discount to units 20–30.",
-          "type": "reference"
+          "type": "picklist"
         },
         "LastReferencedDate": {
           "properties": "Filter, Nillable, Sort",
@@ -74,7 +74,7 @@
         "Price": {
           "properties": "Create, Filter, Nillable, Sort, Update",
           "description": "Unit price for the product sold as part of the contract.",
-          "type": "reference"
+          "type": "currency"
         },
         "ProductSellingModelId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -205,7 +205,7 @@
         "Name": {
           "properties": "Create, Filter, Group, idLookup, Sort, Update",
           "description": "Name of the attribute based adjustment rule.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -301,7 +301,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "The name of the product selling model option.",
-          "type": "reference"
+          "type": "string"
         },
         "Product2Id": {
           "properties": "Create, Filter, Group, Sort",
@@ -380,7 +380,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "The name of the bundle based adjustment record.",
-          "type": "reference"
+          "type": "string"
         },
         "ParentProductId": {
           "properties": "Create, Filter, Group, Sort",
@@ -456,7 +456,7 @@
         "AdjustmentValue": {
           "properties": "Create, Filter, Sort, Update",
           "description": "The value of the adjustment being made based on the adjustment type.",
-          "type": "reference"
+          "type": "double"
         },
         "AttributeBasedAdjRuleId": {
           "properties": "Create, Filter, Group, Sort",
@@ -498,7 +498,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "Name of the attribute based adjustment.",
-          "type": "reference"
+          "type": "string"
         },
         "PriceAdjustmentScheduleId": {
           "properties": "Create, Filter, Group, Sort",
@@ -633,7 +633,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "Required. The name of the pricing adjustment batch job.",
-          "type": "reference"
+          "type": "string"
         },
         "PricingAdjBatchJobId": {
           "properties": "Create, Filter, Group, Sort",
@@ -842,7 +842,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "The name of the record.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -870,7 +870,7 @@
         "Cost": {
           "properties": "Create, Filter, Sort, Update",
           "description": "Total cost of the product.",
-          "type": "reference"
+          "type": "currency"
         },
         "CostBookId": {
           "properties": "Create, Filter, Group, Sort",
@@ -975,7 +975,7 @@
         "Operator": {
           "properties": "Create, Defaulted on create, Filter, Group, Restricted picklist, Sort, Update",
           "description": "Operator used by the attribute. Possible values are: • doesnotexistin—Does Not Exist In • equals—Equals • existsin—Exists In • greaterorequal—Greater Or Equal • greaterthan—Greater Than • lessorequal—Less Or Equal • lessthan—Less Than • matches—Matches • notequals—Not Equals The default value is equals.",
-          "type": "reference"
+          "type": "picklist"
         },
         "ProductId": {
           "properties": "Create, Filter, Group, Sort, Update",
@@ -1138,7 +1138,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "The name of the price adjustment tier.",
-          "type": "reference"
+          "type": "string"
         },
         "PriceAdjustmentScheduleId": {
           "properties": "Create, Filter, Group, Sort",
@@ -1364,7 +1364,7 @@
         "Name": {
           "properties": "Create, Filter, Group, idLookup, Sort, Update",
           "description": "Name of the cost book.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -1492,7 +1492,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "The name of the pricing adjustment batch job.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",

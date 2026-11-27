@@ -310,8 +310,7 @@ The pattern `*CnvAmount` / `*CnvRate` / `*CnvDate` / `*IsoCode` IS canonical RC 
 ## What Was Verified
 
 **264 (2026-08-15).** `erd-data.json` is a 264 capture: 265 objects, 4,292 fields,
-815 relationships. Cross-validated across `rlm-base__264merged` and
-`rlm-base__264fresh` (both `ent`), which agreed field-for-field — 254 describable
+815 relationships. Cross-validated across two 264 `ent` scratch orgs, which agreed field-for-field — 254 describable
 objects, 3,913 platform fields each. 264 had no Core UDD branch or Metadata Coverage
 Report at this refresh (a `core-264-public` `p4/264-patch` branch was listed in code
 search on 2026-11-24; its UDD pass is pending), so the Core verification below carries
@@ -329,6 +328,10 @@ rather than product-and-resource level, so neither is the sole binding site);
 94 reference fields with a null `refersTo`;
 and 10 `refersTo` values whose casing matched no ERD node, which silently broke
 traversal (`PricebookEntry` vs the ERD's then-key `PriceBookEntry`, since renamed).
+Later, every reference field gained its relationship row, and fields that the 264
+snapshot (`scripts/erd/schema_diff/264-schema.json`) types as non-references lost the
+`reference` type and `refersTo` they had carried from the docs; the relationship
+count above is after both.
 
 **262 (2026-05-27).** 127 entities individually verified against canonical Core UDD
 source in `core-262-public` at `p4/262-patch` (internal code search).

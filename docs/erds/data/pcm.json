@@ -37,7 +37,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "The name of the product related component override. The maximum length is 255 characters (of any type).",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -160,7 +160,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "A unique name for the attribute. The maximum length is 80 characters (of any type).",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",

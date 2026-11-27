@@ -24,7 +24,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "The auto-generated identifier for the quote line item usage resource policy record. For example, QLIURP-00004 or QLIURP-4567.",
-          "type": "reference"
+          "type": "string"
         },
         "ProductUsageResourcePolicyId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -90,7 +90,7 @@
         "Name": {
           "properties": "Create, Filter, Group, Sort, Update",
           "description": "Label of the sharing rule as it appears in the user interface. Limited to 80 characters. Corresponds to Label on the user interface.",
-          "type": "reference"
+          "type": "string"
         },
         "AdjustmentType": {
           "properties": "Filter, Group, Restricted picklist, Sort",
@@ -100,7 +100,7 @@
         "AdjustmentValue": {
           "properties": "Filter, Sort",
           "description": "The value of the adjustment.",
-          "type": "reference"
+          "type": "double"
         },
         "AssetRateCardEntryId": {
           "properties": "Filter, Group, Sort",
@@ -142,7 +142,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "The name given to the quote action.",
-          "type": "reference"
+          "type": "string"
         },
         "CurrencyIsoCode": {
           "properties": "Create, Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
@@ -194,7 +194,7 @@
         "AttributeName": {
           "properties": "Filter, Group, idLookup, Nillable, Sort",
           "description": "The name of the quote line item attribute.",
-          "type": "reference"
+          "type": "string"
         },
         "AttributePicklistValueId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -210,7 +210,7 @@
         },
         "ExternalId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
-          "type": "reference"
+          "type": "string"
         },
         "QuoteLineItemId": {
           "description": "Quote Line Item ID",
@@ -260,7 +260,7 @@
         "GroupingKey": {
           "properties": "Filter, Group, idLookup, Nillable, Sort",
           "description": "Read-only field used to indicate the bundle that an asset belongs to. For example, if two assets have the same GroupingKey value, then it means that the assets are bundled together. This field is available in API v.60.0 and later. This field is available in orgs with Revenue Cloud.",
-          "type": "reference"
+          "type": "string"
         },
         "ProductRelationshipTypeId": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -363,7 +363,7 @@
         "Name": {
           "properties": "Create, Filter, Group, idLookup, Sort, Update",
           "description": "Required. Default name of this record.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -416,7 +416,7 @@
         "NegotiatedRate": {
           "properties": "Create, Filter, Nillable, Sort, Update",
           "description": "The base negotiated rate used to charge overage consumption.",
-          "type": "reference"
+          "type": "double"
         },
         "QuoteLineItemId": {
           "properties": "Create, Filter, Group, Sort",
@@ -546,7 +546,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "An auto-generated number assigned to the order item for usage product grant record. For example, OIURG-4567",
-          "type": "reference"
+          "type": "string"
         },
         "OrderItemId": {
           "properties": "Create, Filter, Group, Sort",
@@ -633,7 +633,7 @@
         "MarginAmount": {
           "properties": "Create, Filter, Nillable, Sort, Update",
           "description": "The optional margin amount, specified by the sales representative at the group level. This amount can also be considered as the summary margin amount calculated by subtracting the total cost from the summary subtotal. Available in API version 65.0 and later.",
-          "type": "reference"
+          "type": "currency"
         },
         "ParentOrderItemGroupId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -833,7 +833,7 @@
         "Name": {
           "properties": "Create, Filter, Group, idLookup, Sort, Update",
           "description": "The name of the order item rate adjustment.",
-          "type": "reference"
+          "type": "string"
         },
         "OrderItemRateCardEntryId": {
           "type": "reference",
@@ -866,7 +866,7 @@
         "BindingObjectFormula": {
           "properties": "Filter, Group, Nillable, Sort",
           "description": "The formula that returns the ID of the associated binding object, if specified. If binding object isn't added, the formula returns the asset ID of the asset related to this asset rate card entry. This field is read-only. Available in API version 65.0 and later.",
-          "type": "reference"
+          "type": "string"
         },
         "BindingObjectId": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -893,7 +893,7 @@
         "NegotiatedRate": {
           "properties": "Filter, Sort",
           "description": "The base negotiated rate used to charge overage consumption.",
-          "type": "reference"
+          "type": "double"
         },
         "RateCardEntryId": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -975,7 +975,7 @@
         "Quantity": {
           "properties": "Filter, Sort",
           "description": "The quantity specified for the item in the detail record.",
-          "type": "reference"
+          "type": "double"
         },
         "QuoteLineItemId": {
           "properties": "Filter, Group, Sort",
@@ -1544,7 +1544,7 @@
         "NetUnitPrice": {
           "properties": "Filter, Sort",
           "description": "The unit price of the item that's calculated after applying any discounts and before tax calculation.",
-          "type": "reference"
+          "type": "currency"
         },
         "OrderItemId": {
           "properties": "Filter, Group, Sort",
@@ -1687,7 +1687,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "The auto-generated identifier for the order item usage resource grant record. For example, OIURG-00004 or OIURG-4567.",
-          "type": "reference"
+          "type": "string"
         },
         "OrderItemId": {
           "properties": "Create, Filter, Group, Sort",
@@ -1843,7 +1843,7 @@
         "DiscountPercent": {
           "properties": "Filter, Nillable, Sort",
           "description": "The percentage of discount applied to the order. The discount percent calculation is ((TotalRoundedLineAmount - TotalAmount) / TotalRoundedLineAmount) * 100. Available in API version 60.0 and later.",
-          "type": "reference"
+          "type": "percent"
         },
         "LastPricedDate": {
           "description": "The date when the order price was last calculated. Available in API version 60.0 and later.",
@@ -2214,7 +2214,7 @@
         "AssetLevel": {
           "properties": "Filter, Group, Nillable, Sort",
           "description": "The asset’s position in an asset hierarchy. If the asset has no parent or child assets, its level is 1. Assets that belong to a hierarchy have a level of 1 for the root asset, 2 for the child assets of the root asset, 3 for their children, and so forth. On assets created before the introduction of this field, the asset level defaults to –1. After the asset record is updated, the asset level is calculated and automatically updated.",
-          "type": "reference"
+          "type": "int"
         },
         "AssetProvidedById": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -2371,7 +2371,7 @@
         "Name": {
           "properties": "Create, Filter, Group, idLookup, Sort, Update",
           "description": "(Required) Name of the asset. Label is Asset Name.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -2402,7 +2402,7 @@
         "PricingSource": {
           "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
           "description": "Pricing source to use when amending or renewing an asset. Valid values are: • LastTransaction—Last Transaction • PriceBookListPrice—Price Book or List Price Available in API version 60.0 and later.",
-          "type": "reference"
+          "type": "picklist"
         },
         "Product2Id": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -2609,7 +2609,7 @@
         "OriginalActionType": {
           "properties": "Filter, Group, Nillable, Restricted picklist, Sort",
           "description": "Specifies the action that created the quote. Valid values are: • Amend—Indicates that the quote was created to amend assets. • Cancel—Indicates that the quote was created to cancel assets. • Renew—Indicates that the quote was created to renew assets. • Transfer—Indicates that the quote was created to transfer assets. Available in API version 61.0 and later.",
-          "type": "reference"
+          "type": "picklist"
         },
         "PartnerAccountId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -3087,7 +3087,7 @@
         "Name": {
           "properties": "Create, Filter, Group, idLookup, Sort, Update",
           "description": "The name of the group.",
-          "type": "reference"
+          "type": "string"
         },
         "ParentQuoteLineGroupId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -3242,7 +3242,7 @@
         "AssetActionNumber": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "The ID of the asset action. Label is Name.",
-          "type": "reference"
+          "type": "string"
         },
         "AssetId": {
           "properties": "Filter, Group, Sort",
@@ -3277,7 +3277,7 @@
         "QuantityChange": {
           "properties": "Filter, Sort",
           "description": "The delta in the asset quantity resulting from an asset action. For example, suppose that the asset quantity during an asset state period is 20 and the next asset action adds 10. Then this field’s value is 10. Label is Change in Quantity.",
-          "type": "reference"
+          "type": "double"
         },
         "SubtotalChange": {
           "properties": "Filter, Nillable, Sort",
@@ -3386,7 +3386,7 @@
         "NegotiatedRate": {
           "properties": "Create, Filter, Nillable, Sort, Update",
           "description": "The base negotiated rate used to charge overage consumption.",
-          "type": "reference"
+          "type": "double"
         },
         "OrderItemId": {
           "properties": "Create, Filter, Group, Sort",
@@ -3433,7 +3433,7 @@
         "Amount": {
           "properties": "Createable, Filter, Sort, Updateable",
           "description": "An asset’s total amount during an asset state period. Revenue Cloud doesn't set or use this field's value currently.",
-          "type": "reference"
+          "type": "currency"
         },
         "AssetId": {
           "properties": "Createable, Filter, Group, Sort",
@@ -3451,7 +3451,7 @@
         "BillingFrequency": {
           "properties": "Createable, Filter, Group, Nillable, Restricted picklist, Sort, Updateable",
           "description": "The time period that indicates how often the line item is billed. Possible values are: • Annual • Monthly • Quarterly • Semi-Annual Available in API version 65.0 and later.",
-          "type": "reference"
+          "type": "picklist"
         },
         "BindingInstanceTargetId": {
           "properties": "Createable, Filter, Group, Nillable, Sort, Updateable",
@@ -3485,7 +3485,7 @@
         "Mrr": {
           "properties": "Createable, Filter, Sort, Updateable",
           "description": "An asset’s monthly recurring revenue during an asset state period.",
-          "type": "reference"
+          "type": "currency"
         },
         "PriceRevisionPolicy": {
           "properties": "Createable, Filter, Group, Sort, Updateable",
@@ -3571,7 +3571,7 @@
         "AdjustmentAmount": {
           "properties": "Createable, Filter, Nillable, Sort, Updateable",
           "description": "An adjustment to the product amount, such as a discount.",
-          "type": "reference"
+          "type": "currency"
         },
         "AssetActionId": {
           "properties": "Createable, Filter, Group, Sort",
@@ -3620,7 +3620,7 @@
         "ExternalReferenceDataSource": {
           "properties": "Createable, Filter, Group, Nillable, Sort, Updateable",
           "description": "A system outside of Salesforce that contains asset action source transactions.",
-          "type": "reference"
+          "type": "string"
         },
         "LegalEntityId": {
           "properties": "Createable, Filter, Group, Nillable, Sort, Updateable",
@@ -3662,7 +3662,7 @@
         "PeriodBoundaryStartMonth": {
           "properties": "Createable, Filter, Nillable, Sort, Updateable",
           "description": "Field is populated based on input in the StartDate, PeriodBoundary, and PeriodBoundaryDay when BillingFrequency2 is Annual or by manual user entry. Possible values are: 1-January 2-February 3-March 4-April 5-May 6-June 7-July 8-August 9-September 10-October 11-November 12-December",
-          "type": "reference"
+          "type": "picklist"
         },
         "PricebookEntryId": {
           "properties": "Createable, Filter, Group, Nillable, Sort, Updateable",
@@ -3678,7 +3678,7 @@
         "ProductAmount": {
           "properties": "Createable, Filter, Nillable, Sort, Updateable",
           "description": "The product amount after the asset action source transaction.",
-          "type": "reference"
+          "type": "currency"
         },
         "ProductSellingModelId": {
           "properties": "Creatable, Filter, Group, Nillable, Sort, Updateable",
@@ -3695,7 +3695,7 @@
         "Quantity": {
           "properties": "Creatable, Filter, Nillable, Sort, Updateable",
           "description": "The product quantity or the change in product quantity after the asset action source transaction.",
-          "type": "reference"
+          "type": "double"
         },
         "ReferenceEntityItemId": {
           "properties": "Createable, Filter, Group, Nillable, Sort, Updateable",
@@ -3718,7 +3718,7 @@
         "Subtotal": {
           "properties": "Filter, Nillable, Sort",
           "description": "The sum of the product amount and the adjustment amount. This field is a calculated field.",
-          "type": "reference"
+          "type": "currency"
         },
         "TaxTreatmentId": {
           "properties": "Createable, Filter, Group, Nillable, Sort, Updateable",

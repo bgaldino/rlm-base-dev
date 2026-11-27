@@ -97,7 +97,7 @@
         "ProductAttributeIdentifier": {
           "properties": "Create, Filter, Group, idLookup, Nillable, Sort, Update",
           "description": "The product attribute from an internal or external catalog, used by DRO to copy data during the enrichment process. This field is available in API version 65.0 and later.",
-          "type": "reference"
+          "type": "string"
         },
         "ProductDecompEnrichmentRuleId": {
           "type": "reference",
@@ -194,7 +194,7 @@
         "ExecuteOn": {
           "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
           "description": "Specifies when to execute the fulfillment step. This field is available in API version 63.0 and later. Valid values are: • PreviousStepExecutionDate • SourceLineStartDate",
-          "type": "reference"
+          "type": "picklist"
         },
         "ExecuteOnRuleId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -207,7 +207,7 @@
         "ExecutionMessage": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "For internal use only.",
-          "type": "reference"
+          "type": "string"
         },
         "FalloutQueueId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -219,7 +219,7 @@
         "FlowDefinitionName": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The name of the flow definition that's associated with the AutoTask type of fulfillment step. This field is available in API version 62.0 and later.",
-          "type": "reference"
+          "type": "string"
         },
         "FlowInterviewId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -232,7 +232,7 @@
         "ForcePlanFreezeDuringExecution": {
           "properties": "Create, Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
           "description": "Specifies whether to freeze the plan while the step is in progress. If enabled, specifies how to complete the step before resuming the plan. This field is available in API version 63.0 and later. Valid values are: • Never • YesButWaitForStepCompletion The default value is Never.",
-          "type": "reference"
+          "type": "picklist"
         },
         "FulfillmentPlanId": {
           "properties": "Create, Filter, Group, Sort, Update",
@@ -296,7 +296,7 @@
         "OmniscriptName": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "For inyternal use only.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -342,7 +342,7 @@
         "RetryAttempts": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The number of attempts allowed for retry as set up in the Fallout Qualification Rule table.",
-          "type": "reference"
+          "type": "int"
         },
         "RunAsUserId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -423,7 +423,7 @@
         "FlowDefinition": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The flow definition that's associated with the AutoTask type of the fulfillment step.",
-          "type": "reference"
+          "type": "string"
         },
         "IntegrationDefinitionId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -455,7 +455,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "For internal use only.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -480,7 +480,7 @@
         "ErrorCode": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The failure error code of the fulfillment step that's associated with the rule.",
-          "type": "reference"
+          "type": "string"
         },
         "FalloutQueueId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -492,7 +492,7 @@
         "FlowDefinitionName": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The name of the flow definition that's associated with the AutoTask type of fulfillment step.",
-          "type": "reference"
+          "type": "string"
         },
         "IntegrationDefinitionId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -515,7 +515,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "The name of the flow definition that's associated with the AutoTask type of fulfillment step.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -746,7 +746,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "The name of the asset that's being fulfilled.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -790,7 +790,7 @@
         "ConditionData": {
           "properties": "Create, Nillable, Update",
           "description": "The condition for executing the product fulfillment scenario. The condition is defined as a rule or a set of rules in JSON format. This field is available in API version 66.0 and later.",
-          "type": "reference"
+          "type": "textarea"
         },
         "FulfillmentStepDefnGroupId": {
           "properties": "Create, Filter, Group, Sort, Update",
@@ -813,7 +813,7 @@
         "Name": {
           "properties": "Create, Filter, Group, idLookup, Sort, Update",
           "description": "The name of the product fulfillment scenario.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -881,7 +881,7 @@
         "ConditionData": {
           "properties": "Create, Nillable, Update",
           "description": "The condition for executing the fulfillment task assignment rule. The condition is defined as a rule or a set of rules in JSON format. This field is available in API version 66.0 and later.",
-          "type": "reference"
+          "type": "textarea"
         },
         "ConditionId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -943,7 +943,7 @@
         "AttributeName": {
           "properties": "Filter, Group, idLookup, Nillable, Sort",
           "description": "The name of the attribute.",
-          "type": "reference"
+          "type": "string"
         },
         "AttributePicklistValueId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -959,7 +959,7 @@
         "ExternalId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The ID that uniquely identifies the relationship in an external data source.",
-          "type": "reference"
+          "type": "string"
         },
         "FulfillmentOrderLineItemId": {
           "properties": "Create, Filter, Group, Sort",
@@ -983,7 +983,7 @@
         "DependencyScope": {
           "properties": "Create, Defaulted on create, Filter, Group, Restricted picklist, Sort, Update",
           "description": "The scope of the fulfillment step dependency definition. For example, Order or Order Item. Valid values are: • Bundle • LineItem • Plan • CrossPlan • Custom The default value is Plan.",
-          "type": "reference"
+          "type": "picklist"
         },
         "DependsOnStepDefinitionId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -1032,7 +1032,7 @@
         "SourceIdentifier": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The identifier of the source order line item (order item or fulfillment order line).",
-          "type": "reference"
+          "type": "string"
         },
         "SourceLineItemId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -1131,7 +1131,7 @@
         "Name": {
           "properties": "Create, Filter, Group, idLookup, Sort, Update",
           "description": "The name of the fulfillment step definition group.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -1206,7 +1206,7 @@
         "AssociatedFoItemInventory": {
           "properties": "Filter, Group, Restricted picklist, Sort",
           "description": "Inventory level for the associated fulfillment order item. Valid values are: • Included in Main Inventory • Not Included in Main Inventory This field is available in API version 63.0 and later.",
-          "type": "reference"
+          "type": "picklist"
         },
         "AssociatedFulfillOrderItemId": {
           "properties": "Create, Filter, Group, Sort, Update",
@@ -1223,7 +1223,7 @@
         "AssociatedQuanScaleMethod": {
           "properties": "Filter, Group, Restricted picklist, Sort",
           "description": "Method used to scale the quantity of the associated order item summary relative to the main fulfillment order item. Valid values are: • Constant • Proportional The default value is Proportional. This field is available in API version 63.0 and later.",
-          "type": "reference"
+          "type": "picklist"
         },
         "FulfillmentOrderId": {
           "properties": "Create, Filter, Group, Sort, Update",
@@ -1235,7 +1235,7 @@
         "MainFulfillOrderItemRole": {
           "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
           "description": "The role of the primary fulfillment order line item. Valid value is Bundle.",
-          "type": "reference"
+          "type": "picklist"
         },
         "MainFulfillmentOrderItemId": {
           "properties": "Create, Filter, Group, Sort",
@@ -1293,7 +1293,7 @@
         "Name": {
           "properties": "Create, Filter, Group, idLookup, Sort, Update",
           "description": "The name of the decomposition rule.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -1306,7 +1306,7 @@
         "Priority": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The priority of the decomposition rule. Decomposition rules are executed in order of priority.",
-          "type": "reference"
+          "type": "int"
         },
         "SourceProductClassificationId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -1323,7 +1323,7 @@
         "SourceIdentifier": {
           "properties": "Create, Filter, Group, idLookup, Nillable, Sort, Update",
           "description": "The source entity in the product fulfillment decomposition rule. This field can store a Salesforce product ID or an external identifier. This field is available in API version 65.0 and later.",
-          "type": "reference"
+          "type": "string"
         },
         "SourceProductId": {
           "properties": "Create, Filter, Group, Sort, Update",
@@ -1364,7 +1364,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "The relation between the two order line sources.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -1419,7 +1419,7 @@
         "CalculationMethod": {
           "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
           "description": "The type of enrichment rule. Valid values are: • Ad-verbatim—As Is • Static-Lookup—List Lookup • Expression-Set—Available in API version 64.0 and later",
-          "type": "reference"
+          "type": "picklist"
         },
         "DecompositionRuleId": {
           "properties": "Create, Filter, Group, Sort",
@@ -1432,7 +1432,7 @@
         "DestinationApiName": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The API name of the destination field or attribute code of an attribute.",
-          "type": "reference"
+          "type": "string"
         },
         "DestinationAttributeDefinitionId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -1486,7 +1486,7 @@
         "SourceApiName": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The API name of the source field or attribute code of an attribute.",
-          "type": "reference"
+          "type": "string"
         },
         "SourceAttributeDefinitionId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -1530,7 +1530,7 @@
         "InputNumber": {
           "properties": "Create, Filter, Nillable, Sort, Update",
           "description": "The value of input number.",
-          "type": "reference"
+          "type": "double"
         },
         "InputPicklistValueId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -1567,7 +1567,7 @@
         "OutputNumber": {
           "properties": "Create, Filter, Nillable, Sort, Update",
           "description": "The value of output number.",
-          "type": "reference"
+          "type": "double"
         },
         "OutputPicklistValueId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -1579,7 +1579,7 @@
         "OutputString": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The value of output text.",
-          "type": "reference"
+          "type": "string"
         },
         "ValueTransformGroupId": {
           "description": "Value Transformation Groups ID",
@@ -1622,7 +1622,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "The name of the fulfillment plan.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -1676,7 +1676,7 @@
         "OrchestrationGroupKey": {
           "properties": "Filter, Group, Nillable, Sort",
           "description": "The identifier of the group of sales transactions that require synchronization before processing. This field is available in API version 63.0 and later.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Filter, Group, Sort",

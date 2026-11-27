@@ -392,13 +392,16 @@ def main():
     again = copy.deepcopy(erd)
     check("every_reference_field_has_a_relationship_row_and_relinking_adds_zero",
           validator.link_new_objects(again) == 0)
-    # A refersTo on a field the 264 snapshot types as a non-reference is stale doc metadata;
-    # relinking would turn it into a false edge.
+    # A reference type or refersTo on a field the 264 snapshot types as a non-reference is
+    # stale doc metadata: it inflates the reference count, and relinking turns a refersTo
+    # into a false edge.
     snap_objects = snap["264"]["objects"]
     stale = [(n, f) for n, o in erd["objects"].items() for f, x in o["fields"].items()
-             if x.get("refersTo") and f in snap_objects.get(n, {}).get("fields", {})
+             if (x.get("refersTo") or x.get("type") == "reference")
+             and f in snap_objects.get(n, {}).get("fields", {})
              and not snap_objects[n]["fields"][f].get("referenceTo")]
-    check("no_refersTo_on_a_field_the_snapshot_types_as_non_reference", not stale, f"stale: {stale}")
+    check("no_reference_metadata_on_a_field_the_snapshot_types_as_non_reference", not stale,
+          f"stale: {stale}")
 
     real_describe = validator.describe_sobject
     validator.describe_sobject = lambda org, name: {"name": "PricebookEntry", "fields": []}

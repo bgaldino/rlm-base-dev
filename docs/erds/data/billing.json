@@ -130,7 +130,7 @@
         "TaxEngineName": {
           "properties": "Create, Filter, Group, idLookup, Sort, Update",
           "description": "Required. The name of the tax engine record.",
-          "type": "reference"
+          "type": "string"
         },
         "TaxEngineProviderId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -265,7 +265,7 @@
         "ErrorMessage": {
           "properties": "Filter, Group, Sort",
           "description": "Required. The ID of the user who made the request that resulted in the creation of the error log. This field is a polymorphic relationship field.",
-          "type": "reference"
+          "type": "textarea"
         },
         "PrimaryRecord2Id": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -384,7 +384,7 @@
         "DateGenerated": {
           "properties": "Filter, Group, Nillable, Sort",
           "description": "The date on which the PDF is generated.",
-          "type": "reference"
+          "type": "date"
         },
         "DocumentGenerationProcessId": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -401,7 +401,7 @@
         "ErrorMessage": {
           "properties": "Filter, Group, Nillable, Sort",
           "description": "Any errors that occur during PDF generation.",
-          "type": "reference"
+          "type": "string"
         },
         "InvoiceId": {
           "properties": "Filter, Group, Sort",
@@ -414,7 +414,7 @@
         "Status": {
           "properties": "Filter, Group, Nillable, Restricted picklist, Sort",
           "description": "The status of the PDF generation process. Valid values are: • Blocked • Cancelled • Failure • Pending • Success",
-          "type": "reference"
+          "type": "picklist"
         }
       },
       "domainShort": "Billing",
@@ -665,7 +665,7 @@
         "Address": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "The auto-generated reference number for the debit memo address.",
-          "type": "reference"
+          "type": "address"
         },
         "DebitMemoAddressNumber": {
           "type": "string"
@@ -797,7 +797,7 @@
         "OverageQuantity": {
           "properties": "Filter, Nillable, Sort",
           "description": "The quantity of the usage overage that has exceeded the initial grant. This field is available in API version 63.0 and later with Revenue Cloud Billing license.",
-          "type": "reference"
+          "type": "double"
         },
         "RelatedMilestonePlanItemId": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -837,7 +837,7 @@
         "CompanyName": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "Additional details about the legal entity.",
-          "type": "reference"
+          "type": "string"
         },
         "EmailTemplateId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -967,7 +967,7 @@
         "FunctionalCurrencyIsoCode": {
           "properties": "Filter, Group, Nillable, Sort, Update",
           "description": "The ISO code of the functional currency. Available in API version 66.0 and later.",
-          "type": "reference"
+          "type": "string"
         },
         "PaymentGroupId": {
           "description": "Payment Group ID",
@@ -1308,7 +1308,7 @@
         "ProductCode": {
           "properties": "Create, Filter, Group, idLookup, Nillable, Sort, Update",
           "description": "The code of the product that the tax treatment applies to.",
-          "type": "reference"
+          "type": "string"
         },
         "ProductId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -1574,7 +1574,7 @@
         "BalanceValue": {
           "properties": "Filter, Nillable, Sort",
           "description": "The balance value is derived from an existing balance field in an invoice. Available in API version 65.0 and later. This field is a calculated field.",
-          "type": "reference"
+          "type": "double"
         },
         "BillToContactId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -1660,7 +1660,7 @@
         "FunctionalCurrencyIsoCode": {
           "properties": "Filter, Group, Nillable, Sort, Update",
           "description": "The ISO code of the functional currency. Available in API version 66.0 and later.",
-          "type": "reference"
+          "type": "string"
         },
         "InvBatchDraftToPostedRunId": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -1738,7 +1738,7 @@
         "NetPaymentsApplied": {
           "properties": "Filter, Nillable, Sort",
           "description": "The net payments applied to an invoice. This field is visible from API version 62.0 but can only be used from API version 64.0 and later with the Revenue Cloud Billing license. This field is a calculated field.",
-          "type": "reference"
+          "type": "currency"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -1750,7 +1750,7 @@
         "PaymentExclusionReason": {
           "properties": "Filter, Group, Nillable, Sort",
           "description": "The reason for skipping the creation of payment schedules and payment schedule items for the invoice. Available in API version 64.0 and later with the Revenue Cloud Billing license.",
-          "type": "reference"
+          "type": "string"
         },
         "PaymentTermId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -1991,7 +1991,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "Required. The name of the invoice line.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -2055,7 +2055,7 @@
         "ClosingBalanceAmount": {
           "description": "The closing balance amount for a general ledger accounting period summary is calculated based on the general ledger account's type. For asset and expense type general ledger accounts, it’s the opening balance amount plus total debit amount minus total credit amount. For liability, equity, and revenue type general ledger accounts, it’s the opening balance amount plus total credit amount minus total debit amount.",
           "properties": "Create, Filter, Nillable, Sort, Update",
-          "type": "reference"
+          "type": "currency"
         },
         "GeneralLedgerAccountId": {
           "properties": "Create, Filter, Group, Sort",
@@ -2119,7 +2119,7 @@
         "CompletionTime": {
           "properties": "Filter, Nillable, Sort",
           "description": "The timestamp when the invoice batch run recovery finished processing.",
-          "type": "reference"
+          "type": "datetime"
         },
         "InvoiceBatchRunId": {
           "properties": "Filter, Group, Sort",
@@ -2269,7 +2269,7 @@
         "CorporateCurrencyIsoCode": {
           "properties": "Filter, Group, Nillable, Sort, Update",
           "description": "The currency ISO code of the corporate currency.",
-          "type": "reference"
+          "type": "string"
         },
         "DebitMemoId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -2336,7 +2336,7 @@
         "Name": {
           "properties": "Create, Filter, Group, idLookup, Sort, Update",
           "description": "An auto-generated name assigned to the debit memo line.",
-          "type": "reference"
+          "type": "string"
         },
         "Product2Id": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -2434,7 +2434,7 @@
         "Balance": {
           "properties": "Filter, Nillable, Sort",
           "description": "The amount of the credit memo line available for allocation.",
-          "type": "reference"
+          "type": "currency"
         },
         "BillingAddressId": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -2676,7 +2676,7 @@
         "Name": {
           "properties": "Create, Filter, Group, idLookup, Sort, Update",
           "description": "Required. The name of the sequence policy.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -2786,7 +2786,7 @@
         "NextRunTime": {
           "properties": "Filter, Nillable, Sort",
           "description": "The date and timestamp of the next scheduled batch invoice run in the user's time zone.",
-          "type": "reference"
+          "type": "datetime"
         },
         "OwnerId": {
           "properties": "Filter, Group, Sort",
@@ -2922,7 +2922,7 @@
         "CreditMemoAddressGroupNumber": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "Required. The auto-generated reference number for the credit memo address group.",
-          "type": "reference"
+          "type": "string"
         },
         "CreditMemoId": {
           "properties": "Filter, Group, Sort",
@@ -3103,7 +3103,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "Required. The name of the invoice line.",
-          "type": "reference"
+          "type": "string"
         },
         "Status": {
           "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
@@ -3151,7 +3151,7 @@
         "Comments": {
           "properties": "Create, Filter, Nillable, Sort, Update",
           "description": "Additional details about the payment schedule.",
-          "type": "reference"
+          "type": "textarea"
         },
         "DefaultPaymentAccountId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -3191,7 +3191,7 @@
         },
         "PaymentSource": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
-          "type": "reference"
+          "type": "picklist"
         },
         "ReferenceEntityId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -3271,7 +3271,7 @@
         "BillDayOfMonth": {
           "properties": "Filter, Group, Nillable, Sort",
           "description": "The day of the month on which a recurring billing process is scheduled to occur.",
-          "type": "reference"
+          "type": "int"
         },
         "BillToContactId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -3287,7 +3287,7 @@
         "BillingAddress": {
           "properties": "Filter, Nillable",
           "description": "The compound form of the billing address. Read only. See Address Compound Fields for details on compound address fields.",
-          "type": "reference"
+          "type": "address"
         },
         "BillingArrangementId": {
           "properties": "Filter, Group, Sort",
@@ -3340,7 +3340,7 @@
         "BillingType": {
           "properties": "Filter, Group, Restricted picklist, Sort",
           "description": "Required. The timing of invoicing for a product or service relative to its delivery to the customer. Valid values are: • Advance— Invoices a product or service before its delivery. • Arrears— Invoices a product or service after its delivery.",
-          "type": "reference"
+          "type": "picklist"
         },
         "BindingInstanceId": {
           "properties": "Filter, Group, Nillable, Sort, Update",
@@ -3376,7 +3376,7 @@
         "ExternalRefRecordIdentifier": {
           "properties": "Filter, Group, Nillable, Sort, Update",
           "description": "The identifier of the external record for which the billing schedule group was created. Available in API version 64.0 and later.",
-          "type": "reference"
+          "type": "string"
         },
         "LegalEntityId": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -3388,7 +3388,7 @@
         "NextBillingDateOverride": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The next billing date for all the billing schedules related to the billing schedule group. If specified, this date overrides the next billing dates of the billing schedules. Available in API version 63.0 and later.",
-          "type": "reference"
+          "type": "date"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -3418,7 +3418,7 @@
         "ProductName": {
           "properties": "Filter, Group, Nillable, Sort",
           "description": "The name of the product for the order item that's represented by each billing schedule in the billing schedule group.",
-          "type": "reference"
+          "type": "string"
         },
         "ProrationPolicyId": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -3927,7 +3927,7 @@
         "Name": {
           "properties": "Filter, Group, idLookup, Sort",
           "description": "Required. The auto-generated name of a legal entity accounting period. The name is a combination of the names of the legal entity and the accounting period.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -3939,7 +3939,7 @@
         "Status": {
           "properties": "Create, Filter, Group, Restricted picklist, Sort",
           "description": "Required. The status of a legal entity accounting period record. Valid values are: • Closed • Error • Open • PendingClosure • PendingReopen",
-          "type": "reference"
+          "type": "picklist"
         },
         "TotalAssetsAmount": {
           "properties": "Filter, Nillable, Sort",
@@ -3988,7 +3988,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "Required. The autogenerated name of the payment term item.",
-          "type": "reference"
+          "type": "string"
         },
         "PaymentTermId": {
           "properties": "Create, Filter, Group, Sort",
@@ -4287,7 +4287,7 @@
         "NetCreditsApplied": {
           "properties": "Filter, Nillable, Sort",
           "description": "The total difference between the credit applied to and credit unapplied from the invoice. This field is a calculated field.",
-          "type": "reference"
+          "type": "currency"
         },
         "OwnerId": {
           "properties": "Filter, Group, Sort, Update",
@@ -4299,7 +4299,7 @@
         "ReasonCode": {
           "properties": "Filter, Group, Nillable, Sort",
           "description": "The reason code for the credit memo's category. For example, BD can be the reason code when the credit memo's category is InvoiceWriteOff and the reason for the invoice write-off is bad debt. This field is available in API version 64.0 and later.",
-          "type": "reference"
+          "type": "picklist"
         },
         "ReferenceEntityId": {
           "properties": "Filter, Group, Nillable, Sort, Update",
@@ -4563,7 +4563,7 @@
         "TaxTransactionNumber": {
           "properties": "Filter, Group, Nillable, Sort",
           "description": "The number of the transaction in the external tax engine that calculated tax for the parent credit memo line.",
-          "type": "reference"
+          "type": "string"
         },
         "TaxTreatmentId": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -4617,7 +4617,7 @@
         "PaymentGatewayErrorCode": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "description": "The raw error code of the payment gateway response.",
-          "type": "reference"
+          "type": "string"
         },
         "PaymentGatewayId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -4677,7 +4677,7 @@
         "Name": {
           "properties": "Create, Filter, Group, idLookup, Sort, Update",
           "description": "The user-entered name of the payment schedule policy.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -4733,7 +4733,7 @@
         "Name": {
           "properties": "Create, Filter, Group, idLookup, Sort, Update",
           "description": "Required. The user-entered name for the payment schedule distribution method.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -4761,7 +4761,7 @@
         "InvoiceAddressGroupNumber": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "Required. The auto-generated reference number for the invoice address group.",
-          "type": "reference"
+          "type": "string"
         },
         "InvoiceId": {
           "properties": "Filter, Group, Sort",
@@ -4923,7 +4923,7 @@
         "SequenceGapReconciliationNumber": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "Required. The reconciled sequence pattern value.",
-          "type": "reference"
+          "type": "string"
         },
         "SequenceValue": {
           "description": "Sequence Value",
@@ -4962,7 +4962,7 @@
         "Status": {
           "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
           "description": "Required. The status of the billing milestone plan. Valid values are: • Active • Cancelled • Completely Billed • Draft BillingMilestonePlanItem Represents a specific billing milestone within the billing milestone plan that’s used to manage and track billing based on the completion of certain deliverables or stages. This object is available in API version 63.0 and later. Important:  Where possible, we changed noninclusive terms to align with our company value of Equality. We maintained certain terms to avoid any effect on customer implementations.",
-          "type": "reference"
+          "type": "picklist"
         },
         "CommencementDate": {
           "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
@@ -5101,7 +5101,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "Required. An auto-generated number identifying the invoice line relationship.",
-          "type": "reference"
+          "type": "string"
         },
         "ProductRelationshipTypeId": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -5207,7 +5207,7 @@
         "InvoiceLineBalance": {
           "properties": "Filter, Nillable, Sort",
           "description": "The balance of the invoice line after a payment line was applied to it or unapplied from it.",
-          "type": "reference"
+          "type": "currency"
         },
         "InvoiceLineId": {
           "properties": "Create, Filter, Group, Sort",
@@ -5380,7 +5380,7 @@
         "CreditMemoLineBalance": {
           "properties": "Filter, Nillable, Sort",
           "description": "The balance of the credit memo line after it's applied to or unapplied from the invoice line.",
-          "type": "reference"
+          "type": "currency"
         },
         "CreditMemoLineId": {
           "properties": "Filter, Group, Sort",
@@ -5407,7 +5407,7 @@
         "InvoiceLineBalance": {
           "properties": "Filter, Nillable, Sort",
           "description": "The balance of the invoice line after the credit memo line was applied or unapplied.",
-          "type": "reference"
+          "type": "currency"
         },
         "InvoiceLineId": {
           "properties": "Filter, Group, Sort",
@@ -5518,7 +5518,7 @@
         "DoesSkipAutomaticPayments": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
           "description": "Indicates whether to skip the automatic creation of payment schedules and payment schedule items for posted invoices related to billing accounts (true) or not (false). This boolean value is considered when the automatic creation of payment schedules and payment schedule items is turned on. Available in API version 65.0 and later.",
-          "type": "reference"
+          "type": "boolean"
         },
         "EmailTemplateId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -5537,7 +5537,7 @@
         "IsDefaultBillingProfile": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
           "description": "Indicates whether the billing account is the default billing profile (true) or not (false). Available in API version 65.0 and later.",
-          "type": "reference"
+          "type": "boolean"
         },
         "PaymentTermId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -5647,7 +5647,7 @@
         "CurrencyIsoCode": {
           "properties": "Create, Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
           "description": "The currency code of the general ledger account assignment rule for Salesforce orgs with multicurrency enabled. Valid values are: • AUD—Australian Dollar • EUR—Euro • SGD—Singapore Dollar • USD—U.S. Dollar The default value is USD.",
-          "type": "reference"
+          "type": "picklist"
         },
         "DebitGeneralLedgerAccountId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -6025,7 +6025,7 @@
         "Comments": {
           "properties": "Create, Filter, Nillable, Sort, Update",
           "description": "Additional details about the payment schedule item.",
-          "type": "reference"
+          "type": "textarea"
         },
         "LastPaymentGatewayLogId": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -6047,7 +6047,7 @@
         "NextPaymentRetryTime": {
           "properties": "Create, Filter, Nillable, Sort",
           "description": "The slated time of the next payment retry for the payment schedule item. Available in API version 66.0 and later.",
-          "type": "reference"
+          "type": "datetime"
         },
         "PaymentAccountId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -6076,7 +6076,7 @@
         "PaymentGatewayRespStatus": {
           "properties": "Filter, Group, Nillable, Restricted picklist, Sort",
           "description": "The status of the payment gateway response when the payment schedule item is processed. Valid values are: • Decline • Indeterminate • PermanentFail • RequiresReview • Success • SystemError • ValidationError See SalesforceResultCode Enum for more information about the values.",
-          "type": "reference"
+          "type": "picklist"
         },
         "PaymentId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -6195,7 +6195,7 @@
         "Balance": {
           "properties": "Filter, Nillable, Sort",
           "description": "The outstanding balance for an invoice line. This amount is equal to the invoice’s total amount with tax after deducting the payments made.",
-          "type": "reference"
+          "type": "currency"
         },
         "BillingAddressId": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -6291,7 +6291,7 @@
         "FunctionalCurrencyIsoCode": {
           "properties": "Filter, Group, Nillable, Sort, Update",
           "description": "The ISO code of the functional currency. Available in API version 66.0 and later.",
-          "type": "reference"
+          "type": "string"
         },
         "GroupReferenceEntityItemId": {
           "properties": "Filter, Group, Nillable, Sort, Update",
@@ -6303,7 +6303,7 @@
         "HasMultipleItems": {
           "properties": "Defaulted on create, Filter, Group, Sort",
           "description": "Required. Indicates whether this field merges items from the same billing period (true) or not (false). The default value is false.",
-          "type": "reference"
+          "type": "boolean"
         },
         "InvoiceId": {
           "properties": "Filter, Group, Sort, Update",
@@ -6326,7 +6326,7 @@
         "IsUsageBasedInvoiceLine": {
           "properties": "Defaulted on create, Filter, Group, Sort",
           "description": "Required. Indicates whether the product is usage-based (true) or not (false). The default value is false. This field is available in API version 63.0 and later with Revenue Cloud Billing license.",
-          "type": "reference"
+          "type": "boolean"
         },
         "LegalEntityAccountingPeriodId": {
           "properties": "Filter, Group, Nillable, Sort, Update",
@@ -6408,7 +6408,7 @@
         "TaxProcessingStatus": {
           "properties": "Filter, Group, Nillable, Restricted picklist, Sort, Update",
           "description": "The status of the tax processing of the invoice line. Valid values are: • Estimated • Pending • Posted",
-          "type": "reference"
+          "type": "picklist"
         },
         "TaxTreatmentId": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -6514,7 +6514,7 @@
         "ApprovedAmount": {
           "properties": "Create, Filter, Nillable, Sort, Update",
           "description": "The amount that’s approved to be credited to the customer.",
-          "type": "reference"
+          "type": "currency"
         },
         "InvoiceLineId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -6568,7 +6568,7 @@
         "Name": {
           "properties": "Create, Filter, Group, idLookup, Sort, Update",
           "description": "Required. The user-entered name of the payment schedule treatment.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -6661,7 +6661,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "Required. The auto-generated reference number for the billing schedule relationship.",
-          "type": "reference"
+          "type": "string"
         },
         "ProductRelationshipTypeId": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -6711,7 +6711,7 @@
         "Name": {
           "properties": "Filter, Group, idLookup, Sort",
           "description": "An auto-generated name identifying the general ledger account, which is a combination of the accounting code and the account name.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -6925,7 +6925,7 @@
         "FunctionalCurrencyIsoCode": {
           "properties": "Filter, Group, Nillable, Sort, Update",
           "description": "The ISO code of the functional currency. Available in API version 66.0 and later.",
-          "type": "reference"
+          "type": "string"
         },
         "LegalEntityAccountingPeriodId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -7171,7 +7171,7 @@
         "CreditMemoBalance": {
           "properties": "Filter, Nillable, Sort",
           "description": "The balance of a credit memo after it's applied or unapplied. This field is a snapshot of the credit memo's balance after the action. This field isn't updated after further changes to the credit memo balance.",
-          "type": "reference"
+          "type": "currency"
         },
         "CreditMemoId": {
           "properties": "Filter, Group, Sort",
@@ -7213,7 +7213,7 @@
         "InvoiceBalance": {
           "properties": "Filter, Nillable, Sort",
           "description": "The balance of the credit memo after a credit memo is applied or unapplied. This field is a snapshot of the credit memo's balance after the action. This field isn't updated after further changes to the credit memo balance.",
-          "type": "reference"
+          "type": "currency"
         },
         "InvoiceId": {
           "properties": "Filter, Group, Sort",
@@ -7271,7 +7271,7 @@
         "Name": {
           "properties": "Create, Filter, Group, idLookup, Sort, Update",
           "description": "Required. A user-defined name for the billing arrangement.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -7375,7 +7375,7 @@
         "BilledAmount": {
           "properties": "Filter, Nillable, Sort",
           "description": "The total amount (excluding tax) that has been invoiced from the billing schedule. This field is a calculated field.",
-          "type": "reference"
+          "type": "currency"
         },
         "BillingAccountId": {
           "properties": "Filter, Group, Sort",
@@ -7387,7 +7387,7 @@
         "BillingMethod": {
           "properties": "Filter, Group, Nillable, Restricted picklist, Sort",
           "description": "The type of billing used for the source item. Valid values are: • Evergreen • OrderAmount • Usage—Available in API version 63.0 and later with Revenue Cloud Billing license.",
-          "type": "reference"
+          "type": "picklist"
         },
         "BillingMilestonePlanId": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -7458,7 +7458,7 @@
         "CustomInvoiceGroupKey": {
           "properties": "Filter, Group, Restricted picklist, Sort",
           "description": "The group identifier for which an invoice must be generated when the invoice group type is Custom. This field is available in API version 63.0 and later with Revenue Cloud Billing license.",
-          "type": "reference"
+          "type": "string"
         },
         "InvBatchDraftToPostedRunId": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -7524,12 +7524,12 @@
         "Quantity": {
           "properties": "Filter, Nillable, Sort",
           "description": "The quantity of the order item that created the billing schedule.",
-          "type": "reference"
+          "type": "double"
         },
         "Reference": {
           "properties": "Filter, Group, idLookup, Sort",
           "description": "The ID of the parent record of the reference item for which the billing schedule is created. Available in API version 61.0 and later.",
-          "type": "reference"
+          "type": "string"
         },
         "ReferenceEntityId": {
           "properties": "Filter, Group, Nillable, Sort",

@@ -16,7 +16,7 @@
         "ConstraintModelTagType": {
           "properties": "Create, Defaulted on create, Filter, Group, Restricted picklist, Sort, Update",
           "description": "The type of the product tag that is defined in the constraint model. Possible values are: • Port",
-          "type": "reference"
+          "type": "picklist"
         },
         "ExpressionSetId": {
           "properties": "Create, Filter, Group, Sort, Update",
@@ -38,7 +38,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "The name of the expression set constraint.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -64,7 +64,7 @@
         "AssignmentType": {
           "properties": "Create, Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
           "description": "Specifies whether the Product Configuration Flow is assigned to the primary product or classification, or to dynamic components added within a bundle. Valid values are: • DynamicAdditionFlow • PrimaryConfiguratorFlow The default value is PrimaryConfiguratorFlow. Available in API version 65.0 and later.",
-          "type": "reference"
+          "type": "picklist"
         },
         "ProductClassificationId": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -129,7 +129,7 @@
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
           "description": "The name of the expression set constraint.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
@@ -216,7 +216,7 @@
         "Name": {
           "properties": "Create, Filter, Group, idLookup, Sort, Update",
           "description": "The name of the configuration rule.",
-          "type": "reference"
+          "type": "string"
         },
         "OwnerId": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
