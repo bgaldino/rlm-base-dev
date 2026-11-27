@@ -194,3 +194,6 @@ force-app/main/default/aiEvaluationDefinitions/
 .mcp.json
 .mcp-state/
 **/.mcp.json
+
+# cml_tool.py push backup of the model it replaced
+*.previous

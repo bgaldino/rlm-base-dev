@@ -1108,6 +1108,7 @@ STDLIB_SUITES = [
     "tests/test_sfdmu_product_view.py",
     "tests/test_check_classification_attrs.py",
     "tests/test_claude_hooks.py",
+    "tests/test_cml_tool.py",
     "tests/test_context_apply.py",
     "tests/test_context_delete.py",
     "tests/test_context_payload.py",

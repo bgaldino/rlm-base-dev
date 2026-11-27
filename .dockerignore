@@ -110,6 +110,7 @@ scratch
 **/temp_folder
 **/tmp-metadata
 **/.rescan_tmp
+**/*.previous
 
 # Local-only clones and notes that must never leave the workstation (the private artifacts clone and
 # any sibling or case-variant copy of it at any depth, as .gitignore has it)

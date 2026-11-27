@@ -9,11 +9,10 @@ description: >-
 
 # Constraint Models (CML)
 
-Working with Revenue Cloud Constraint Modeling Language models — the rules that decide
-what a configurator will let a user select inside a bundle.
-
-Covers the file layout, the four records a bundle member needs, how a change reaches an
-org, and why a change can appear to deploy and still not take effect.
+Revenue Cloud Constraint Modeling Language models: the rules that decide what a
+configurator lets a user select inside a bundle. Covers the file layout, the four records
+a bundle member needs, how a change reaches an org, size limits, runtime behavior, and
+tooling (`scripts/constraint_models/`).
 
 **Related:** `datasets/constraints/README.md` (the `export_cml` / `import_cml` /
 `validate_cml` utility reference) · `.cursor/skills/expression-sets/SKILL.md` (Expression
@@ -213,233 +212,36 @@ apply.
 
 ### Sequence is part of the composite key
 
-`import_cml` resolves a Port association's PRC in two hops, and neither one reads the
-SFDMU plan's PRC rows:
-
-1. **Legacy Id → composite key**, built from the **constraint dir's own**
-   `ProductRelatedComponent.csv` (`tasks/rlm_cml.py:842-854`), as
-   `ParentProduct.Name | ChildProduct.Name | ChildProductClassification.Name |
-   ProductRelationshipType.Name | Sequence`.
-2. **Composite key → real Id**, matched against `ProductRelatedComponent` records
-   **queried from the target org** (`tasks/rlm_cml.py:868-892`).
-
-`dataset_dirs` contributes only candidate *names* — products, classifications and PRC
-parents — and those merely scope the org lookups, here as
-`WHERE ParentProduct.Name IN (…) OR Name IN (…)`. It never supplies a composite key.
-
-**So the sequence in the constraint dir has to match the PRC row the org actually holds.**
-The plan matters because it is what loads that row — which is why copying the sequence
-from the plan is the right authoring move. But when a Port fails to resolve, **query the
-org**; do not diff the two CSVs. An org whose plan was never loaded, or was loaded from a
-different revision, disagrees with the plan on disk.
-
-It fails loudly rather than silently — `ImportCML` logs `Could not resolve
-ReferenceObjectId` per row and accumulates `unresolved_tags` — but **it does not fail
-atomically**, and the distinction matters when you are recovering.
-
-`create_record()` is called inline for every row as the loop walks the ESC list, so by the
-time a failure is diagnosed the rows that *did* resolve are already in the org. Step 6
-(delete the old ESC records) is skipped on a failed import, so the previous generation of
-rows is still there too. The task says so itself: *"Import had errors -- skipping deletion
-of old ESC records. Target org may contain a mix of old and new constraints."*
-
-**Two failure modes. Both now fail loudly** — they did not always:
-
-| Failure | Raises? | Org left holding |
-|---|---|---|
-| A reference will not resolve (bad `Sequence`, missing product) | **yes** (not in `dry_run`) | every pre-existing ESC row, plus whatever was created before the failure; blob **not** uploaded |
-| `create_record()` fails but every reference resolved | **yes** (not in `dry_run`) | same |
-
-Usually that means a *mix* of old and new — but not always: if every create failed there
-are no new rows, and on a model with no prior rows there is no old generation to mix with.
-Query the ESC set rather than assuming.
-
-Both converge on `describe_esc_import_failure()` in `tasks/rlm_cml.py`, and steps 6-7 run
-through `_finalize_esc_import()`. The raise happens *after* the "skipping deletion of old
-ESC records" warning and *before* the blob upload, so the model is never uploaded over a
-partial ESC set. **A `dry_run` logs the same diagnosis at error level and does not raise** —
-it wrote nothing, so nothing is left behind.
-
-> ⚠️ **Before this fix, the second mode exited 0.** `unresolved_tags` was empty so the raise
-> never fired: the blob uploaded, `Import complete` logged, and the task returned success
-> over a partial set. `prepare_constraints` runs `import_cml`, so a build could go green
-> carrying a partial constraint model. If you are reading logs from an older build, an
-> `Import complete` there does **not** mean every ESC row landed.
-
-**A clean rerun cleans up after either failure.** The existing-ESC snapshot is taken fresh
-at the top of every run (`WHERE ExpressionSetId = …`, unfiltered otherwise), so it captures
-the old generation *and* the partial rows left by the failed run; a pass that resolves and
-creates everything then deletes the whole snapshot. Fix the cause and rerun — you do not
-have to clear the mix by hand.
-
-What does not self-correct is a rerun that *also* fails: the delete is skipped again and
-another partial generation layers on. So if the import errored, rerun until one pass is
-clean.
-
-A dry run surfaces the resolution warnings without touching the org, which is why it is
-worth reading rather than just checking its exit code. That holds for a model the org
-already has; for a new model a dry run stops before resolving any row (Validation
-check 3).
-
----
+`import_cml` resolves a Port association's `ProductRelatedComponent` through a composite
+key that includes `Sequence`. Details and failure modes: [import-and-deploy.md](import-and-deploy.md#sequence-is-part-of-the-composite-key).
 
 ## Making a change reach an org
 
 **`import_cml` uploads the blob; it does not redeploy the model.** If the target
 `ExpressionSetDefinitionVersion` is already `Active`, the new model is stored and the org
-keeps running the old one — and the import reports success.
-
-```bash
-# Pass the same --org to all three steps so they hit the same org.
-# <Version>  = the ApiName from the discovery query, e.g. QuantumBitBundle_V1
-# <DataDir>   = the model's directory under datasets/constraints/, from `ls -d`
-# <PlanDir>   = the SFDMU plan that loaded the ESC's Product2/PRC rows into the org
-#               (it supplies the names that scope import_cml's lookup queries)
-cci task run manage_expression_sets --org <cci_alias> -o operation deactivate_versions \
-    -o version_full_names "<Version>"
-
-cci task run import_cml --org <cci_alias> \
-    -o data_dir <DataDir> \
-    -o dataset_dirs "<PlanDir>"
-
-cci task run manage_expression_sets --org <cci_alias> -o operation activate_versions \
-    -o version_full_names "<Version>"
-```
-
-<details><summary>Filled in for the QuantumBit bundle, as an example</summary>
-
-```bash
-cci task run manage_expression_sets --org <cci_alias> -o operation deactivate_versions \
-    -o version_full_names "QuantumBitBundle_V1"
-cci task run import_cml --org <cci_alias> \
-    -o data_dir datasets/constraints/qb/QuantumBitBundle \
-    -o dataset_dirs "datasets/sfdmu/qb/en-US/qb-pcm"
-cci task run manage_expression_sets --org <cci_alias> -o operation activate_versions \
-    -o version_full_names "QuantumBitBundle_V1"
-```
-
-</details>
-
-`prepare_constraints` does this for you at steps 9-10; a standalone `import_cml` does
-not. See below.
-
-### How the flow handles active-version reruns
-
-`manage_expression_sets` queries `ExpressionSetVersion` by ApiName. For a constraint model
-(`ExpressionSet.UsageType = 'Constraint'`) it PATCHes
-`/services/data/v<api>/industries/constraints/{expressionSetId}/versions/{versionId}` with
-`{"status": "Active"}` or `{"status": "Inactive"}`. That resource deploys the model to the
-constraint solver on activation (along with every other active constraint model) and removes
-it on deactivation. It returns HTTP 200 with `success: false` on a failed deploy, so the task
-checks `success`. Every other expression set gets an `IsActive` PATCH.
-
-An **already-Active** version is skipped, and for a constraint model the task warns that
-the skip doesn't redeploy anything: `activate_versions` alone never picks up a re-import, so
-always deactivate first. Cycling only the model you changed is enough, even on a cold
-solver, because activating one constraint model deploys every active one (checked live in
-both directions with QuantumBitBundle and Server2, todo 313).
-
-The resource is not in the public developer guide; it is the route Constraint Builder uses,
-and nothing else deploys a model (todo 064). Measured live on 2026-10-29: when the task still
-PATCHed `IsActive` for constraint models, a model re-imported into an active version kept
-running the old one through this exact cycle, and a cold org stayed cold after activation.
-
-`prepare_constraints` imports Server2 and Bundle in steps 7-8, deactivates their
-versions in step 9, and activates both in step 10. Every activated version must
-also be deactivated first: an import into an active version stores the blob without
-redeploying the runtime, and activation alone would be a no-op. The cycle is a
-no-op on a fresh build where imports create inactive versions.
-
-**A standalone `import_cml` gets none of this** — it uploads and stops. That is the normal
-way to ship a model change, so cycle the version yourself afterwards:
-
-```bash
-# <Version> is the ApiName from the discovery query — e.g. QuantumBitBundle_V1,
-# Server2_V1, or whatever the org actually reports as active for the model you changed.
-cci task run manage_expression_sets --org <cci_alias> -o operation deactivate_versions \
-    -o version_full_names "<Version>"
-cci task run manage_expression_sets --org <cci_alias> -o operation activate_versions \
-    -o version_full_names "<Version>"
-```
-
-Cycle **the version you imported into**. If several models are active, cycling an
-unrelated one proves nothing and briefly deactivates a model something else may depend on.
-
-or do the same in the UI: the Constraint Model record is the `ExpressionSet` record page
-(`/lightning/r/ExpressionSet/<9QL…>/view`), its **Constraint Model Versions** related list
-is `ExpressionSetVersion`, and opening a version launches **Constraint Builder**, whose
-toolbar carries **Sync**, **Deactivate** and **Save**.
-
-Salesforce documents the requirement:
-
-> "If the table data is deployed when the constraint model is activated, and you add
-> records to the table after constraint model activation, to fetch the new table data at
-> runtime you must deactivate and reactivate the constraint model."
-> — Help, *Import Data from Salesforce Objects to Use in Constraint Models* (264)
-
-> **Not yet investigated:** the builder's **Sync** button, which is distinct from
-> activate/deactivate. Its effect is unknown — do not assume it is a no-op.
-
----
+keeps running the old one, and the import reports success. Deactivate, import, activate
+through the constraint-version resource (a plain `IsActive` update does not deploy).
+Commands, the rerun behavior of `prepare_constraints`, downtime, moving a model between
+orgs and writing models programmatically:
+[import-and-deploy.md](import-and-deploy.md).
 
 ## Ramp groups and segments
 
-Rules can target quote groups, ramp groups and ramp segments through the
-`SalesTransactionItemGroup` context tag. Use the 264 dev guide for syntax:
-[Define Constraints for Quote Groups, Ramps, and Ramp Segments](../../../docs/salesforce/264/dev-guide/articles/cml-quote-group-ramp-segment-constraints.md).
-Three attributes do the work:
-
-- `SalesTransactionItemGroup` on a `groupBy` container (`@(virtual = true, groupBy = SalesTransactionItemGroup)`)
-  scopes the rule to one group. The engine runs one virtual container for each group that
-  contains one or more products from the `QuoteGroup` container.
-- `IsLineGroupRamped__std` in a `require` restricts a rule to ramp groups; `!(...)` restricts it to unramped groups.
-- `ItemSegmentType` tests the segment type of a ramped line. `RLM_SalesTransactionContext` maps it from
-  `QuoteLineItem.SegmentType` (`OrderItem.SegmentType` for orders), so it carries that picklist's value
-  (`Yearly`, `Custom`, `FreeTrial` or `Prorated` on the 264 org tested). The dev guide's example tests
-  `ItemSegmentType != "Trial"`; `Trial` is not a value, so that test never excludes a segment. Test
-  `"FreeTrial"`. Measured on one 264 org (2026-11-06): in a FreeTrial segment a rule on `== "FreeTrial"`
-  fired and one on `== "Yearly"` did not; `== "Yearly"` rules fired in Yearly segments.
-
-A virtual `Quote` container is not scoped to a group: the configurator receives every line of the quote,
-across all segments, as one set, and no scoping by group was found other than a `groupBy` container
-(`[Platform behaviour, traced]`; see [quantities-from-attributes.md](quantities-from-attributes.md#checks-across-top-level-lines-a-virtual-quote-container)).
-
-Groups don't support rules such as `hide`, `disable` or `recommend`, which act on a condition. Use `require` in groups.
-
-Measured with a test `groupBy` container on one 264 org (2026-11-06; standalone Term Annual products, Place API):
-
-- **Declare the group container on the transaction container.** The rules fired only after `type Quote` had
-  `relation quotegroup : QuoteGroup;`, as in the dev guide's quote-group example. The ramp and segment
-  examples omit it. Without it nothing fired and nothing reported an error.
-- **Set `configurationMethod: Force` to make a Place call run the rules.** The method defaults to `Skip`
-  (dev guide, *Configurator Preference Input*), so `configurationOptions.executeConfigurationRules: true` on
-  its own ran nothing. Group-level rules were tested through Place with `Force` only. `System` lets the
-  platform decide: with the shipped QuantumBitBundle model (a quote-level `require`, no group container) it
-  ran the rule in the call that added the triggering line, and on a quote-only PATCH of a quote missing the
-  required product. So `System` doesn't limit rules to calls that add lines.
-- **A Connect clone ran group rules with no configuration preference.** Rules keyed on
-  `IsLineGroupRamped__std` and `ItemSegmentType == "Yearly"` fired during the clone calls, with every
-  Place call `Skip`.
-- **Products a group `require` adds outside `AddProducts` have no ramp ids.** Added during a clone, or by
-  a `Force` Place without `groupRampAction`, they had blank `RampIdentifier`, `SegmentIdentifier` and
-  `SegmentType`. An EditGroup with `Force` added nothing. A `Force` Place with
-  `groupRampAction: AddProducts` stamped the products it added, each with its own `RampIdentifier` and the
-  segment's `SegmentType` (Yearly, or FreeTrial in a FreeTrial segment). It did not stamp blank lines
-  already on the quote. How the blank lines behave at order and amend was not measured.
-
-Configuration rules don't recognize quote or order groups (Help, *Considerations for Ramp Deals*). A rule that adds a standalone
-product to a ramp segment doesn't ramp it or add it to later segments; a rule-added child of a ramped parent is
-ramped and carried forward. The shipped QuantumBit models have no group-level container. For the ramp side, see
-the [ramped-quotes skill](../ramped-quotes/SKILL.md) and
-[Cloning a segment that holds a bundle](../ramped-quotes/bundle-children-lifecycle.md#cloning-a-segment-that-holds-a-bundle).
+Rules that target quote groups, ramp groups and ramp segments: [ramp-groups.md](ramp-groups.md).
 
 ---
 
 ## Sub-Files
 
-| File | Read this when… |
+| File | Read this when... |
 |---|---|
-| [`quantities-from-attributes.md`](quantities-from-attributes.md) | A model must set component quantities from answers on the bundle: one per answer unit, an optional add-on per unit, per N rounded up, zero unless a choice is made, chained derivations such as service hours and a percentage for audit. Covers cardinality vs read-only quantity, `@(split = false)` for one line per component, the 9,999 relation cap and `maxRelationSize`, rounding and `int` vs `decimal`, per-instance scope and `parent()`, exclusions (a choice that switches rules on and off, and the messages that explain its conflicts), cross-line checks on a virtual `Quote` container (`sourceContextNode`, `Error` messages, group-ramp segments), answers on an amendment (node status on the asset action source), non-blocking `Info` messages and headless testing (where a rejection's message appears: `configure` and `RevenueTransactionErrorLog`), with a fictional worked example. Read it before writing `ceil()`, `/` or `^` in CML: its DO NOT list and measured table cover how they behave on 264. |
+| [`import-and-deploy.md`](import-and-deploy.md) | A model change did not take effect; you need the import, deactivate and activate cycle, the composite-key rules, downtime, moving a model between orgs, or writing models from a script. |
+| [`size-and-limits.md`](size-and-limits.md) | A save fails with "size limit for this constraint model", or before importing a large catalog into CML: the org-value limit, the save-path-only check, other limits, how to stay under. |
+| [`configurator-behavior.md`](configurator-behavior.md) | A rule is correct but the configurator or Place behaves differently: clear-on-hide, productField rules, PST defaults and validation, error logs, triggers. |
+| [`computed-attribute-and-setup.md`](computed-attribute-and-setup.md) | A CML-computed value must reach a quote line field, a rule should cover a whole classification, or a new test product must reach Configure. |
+| [`tooling.md`](tooling.md) | You want to check model size, push a model, or scaffold a test classification, products and model from a spec (`scripts/constraint_models/cml_tool.py`). |
+| [`ramp-groups.md`](ramp-groups.md) | A group-ramp quote must obey a constraint model. |
+| [`quantities-from-attributes.md`](quantities-from-attributes.md) | A model must set component quantities from answers on the bundle (per unit, per N rounded up, zero unless chosen, chained derivations), with `@(split = false)`, `maxRelationSize`, rounding, `parent()`, exclusions, cross-line `Quote` checks, amendments, `Info` messages and headless testing. Read it before writing `ceil()`, `/` or `^` in CML. |
 
 ---
 
@@ -525,40 +327,22 @@ Before calling a constraint-model change done:
 
 ## Known gaps
 
-- **`validate_cml`'s warning stream is not clean enough to gate on.** Most of the old
-  "missing association" noise came from checking historical reference copies against one
-  model's ESC rows, and from looking those rows up by display `Name` instead of
-  `ApiName`. `data_dirs` fixes both: the retained QuantumBit/Server2 models can report unsupported-annotation notes. Treat the **error** count as the signal and check the warning
-  count against a known-good baseline for the models you are touching.
-  Many such notes are false positives: the validator reads any `<identifier> =` or
-  `<identifier> ==` on a declaration, `constraint` or `message` line as an annotation key
-  (`ANNOTATION_KEY_RE` in `tasks/rlm_cml.py`). So `int plots = [1..120];` (name illustrative) warns
-  "Unsupported annotation 'plots' on attribute 'plots'", and `constraint(plots > 3 ->
-  plots == 4, …)` warns "… 'plots' on constraint/rule" (checked against the validator
-  locally, 2026-11-11). A model with such warnings imported, activated and ran on fresh
-  264 `ent-sb0` scratch orgs (2026-11-11). A virtual `Quote` container also draws
-  "Missing port association" and "Missing type association" warnings; its relations have
-  no `Port` by design.
-- **A standalone `import_cml` never cycles the version.** `prepare_constraints` covers
-  this at steps 9-10, but shipping a model change usually means running `import_cml` on
-  its own — where the upload lands and nothing redeploys. There is no single task that
-  does import-and-cycle.
-- **No *passive* signal distinguishes "stored" from "deployed".** `ConstraintModel` is the
-  upload field, so no query tells you the runtime rebuilt — you have to make the engine
-  run. The configurator `configure` POST does that headlessly (see Validation check 7), so
-  this is a gap in observability, not in automation: there is no status field to watch,
-  but there is no need for a browser either.
-- **`import_cml` still half-applies on failure** — but it no longer hides it.
-  `create_record()` runs inline per row, so a failure leaves the rows that already resolved
-  in place while the delete-old-rows step is skipped — "a mix of old and new constraints",
-  in the task's own words. Both failure modes now raise (outside `dry_run`), and neither
-  uploads the blob, so a partial ESC set can no longer ship under a model that references
-  rows which never landed.
-  A **clean** rerun clears the mix (the snapshot is retaken each run, so the delete on a
-  clean pass removes the partial rows too); a rerun that fails again layers another partial
-  generation. What remains unfixed is the half-apply itself: the writes are not staged, so a
-  failure still leaves the org changed. Staging them (collect payloads, insert at the end,
-  or roll back what was created) is the real fix. See
-  [The four records a bundle member needs](#the-four-records-a-bundle-member-needs) →
-  *Sequence is part of the composite key* for the full table.
+- **`validate_cml`'s warning stream is not clean enough to gate on.** Treat the **error**
+  count as the signal and compare warnings against a known-good baseline. The validator
+  reads any `<identifier> =` or `<identifier> ==` on a declaration, `constraint` or
+  `message` line as an annotation key (`ANNOTATION_KEY_RE` in `tasks/rlm_cml.py`), so
+  `int plots = [1..120];` warns "Unsupported annotation 'plots'". Models with such warnings
+  imported, activated and ran on fresh 264 `ent-sb0` scratch orgs. A virtual `Quote`
+  container also draws "Missing port association" and "Missing type association"; its
+  relations have no `Port` by design.
+- **A standalone `import_cml` never cycles the version**; `prepare_constraints` does
+  (steps 9-10), and `cml_tool.py push` does for one file ([tooling.md](tooling.md)).
+  Never write back text read from the constraint-version GET: it is HTML-escaped.
+- **No passive signal distinguishes "stored" from "deployed".** Run a configurator
+  `configure` POST (Validation check 7).
+- **`import_cml` still half-applies on failure.** Both failure modes raise (outside
+  `dry_run`) and neither uploads the blob, but rows already created stay. A clean rerun
+  clears the mix; a failing rerun layers another partial generation. Staging the writes is
+  the real fix.
 - **The builder's `Sync` button is uninvestigated.**
+- **Unmeasured items** are tagged `[Open]` in the sub-files.

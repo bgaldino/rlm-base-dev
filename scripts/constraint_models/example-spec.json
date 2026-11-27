@@ -1,0 +1,10 @@
+{
+  "prefix": "Demo",
+  "attrs": [
+    {"dev": "Size", "values": ["Small", "Large"], "default": "Small"},
+    {"dev": "Mount", "values": ["Floor", "Wall"]}
+  ],
+  "products": [
+    {"name": "Demo Kit", "tag": "DemoKit", "price": 100}
+  ]
+}
