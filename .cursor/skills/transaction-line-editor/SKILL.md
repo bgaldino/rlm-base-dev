@@ -24,15 +24,14 @@ access.
 
 Two components exist. The **Sales Transaction Line Editor (STLE)** is the one Salesforce
 recommends; the older **Transaction Line Editor (TLE)** "remains available" but is "no
-longer being enhanced" [Help: `ind.qocal_customize_transaction_line_editor`]. Help uses
+longer being enhanced" [Help: ind.qocal_customize_transaction_line_editor]. Help uses
 "line editor" for both; so does this skill unless a rule applies to only one.
 
 **Source tags.** `[Help: <article>]` is the 264 Help snapshot,
-`docs/salesforce/264/help/articles/<article>.htm.md`. `[Dev guide: <article>]` and
-`[Release notes: <article>]` are the sibling `dev-guide/` and `release-notes/` snapshots.
-`[Repo: <file>]` is this repository. `[Measured: <date>, 264]` is behaviour observed on a 264
-demo org; `[Measured: <date>, 264, fresh ent-sb0 scratch org]` on a scratch org freshly built from
-this repo with the `ent-sb0` shape; `[Measured: <date>, 264.12, ent-sb0 harness build]` on a scratch org built by the build harness on that shape, with the release detail recorded. **Open, needs live verification** marks anything only a live org can settle.
+`docs/salesforce/264/help/articles/<article>.htm.md`. `[Dev guide: <article>]` is the sibling `dev-guide/` snapshot.
+`[Repo: <file>]` is this repository. `[Measured: 2026-11, 264, demo org]` is behaviour observed on a 264
+demo org; `[Measured: <date>, 264, scratch]` is a scratch org whose build history was not recorded; `[Measured: <date>, 264, fresh ent-sb0 scratch org]` on a scratch org freshly built from
+this repo with the `ent-sb0` shape; `[Measured: <date>, 264.12, ent-sb0 harness build]` on a scratch org built by the build harness on that shape, with the release detail recorded. `[Platform behaviour, traced]` is a platform mechanism read in source, `[Platform behaviour, traced in part]` a mechanism read in source whose scope, path or consequence is not established, and `[Open: <the check that would settle it>]` a claim only a live org can settle. **Open, needs live verification** marks the same.
 Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
 
 ## Quick Rules
@@ -40,49 +39,49 @@ Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
 1. **Change the page in `templates/flexipages/`, then assemble.** The quote and order pages are
    `templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml` and
    `RLM_Order_Record_Page.flexipage-meta.xml`; `unpackaged/post_ux/` is generated output
-   (AGENTS.md DO NOT 1) [Repo: `.cursor/skills/repo-integration/ux-assembly-retrieve.md`].
+   (AGENTS.md DO NOT 1) [Repo: .cursor/skills/repo-integration/ux-assembly-retrieve.md].
    For a feature-gated column use a patch in `templates/flexipages/patches/<feature>/`:
    `add_sales_txn_line_editor_field`, or the older `add_display_field`, which appends to the page's
    first `displayFields` list (see [`page-configuration.md`](page-configuration.md)).
 2. **Use the STLE.** Group ramps and *Instant Pricing Active by Default* work only in the STLE
-   [Help: `ind.qocal_set_up_ramp_deals_for_groups`, `ind.qocal_turn_on_quote_and_order_capture`].
+   [Help: ind.qocal_set_up_ramp_deals_for_groups, ind.qocal_turn_on_quote_and_order_capture].
    Both repo pages use the `runtime_rca:salesTxnLineTable` component [Repo: both page templates].
 3. **Add every custom column field to the sales transaction context definition.** Without it,
-   edits to that field in the editor are not saved [Help: `ind.qocal_select_fields_for_the_line_editor`].
+   edits to that field in the editor are not saved [Help: ind.qocal_select_fields_for_the_line_editor].
    Use [`context-service`](../context-service/SKILL.md).
 4. **Put only editable currency or percent fields in the Adjustment Type column.** A read-only or
    calculated field causes pricing errors; Start Date or End Date can reset ramped line dates
-   [Help: `ind.qocal_adjustment_type_column`].
+   [Help: ind.qocal_adjustment_type_column].
 5. **Reprice after anything that changed lines outside the editor.** API, Process Builder, trigger
    and manual field updates invalidate the pricing status and need Reprice All [Help:
-   `ind.qocal_limitations_for_using_quote_and_order_capture`]. A header-only Place PATCH, even of a
+   ind.qocal_limitations_for_using_quote_and_order_capture]. A header-only Place PATCH, even of a
    field pricing reads, left the line prices unchanged until Reprice All [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]. Under System pricing, a graph-style Place request is priced
    only if it includes a line (or line attribute) record; a request carrying a context id is priced
    whenever lines exist (not measured). Reprice All uses Force pricing [Platform behaviour, traced].
    Reprice All re-runs pricing only; Refresh Prices also re-runs configuration and taxes [Help:
-   `ind.qocal_reprice_all_quotes_and_orders`, `ind.qocal_view_and_edit_quotes`]. Don't reprice a
+   ind.qocal_reprice_all_quotes_and_orders, ind.qocal_view_and_edit_quotes]. Don't reprice a
    lifecycle quote after its order is activated: renewal, amendment and cancellation lines are
    priced from the source asset's current state, and activation changes it [Platform behaviour,
    traced in part]. Measured once on a renewal quote: a full reprice (every line, pricing `Force`,
    configuration `Skip`; Reprice All sends the same pricing mode) after the order was activated set
-   the renewal lines' totals and the quote total to 0 [Measured: 2026-11-12, 264, scratch org]: each
+   the renewal lines' totals and the quote total to 0 [Measured: 2026-11-12, 264, scratch]: each
    lot became a -lot/+lot pair netting 0, and the order and assets were unchanged. An activated cancellation quote
    also repriced to 0, and two amendment quotes did not change [Measured: 2026-11-26, 264, ent-sb0 harness build].
    Not measured on other amendment shapes, any ramped quote, or through the button; why the reprice
    returned 0 is not traced.
 6. **Check the build before demoing an inline quantity edit on an amendment of a configured product.** With
    configuration rules on it reset the line's attributes to product defaults, and activation kept them on the asset
-   [Measured: 2026-11-05, 264, QuantumBit build]; on a current build with the configurator node status present the attribute was
+   [Measured: 2026-11-05, 264, demo org]; on a current build with the configurator node status present the attribute was
    kept [Measured: 2026-11-26, 264, ent-sb0 harness build] (see [cancel-swap-and-linking.md](../asset-lifecycle-changes/cancel-swap-and-linking.md#attribute-reset-on-amendment-not-reproduced)). Where it resets, change the quantity in the
    configurator.
 7. **Header adjustments depend on the Discount Distribution Service (DDS) element; make sure only
    one DDS runs per pricing pass.** Help's setup puts a DDS element in the pricing procedure;
    the rep picks the type, value and distribution in Manage Header Adjustment, and pricing spreads
-   it across the lines [Help: `ind.qocal_header_adjustments_overview`, `ind.qocal_header_adjustments_use`].
-   Help allows one DDS per pricing procedure [Help: `ind.pricing_discount_distribution_service_limits`];
+   it across the lines [Help: ind.qocal_header_adjustments_overview, ind.qocal_header_adjustments_use].
+   Help allows one DDS per pricing procedure [Help: ind.pricing_discount_distribution_service_limits];
    the one-per-pass rule is this skill's conclusion from the doubling below. The repo's `RLM_DefaultPricingProcedure` has a DDS step, and so does `RLM_Price_Distribution_Procedure`,
    which the procedure plan runs. With the plan active and `skipOrgSttPricing` on, both ran and a 10%
-   header discount came out at 19% [Measured: early Nov 2026, 264, demo orgs] [Repo: datasets/sfdmu/procedure-plans/README.md].
+   header discount came out at 19% [Measured: 2026-11, 264, demo org] [Repo: datasets/sfdmu/procedure-plans/README.md].
    Keep the plan inactive (the repo default) for header-adjustment demos.
 
 ## DO NOT
@@ -91,19 +90,19 @@ Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
   order page by hand; edit the template and run the assembler (AGENTS.md DO NOT 1).
 - **DO NOT** reference a feature-gated custom field in the base page template's line editor
   columns. Base output deploys on every build and breaks deploy where the field doesn't exist;
-  use that feature's patch file [Repo: `.cursor/skills/repo-integration/ux-assembly-retrieve.md`].
+  use that feature's patch file [Repo: .cursor/skills/repo-integration/ux-assembly-retrieve.md].
 - **DO NOT** add read-only, formula or calculated fields (for example Total Adjustment) to the
-  Adjustment Type column [Help: `ind.qocal_adjustment_type_column`].
+  Adjustment Type column [Help: ind.qocal_adjustment_type_column].
 - **DO NOT** edit Net Unit Price, Net Total Price, Total Adjustment Amount or Pricing Term Count
-  in the editor when Salesforce Pricing is active [Help: `ind.qocal_view_and_edit_quotes`].
+  in the editor when Salesforce Pricing is active [Help: ind.qocal_view_and_edit_quotes].
 - **DO NOT** add or edit lines with the standard Quote Line Items or Order Products related-list
-  buttons; Revenue Cloud doesn't support them [Help: `ind.qocal_discover_and_configure_products`].
+  buttons; Revenue Cloud doesn't support them [Help: ind.qocal_discover_and_configure_products].
 - **DO NOT** expect admin-created custom actions in the header action picker; only built-in
-  actions are available [Help: `ind.qocal_action_button_group_important_considerations`].
+  actions are available [Help: ind.qocal_action_button_group_important_considerations].
 - **DO NOT** update `Calculation Status` by hand to unstick a transaction left in *Saving* while
   another recovery exists; retry with the Place Sales Transaction API. Help recommends a manual
   update only as a last resort, with the Edit Calculation Status on Quote and Order permission
-  [Help: `ind.qocal_differences_between_calculation_status_field_and_validation_result_field`].
+  [Help: ind.qocal_differences_between_calculation_status_field_and_validation_result_field].
 - **DO NOT** read a blank Sales Price or Net Unit Price on an amended parent line as a pricing
   failure until you check its detail rows and the line total (see [`runtime-behavior.md`](runtime-behavior.md)).
 
@@ -166,12 +165,12 @@ patch touches the line editor: `patches/approvals/RLM_Quote_Record_Page.yml` add
    where 11 or more actions apply.
 2. Whether Reprice All validates configuration on 264. Help says it skips configuration, and its request shape
    is Force pricing with configuration skipped [Platform behaviour, traced]; the success toast read "The prices
-   were refreshed and the configuration was validated." [Measured: early Nov 2026, 264, demo orgs] and its origin was not traced.
+   were refreshed and the configuration was validated." [Measured: 2026-11, 264, demo org] and its origin was not traced.
 3. Which Setup label `enableRevInstPricingDefaultPref` maps to (assumed *Instant Pricing Active
    by Default*), and whether `enableRevenueAdjustment`, which the repo's Revenue Settings file and
    scratch definitions set to true, is the **Header Adjustments** setting. The 264 dev guide doesn't
    document that field. A header discount did work on a fresh 264 build with the plan inactive
-   [Repo: `datasets/sfdmu/procedure-plans/README.md`].
+   [Repo: datasets/sfdmu/procedure-plans/README.md].
 4. How renewal and cancellation lines display in the STLE (quantities, price columns, detail rows);
    only amendment lines were measured.
 5. Whether bundle child lines can be moved with **Move Selected Items** (either editor), and whether
@@ -215,11 +214,11 @@ states into a scratch directory, which leaves `unpackaged/post_ux/` alone:
 `python scripts/ux/ux_tool.py assemble --flag example=true --output-path <scratch_dir>` (the field is
 in the quote page) and the same with `example=false` (it isn't). Finish with
 `cci task run assemble_and_deploy_ux -o deploy false` at the committed default flags
-[Repo: `scripts/ux/_patch_ops.py`, `scripts/ux/_flags.py`, `scripts/ux/ux_tool.py`].
+[Repo: scripts/ux/_patch_ops.py, scripts/ux/_flags.py, scripts/ux/ux_tool.py].
 
 **A rep says the amendment line lost its price.** After a UI quantity edit on an amendment line,
 Sales Price and Net Unit Price are blank on the parent and the price sits on detail rows (for
-example +2 and −1 at the unit price) while the line total is right [Measured: early Nov 2026, 264, demo orgs].
+example +2 and −1 at the unit price) while the line total is right [Measured: 2026-11, 264, demo org].
 Check the detail rows and the total before treating it as a pricing fault.
 
 **Prepare a header-discount demo.** Confirm Header Adjustments is on, the active pricing procedure has
@@ -229,7 +228,7 @@ which Help requires where Delta Pricing is on (Help:
 `ind.qocal_use_delta_pricing_for_quotes_and_orders`; every repo build enables it, and it applies
 only when all its conditions hold, see [runtime and
 observability](../pricing-procedures/runtime-and-observability.md#delta-pricing))
-[Help: `ind.qocal_header_adjustments_use`; Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`].
+[Help: ind.qocal_header_adjustments_use] [Repo: unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml].
 
 ## Validation Checks
 

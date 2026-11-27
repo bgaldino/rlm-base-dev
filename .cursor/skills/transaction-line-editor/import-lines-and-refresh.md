@@ -2,7 +2,7 @@
 
 Read this when lines arrive outside the editor's own save (CSV import, API, automation), when users ask why the
 "refresh prices" banner appears, or when quote header dates or terms must reach lines. Setup of the editor itself is
-in `page-configuration.md`; day-to-day use is in `runtime-behavior.md`.
+in `page-configuration.md`; day-to-day use is in `runtime-behavior.md`. Source tags are defined in SKILL.md.
 
 ## 1. Import Lines (Quote Line Import)
 

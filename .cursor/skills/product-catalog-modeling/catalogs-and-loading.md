@@ -8,32 +8,32 @@
 ## Catalogs
 
 A catalog is the top container; you need at least one. It can stand for a kind of product,
-a service line, a sales territory or a business unit. [Help: `ind.product_catalog_plan_catalog.htm`; `ind.product_catalog_catalogs.htm`]
+a service line, a sales territory or a business unit. [Help: ind.product_catalog_plan_catalog.htm; ind.product_catalog_catalogs.htm]
 Products are placed in a catalog's **categories**, not in the catalog itself
-(`ProductCategoryProduct` carries the category and catalog). [Help: `ind.product_catalog_assign_products_to_catalog_cat_and_subcategories.htm`; Repo: `scripts/ai/query_erd.py describe ProductCategoryProduct`]
+(`ProductCategoryProduct` carries the category and catalog). [Help: ind.product_catalog_assign_products_to_catalog_cat_and_subcategories.htm] [Repo: scripts/ai/query_erd.py describe ProductCategoryProduct]
 
 | Choice | Trade-off | Downstream |
 |---|---|---|
 | One catalog | Simplest; one category tree | Every user browses the same tree |
-| Catalogs by line or audience | Focused browsing | Each needs its own category tree; a product in two catalogs needs a row per category. Users switch catalogs, or you set a default. [Help: `ind.product_catalog_set_default_catalog.htm`] |
-| Commercial vs technical catalog | Separates what buyers see from what fulfillment needs | Distinguished with product types and record types; the technical side is order orchestration (`dro-plans`). [Help: `ind.product_catalog_plan_catalog.htm`] |
+| Catalogs by line or audience | Focused browsing | Each needs its own category tree; a product in two catalogs needs a row per category. Users switch catalogs, or you set a default. [Help: ind.product_catalog_set_default_catalog.htm] |
+| Commercial vs technical catalog | Separates what buyers see from what fulfillment needs | Distinguished with product types and record types; the technical side is order orchestration (`dro-plans`). [Help: ind.product_catalog_plan_catalog.htm] |
 
 ## Categories
 
 Categories nest (`ParentCategoryId`); a product can sit in several. Each category has a
 name, a code, a sort order and *Show In Menu* (`IsNavigational`), which the Product
-Discovery UI ignores but its APIs return. [Help: `ind.product_catalog_create_catalog_categories_and_subcategories.htm`]
-Sort order at design time is the order Product Discovery shows. [Help: `ind.product_catalog_catalogs.htm`]
+Discovery UI ignores but its APIs return. [Help: ind.product_catalog_create_catalog_categories_and_subcategories.htm]
+Sort order at design time is the order Product Discovery shows. [Help: ind.product_catalog_catalogs.htm]
 
 Categories organize browsing; **classifications** organize attributes. They are separate
 trees and need not match. A category tree follows how buyers look for things; a
 classification tree follows which products share attributes.
-[Help: `ind.product_catalog_plan_catalog.htm`; `ind.product_catalog_product_classifications.htm`]
+[Help: ind.product_catalog_plan_catalog.htm; ind.product_catalog_product_classifications.htm]
 
 ### Coding categories
 
 Codes are what plans match on. The QuantumBit plan keys `ProductCategory` on `Code` alone
-and resolves the parent through `ParentCategory.Code`. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/export.json`, `ProductCategory.csv`]
+and resolves the parent through `ParentCategory.Code`. [Repo: datasets/sfdmu/qb/en-US/qb-pcm/export.json, ProductCategory.csv]
 
 Measured on a 264 build: **a generated category code that collided across levels made a
 category its own parent.** [Measured: 2026-11, 264] With `Code` as the key, a subcategory
@@ -50,14 +50,14 @@ Rules:
   name with an ancestor.
 - Keep code prefixes distinct between objects. QuantumBit uses `PC-` for both category and
   classification codes (`PC-QB-HW-CPU` is a category, `PC-QB-DB` a classification), which
-  is legal (they are different objects) but easy to misread in a review. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductCategory.csv`, `README.md`]
+  is legal (they are different objects) but easy to misread in a review. [Repo: datasets/sfdmu/qb/en-US/qb-pcm/ProductCategory.csv, README.md]
 - Before a load: no row's `ParentCategory.Code` equals its own `Code`, and no code repeats.
 
 ## Product family is a contract
 
 `Product2.Family` is a standard picklist. The 264 Help snapshot documents no pricing or
 approval behaviour driven by it; it matters because **your own** automation filters on it.
-[Repo: a search of `docs/salesforce/264/help/articles/` for `Family` finds no match; `scripts/ai/query_erd.py describe Product2`]
+[Repo: a search of docs/salesforce/264/help/articles/ for Family finds no match; scripts/ai/query_erd.py describe Product2]
 In this repo:
 
 | Consumer | How it uses `Family` |
@@ -78,7 +78,7 @@ in the repo, and the org's decision table sources, approval criteria and flows. 
 QuantumBit plan uses Hardware, Software, Services, Bundle and 3rd Party Software, and leaves
 Family blank on 171 of 314 products, including the five usage, billing and
 no-operating-system products that once carried a literal `None`.
-[Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
+[Repo: datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv]
 A literal `None` is a value, not an absence: a filter for blank does not match it, so leave
 Family blank on a product that has none.
 
@@ -87,7 +87,7 @@ source's values onto existing ones.** The `Family` picklist is unrestricted, so 
 through the API, but a value that is not one of the org's picklist values is not offered in
 the UI's Family picklist. [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]
 `QuantityUnitOfMeasure` likewise stored units that are not among its picklist values (the UI
-wasn't checked). [Measured: same org] A clean load is therefore no check on these values;
+wasn't checked). [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org] A clean load is therefore no check on these values;
 compare the plan's distinct `Family` and `QuantityUnitOfMeasure` values with the org's
 picklist values before loading. Add a new Family value to the `Product2Family`
 standard value set (a metadata deploy) in the same change as the plan that uses it. In this
@@ -96,7 +96,7 @@ it lists the values the QuantumBit plan uses and no `None` value; the q3 and mfg
 not list. Deploying the set without `None` took it out of what the org offers: the value left
 `Product2.Family`'s picklist values and a retrieve of the set no longer listed it, while a
 product holding it kept the stored value `None`. Whether the value is deleted or only made
-inactive was not checked. [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org] [Repo: that file; `datasets/sfdmu/q3/en-US/q3-pcm/Product2.csv`; `datasets/sfdmu/mfg/en-US/mfg-pcm/Product2.csv`]
+inactive was not checked. [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org] [Repo: that file; datasets/sfdmu/q3/en-US/q3-pcm/Product2.csv; datasets/sfdmu/mfg/en-US/mfg-pcm/Product2.csv]
 
 ## From model to plan
 
@@ -106,13 +106,13 @@ inactive was not checked. [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org]
    products → product attributes → selling models → proration policy → selling model
    options → ramp segments → relationship types → component groups → related components →
    overrides → catalogs → categories → category products → qualifications → attribute scope.
-   Its README states each object's key. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/export.json`, `README.md`]
+   Its README states each object's key. [Repo: datasets/sfdmu/qb/en-US/qb-pcm/export.json, README.md]
 2. **Keep the keys.** Products on `StockKeepingUnit`; definitions, classifications, groups,
    categories and catalogs on `Code`. Use `;` composite keys and matching `$$` columns as
    `sfdmu-data-plans` describes; avoid Bug 4 shapes (a `$$` lookup whose parts are not
    exactly the parent's `externalId`, including a self-reference).
-   [Repo: `sfdmu-data-plans/SKILL.md`]
-3. **Mark empty objects `excluded: true`.** [Repo: `sfdmu-data-plans/SKILL.md`]
+   [Repo: sfdmu-data-plans/SKILL.md]
+3. **Mark empty objects `excluded: true`.** [Repo: sfdmu-data-plans/SKILL.md]
 4. **Write a README** and run the plan checks (below).
 5. **Load into a fresh org, then check.** Run `scripts/check_classification_attrs.py --json <file>` after the load, keep that first output (the third-pass test needs its missing-row list), and follow this bounded rule. Exit 0: no second pass, and extract is safe. Exit 1 (a missing row or a key-field difference; investigate a missing row as a possible load failure first): run the second pass. Exit 2 (could not compare; a Python traceback is not a result, so treat it as exit 2): fix the cause and rerun the check (a failed `sf` call or an unwritable `--json` path is yours to fix; an unreadable or empty CSV, a missing key column or a duplicate CSV key is a plan defect (a wrong `--plan` path is yours to fix), so stop, fix the plan and restart this procedure on a fresh load); if an `sf` or query error cannot be fixed, run the second pass anyway (it only applies the CSV's values); an org key shared with another plan's rows persists through any load, so stop and investigate. Recheck after the second pass: exit 0 means extract; exit 1 with no missing row and every key-field difference (a `DIFF KEY` line) on a row the first check listed missing means one third pass and a recheck; anything else (including exit 2 on a recheck), or any non-zero result after the third pass, means stop and investigate, with no extract and no further load; rerunning only the check after fixing a transient `sf` error is allowed. One pass is enough for QuantumBit [Measured: 2026-11-23, 264].
 6. **Run the `refresh_all_decision_tables` flow and the `rebuild_search_index` task** before
@@ -146,7 +146,7 @@ cci task run rebuild_search_index --org <cci_alias>   # async: wait minutes, the
 In this repo `prepare_product_data` runs `insert_quantumbit_pcm_data` once.
 `test_qb_pcm_idempotency` loads the plan once, extracts the org, reloads the extraction and
 fails if counts rise; its second load replays the one-pass org state, not the CSVs, so it is
-not fact (a)'s second pass. [Repo: `cumulusci.yml`; `tasks/rlm_sfdmu.py` `TestSFDMUIdempotency`]
+not fact (a)'s second pass. [Repo: cumulusci.yml; tasks/rlm_sfdmu.py TestSFDMUIdempotency]
 The QuantumBit plan needs no second load: on a fresh one-pass build all 36 classification attribute rows
 matched the CSV (0 missing, 0 differences; `scripts/check_classification_attrs.py`), because each CSV
 `AttributeNameOverride` and `IsRequired` already equals its attribute definition's value, and
@@ -156,7 +156,7 @@ matched the CSV (0 missing, 0 differences; `scripts/check_classification_attrs.p
 Other load constraints: `ProrationPolicy` is create-only and platform-seeded, so its insert
 is rejected as a duplicate and tolerated (`ignore_row_errors_for`); several PCM lookups are
 create-only, so a partial failure needs a delete before a reload; bundle depth beyond 3 needs
-`MaxBundleDepth`. [Repo: `cumulusci.yml`; `sfdmu-data-plans/SKILL.md`; `datasets/sfdmu/qb/en-US/qb-pcm/README.md`]
+`MaxBundleDepth`. [Repo: cumulusci.yml; sfdmu-data-plans/SKILL.md; datasets/sfdmu/qb/en-US/qb-pcm/README.md]
 
 ### Check before and after
 

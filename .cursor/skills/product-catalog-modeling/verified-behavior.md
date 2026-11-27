@@ -31,5 +31,5 @@ kinds are defined in `SKILL.md` (the paragraph that opens the skill).
   returned an error [Measured: 2026-11-27, 264, full QuantumBit build, org kind not recorded].
 - With data translation on, the platform check accepts only the platform's language enum names (for example
   `spanish`), case-insensitive, not ISO codes; an ISO code returns an "Invalid language for translation" error
-  [Platform behaviour, traced]. [Open: re-run with data translation on and a translated record; check whether `fr_CA`
+  [Platform behaviour, traced]. [Open: re-run with data translation on and a translated record; check whether fr_CA
   has an enum name]. A client that holds ISO codes should map them to the enum names before calling.

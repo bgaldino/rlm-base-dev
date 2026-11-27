@@ -381,7 +381,7 @@ foundations:
         - .cursor/skills/product-catalog-modeling/selling-models-and-lifecycle.md
         - .cursor/skills/product-catalog-modeling/catalogs-and-loading.md
         - .cursor/skills/product-catalog-modeling/verified-behavior.md
-      provenance: grounded in the 264 Help and dev-guide snapshots plus repo skills; load facts measured on live 264 builds 2026-11; sale, order, asset and renewal behavior and product search measured on scratch orgs 2026-11-26 and 2026-11-27
+      provenance: grounded in the 264 Help and dev-guide snapshots plus repo skills; load facts measured on live 264 builds 2026-11; sale, order, asset and renewal behavior measured on scratch orgs 2026-11-26; product search 2026-11-27
       caveats:
         - "Some runtime behaviours are still open and need live verification (a static kit's child with several selling-model options, invoices of a static kit, the mismatch message blocking save or Place, sort rules with the gate on); SKILL.md → Open questions lists them"
 

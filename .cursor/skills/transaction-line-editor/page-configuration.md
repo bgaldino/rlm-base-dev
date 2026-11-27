@@ -94,7 +94,7 @@ after an anchor, so at most it can add a property the template lacks.
 - Swap, upgrade and downgrade amendments need the **Type** and **Subtype** columns
   [Help: ind.qocal_swap_upgrade_downgrade_amendments].
 - Unit Price Uplift belongs in the quote line editor columns when price revision policies are used
-  [Help: ind.qocal_consumer_price_index_and_price_uplifts; Repo: .cursor/skills/pricing-setup/price-revision-policies.md].
+  [Help: ind.qocal_consumer_price_index_and_price_uplifts] [Repo: .cursor/skills/pricing-setup/price-revision-policies.md].
 - Advanced filters can only use fields that are columns, from the line or one relationship away
   [Help: ind.qocal_filter_line_items_with_standard_and_advanced_filters].
 
@@ -249,8 +249,8 @@ group fields are selectable Display Columns and a custom field needs a context m
    insert-only addition: it applied in place [Measured: 2026-11-26, 264.12, ent-sb0 harness build]. A describe diff confirmed the mapping [Measured: 2026-11-26, 264.12, ent-sb0 harness build].
    Modifying or deleting an existing mapping needs the version deactivated first.
 3. In Lightning App Builder (or the page template) add `[Quote Line Group] <Field Label>` to Display Columns
-   (template value syntax `QuoteLineItem.QuoteLineGroup.<Field>[QuoteLineGroup]`, section 1). Without the context
-   mapping the field is not persisted or read [Help: ind.qocal_select_fields_for_the_line_editor].
+   (template value syntax `QuoteLineItem.QuoteLineGroup.<Field>[QuoteLineGroup]`, section 1). Without it,
+   edits to the field in the editor aren't saved [Help: ind.qocal_select_fields_for_the_line_editor].
 4. Open a quote that has groups. Group-level custom columns show only when groups exist.
 
 Measured result of this recipe, text and picklist group fields:
