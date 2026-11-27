@@ -24,7 +24,7 @@ roadblock table).
 
 | Org capability | Working runtime path | Perm needed |
 |----------------|----------------------|-------------|
-| **Org that gates SESSION** | **Apex `Context.IndustriesContext`** (scripted / debugging) **or one Flow** chaining the invocable actions (no-code). Whole lifecycle in **one request/transaction.** | just GA **`IndustriesContext`** |
+| **Org that gates SESSION, Instance Reuse off** | **Apex `Context.IndustriesContext`** (scripted / debugging) **or one Flow** chaining the invocable actions (no-code). Whole lifecycle in **one request/transaction.** | just GA **`IndustriesContext`** |
 | SESSION-scope pilot (`SessionScopeContext` via `ContextServicePilot`) and/or "Runtime Context Instance Reuse" (`ContextReuse`) | The REST scripts / multi-call REST — `contextId` survives across calls | pilot / reuse setting |
 
 **With SESSION scope (measured on a `ContextServicePilot` org, 262 / v67.0), the REST path
@@ -308,7 +308,7 @@ JSON array; a stringified array → `INVALID_ARGUMENT_TYPE "expected String[]"`.
 
 `Context.IndustriesContext` does build + query **in one Apex transaction** (same
 app server), so the `contextId` survives and the query methods are reachable
-without the REST pilot gate:
+without the REST gate:
 
 See the copy-paste snippet in *Start here* for the full build → query → update →
 persist sequence. Method map on `Context.IndustriesContext`:
@@ -331,7 +331,7 @@ names off the definition (`describe_context.py`, or the node/attribute
 `tags`/`attributeTags[].name`), not the SObject field names.
 
 > **Why the scripts still exist.** The REST runtime scripts are the documented,
-> tool-agnostic contract (and work fully on a pilot-enabled / reuse-enabled org),
+> tool-agnostic contract (and work fully on a SESSION-enabled / reuse-enabled org),
 > but on an org that gates SESSION the **Apex snippet above is the reliable way to validate
 > that a definition actually hydrates** — the debugging/validation purpose these
 > scripts serve, not a production runtime.
@@ -457,10 +457,10 @@ maps to a `ContextPersistenceEvent`). Body (**flat form** — the public doc's
 `persist_context_instance.py` emits the flat form):
 `{"contextId": "…", "targetMappingId": "11j…"}`.
 
-Unlike `query-record`/`query-tags`, **`persist-records` is NOT pilot-gated** — a
+Unlike `query-record`/`query-tags`, **`persist-records` is NOT gated** — a
 live POST parses the body and reaches contextId validation (400 `RECORD_NOT_FOUND`
 on a dead id, rather than `API_DISABLED_FOR_ORG`). The endpoint is implemented and
-GA. But it's bounded by the **REQUEST-scoped** `contextId`, and
+GA. But it's bounded by the **REQUEST-scoped** `contextId`.
 **At REQUEST scope `context_session.py --persist` does not survive this** — despite being "one
 process," each step shells out to a *separate* `sf api request`, so a
 REQUEST-scoped contextId minted by create is already `RECORD_NOT_FOUND` by the
@@ -469,7 +469,7 @@ SESSION for those steps; persist under SESSION was not re-run [Open: not re-run 
 that works where SESSION is gated is the Apex bridge:** `Context.IndustriesContext` doing
 build → (`updateContextAttributes`) → `persistContext` in **one Apex transaction**
 (`sf apex run --file`), which returns the `referenceId`. The REST `persist-records`
-call works only when the instance survives — i.e. with **SESSION scope** (pilot)
+call works only when the instance survives — i.e. with **SESSION scope**
 or within a single request.
 
 > **⚠ Persist is ASYNCHRONOUS — a `referenceId` is NOT proof the writeback
@@ -631,9 +631,8 @@ scratch org with an active definition (e.g. `RLM_SalesTransactionContext`):
    `businessObjectType` is the **mapped SObject name** (e.g. `Quote`), which the
    builder emits.
 2. `context_session.py … --data-file records.json --query` — on an
-   org that allows SESSION this returns a `contextId` and the hydrated values. Where SESSION is gated (measured on 262) expect `API_DISABLED_FOR_ORG` on the query (see "The REST endpoints
-   resolve" above) and/or a not-found `contextId` between calls; fall back to the
-   Apex path to validate hydration.
+   org that allows SESSION this returns a `contextId` and the hydrated values. Where SESSION is gated (measured on 262) the create returns `API_DISABLED_FOR_ORG` (Session Scope); with `--context-scope REQUEST` the query fails `RECORD_NOT_FOUND` instead. Fall back to the Apex path to validate hydration (see "The REST endpoints
+   resolve" above).
 3. Add `--persist --target-mapping-name <mapping>` → the script polls
    `AsyncOperationTracker` by the returned `referenceId` (== the tracker `Id`) and
    reports `persist outcome: OK/FAILED`, exiting non-zero on a confirmed failure.
@@ -641,7 +640,7 @@ scratch org with an active definition (e.g. `RLM_SalesTransactionContext`):
    caveat). A **no-op** persist (id-only hydrate → persist unchanged) reports OK
    with `savedNodes={}`; a **dirty** persist through `QuoteEntitiesMapping`
    (`--update-attr <parentId>.<qliId> Quantity N`) reports FAILED with populated
-   `errorNodes`. Also pilot/reuse-gated (SESSION scope for the REST path).
+   `errorNodes`. Needs SESSION scope or Instance Reuse (SESSION may be gated on some orgs).
 4. `list_context_interfaces.py` → lists interfaces; `--interface <name>` → one.
    (Not gated — a plain Connect GET.)
 5. **Apex validation (the reliable path where SESSION is gated):** run the

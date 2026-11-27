@@ -170,7 +170,7 @@ expression-set steps that consume it. This skill is consumable by any AI agent
 | Make one granular in-place edit to an existing definition (flip `isTransient`, re-point the default mapping, add/remove a tag, bind an attribute to a field) | `python scripts/context_service/definition/mutate_context.py --target-org <sf_alias> --developer-name <name> --set-transient <Node.Attr> <bool> \| --set-default-mapping <name> \| --add-tag <Node.Attr> <tag__c> \| --add-mapping <Node.Attr> <mapping> <sObjectField> \| --remove-tag <tag>` — previews unless `--confirm`; modifies/deletes need `--deactivate-first --reactivate` (the pure inserts `--add-tag` / `--add-mapping` run on an active version). `--add-mapping` is the sibling-safe way to bind one attribute — the only clean way to add a **root**-node binding (whole-body PATCH can't express it) |
 | Upgrade after a release (Sync) | `authoring-and-lifecycle.md` → upgrade/Sync (`upgradeMode` Sync/Preview/Override) |
 | Build the runtime **hydration payload** (the `data` object) for a definition | `python scripts/context_service/instance/build_hydration_data.py --target-org <sf_alias> --developer-name <name> [--mapping-name NAME] [--node NAME] --out records.json` — read-only skeleton; fill in ids (values optional, id-only hydrates from the org). Add `--from-record <id> [--node NAME]` for a ready-to-run **id-only** payload (parent + children hydrate server-side). `businessObjectType` is the **mapped SObject** name, resolved from the chosen mapping (default mapping unless `--mapping-name`) |
-| Run the full **runtime** lifecycle (hydrate → query → persist) end-to-end | `python scripts/context_service/instance/context_session.py --target-org <sf_alias> --developer-name <name> --data-file records.json --query [--persist --target-mapping-name <m>]` — the script sequences the steps, each a separate `sf api request`, and selects SESSION scope when any of `--query`, `--persist`, `--update-attr`, `--write-tag`, `--keep` is given (a reused `--context-id` also works). SESSION is gated by `SessionScopeContext`, shipped with `ContextServicePilot`, on some orgs; otherwise use Apex (rule 10). See `runtime-and-persistence.md` |
+| Run the full **runtime** lifecycle (hydrate → query → persist) end-to-end | `python scripts/context_service/instance/context_session.py --target-org <sf_alias> --developer-name <name> --data-file records.json --query [--persist --target-mapping-name <m>]` — the script sequences the steps, each a separate `sf api request`, and selects SESSION scope when any of `--query`, `--persist`, `--update-attr`, `--write-tag`, `--keep` is given (a reused `--context-id` also works). SESSION is gated by `SessionScopeContext`, shipped with `ContextServicePilot`, on some orgs; where it is gated, use Apex (rule 10). See `runtime-and-persistence.md` |
 | Create / query / persist / delete a runtime instance **individually** (reuse-on org or debugging) | `create_context_instance.py` (`--id-only`) → `query_context_instance.py --context-id <id>` → `persist_context_instance.py --context-id <id> --target-mapping-id <11j…>` → `delete_context_instance.py --context-id <id>` |
 | Read hydrated attribute values by **tag** at runtime | `python scripts/context_service/instance/query_context_instance.py --target-org <sf_alias> --context-id <id> --tags <TAG …> [--leaner]` |
 | Clear a definition's cached **runtime schema** (force re-read after a mapping change) | `python scripts/context_service/instance/delete_context_instance.py --target-org <sf_alias> --clear-schema-cache --developer-name <name>` |
@@ -195,7 +195,7 @@ generated list; all in group *Revenue Lifecycle Management*):
 Helper scripts (`scripts/context_service/`, split into `definition/` design-time and
 `instance/` runtime subpackages — the first block below is offline/read-only, the
 second **mutates/destroys** (live-proven, for one-off exploration & updates), and
-the third is the **runtime instance** lifecycle (verify-live, pilot caveats); see
+the third is the **runtime instance** lifecycle (verify-live, gate caveats); see
 the directory `README.md` and `runtime-and-persistence.md`):
 
 | Script | Org? | Purpose |
@@ -215,7 +215,7 @@ Runtime instance scripts (`scripts/context_service/instance/` — verify-live, p
 caveats; `context_session.py` sequences the lifecycle from one Python process, but
 a runtime `contextId` is request-scoped; its steps are separate calls, so it selects SESSION
 scope when a later step is requested (the standalone scripts need `--context-scope SESSION` or a reused `--context-id`), and
-SESSION scope may be gated on some orgs (`SessionScopeContext`, shipped with `ContextServicePilot`; Instance Reuse is a separate setting), else use Apex (rule 10).
+SESSION scope may be gated on some orgs, else use Apex (rule 10).
 Shared logic in `_runtime.py` / `_resolve.py` / `_runtime_cli.py`):
 
 | Script | Org? | Purpose |

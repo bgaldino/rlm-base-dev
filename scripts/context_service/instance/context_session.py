@@ -158,7 +158,7 @@ def effective_scope(args):
     SESSION whenever a later step is requested (or --keep, which is only useful across calls) and the caller did not choose a scope."""
     if args.context_scope:
         return args.context_scope
-    later = any(getattr(args, d, None) for d in SESSION_TRIGGER_FLAGS)
+    later = any(getattr(args, d) for d in SESSION_TRIGGER_FLAGS)
     return "SESSION" if later else None
 
 

@@ -2,7 +2,7 @@
 
 SFDMU data plan for QuantumBit (QB) rate cards, rate card entries, and tiered rate adjustments. Defines the pricing rates used by the usage rating engine to calculate charges for QB products.
 
-> **Reload-safe (todo 298).** Nothing is deleted: every object matches on its externalId, and a reload into a built org changes nothing. RateCardEntry and RateAdjustmentByTier moved from `Insert` + `deleteOldData` to `Upsert`, and PriceBookRateCard dropped `deleteOldData` (owner-approved, 2026-11-02). RateCardEntry loads in two passes so Status is never sent to an Active entry, and `prepare_rating` no longer runs `delete_qb_rates_data` first.
+> **Reload-safe.** Nothing is deleted: every object matches on its externalId, and a reload into a built org changes nothing. RateCardEntry and RateAdjustmentByTier moved from `Insert` + `deleteOldData` to `Upsert`, and PriceBookRateCard dropped `deleteOldData` (owner-approved, 2026-11-02). RateCardEntry loads in two passes so Status is never sent to an Active entry, and `prepare_rating` no longer runs `delete_qb_rates_data` first.
 
 ## CCI Integration
 
@@ -333,7 +333,7 @@ cci flow run run_qb_extracts --org <org>
 
 To run the idempotency test for this plan: `cci task run test_qb_rates_idempotency --org <org>`. To run all QB idempotency tests: `cci flow run run_qb_idempotency_tests --org <org>`. Tasks are in the **Data Management - Extract** and **Data Management - Idempotency** groups.
 
-**When duplicates exist** (left by a load from before todo 298): run `cci task run delete_qb_rates_data --org <org>` to clear every rates record, then reload. It fails while `AssetRateCardEntry` records reference the entries.
+**When duplicates exist** (left by a load from before the Upsert change): run `cci task run delete_qb_rates_data --org <org>` to clear every rates record, then reload. It fails while `AssetRateCardEntry` records reference the entries.
 
 ### Post-Processing
 
