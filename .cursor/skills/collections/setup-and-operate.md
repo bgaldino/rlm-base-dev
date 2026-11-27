@@ -30,8 +30,8 @@ Each claim carries its own tag.
    Data 360 and Marketing Cloud Growth with consent data; emails can instead be sent directly from
    the Collection Plan record page [Help: ind.billing_collections_dunning_process_setup]. Whether orchestrated dunning can be
    enabled on a fresh build without Marketing Cloud Growth, and what a reminder step produces:
-   [Open: enable it on a disposable org and read the orchestration plan]. Reminder emails also need a
-   verified sending domain [Open: not measured].
+   [Open: enable it on a disposable org and read the orchestration plan]. Whether reminder emails also need a
+   verified sending domain: [Open: not measured].
 
 ## Operate
 

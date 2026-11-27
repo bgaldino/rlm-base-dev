@@ -70,7 +70,7 @@ excluding them.
 - A Minimum Access persona still reads `CurrencyType`; with the specialist set and
   `RLM_CollectionsDashboard` it also read `Contact.Name` and `DatedConversionRate` in USER_MODE with
   no extra grant [Measured: 2026-11-26, 264, scratch, Login As].
-- Headless checks: run USER_MODE Apex as the persona, not as the admin an admin read
+- Headless checks: run USER_MODE Apex as the persona, not as the admin: an admin read
   proves nothing about a persona's grants.
 
 ## Where the cards and page are hosted

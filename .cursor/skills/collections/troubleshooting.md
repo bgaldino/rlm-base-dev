@@ -29,7 +29,7 @@ Read this when something collections-related is empty, zero, refused or missing.
 | Case Metrics not on any page | Its only target is the home page, which does not include it [Measured: 2026-11-26, 264, scratch, all 82 FlexiPages retrieved] | Add it to a home page |
 | Dashboard tab named but missing | `post_billing_ui` not deployed before `assemble_and_deploy_ux` [Repo: unpackaged/post_billing_ui/README.md] | Deploy the bundle first |
 | An invoice PDF is blank for a persona | Missing Product2, UnitOfMeasure and Account address reads [Open: not measured for collections personas] | `document-generation` and `billing-operations` |
-| Dunning emails do not send | The campaign email path needs Marketing Cloud Growth and Data 360 [Help: ind.billing_collections_dunning_process_setup] | Whether a verified sending domain is also needed [Open: not measured] |
+| Dunning emails do not send | The campaign email path needs Marketing Cloud Growth and Data 360 [Help: ind.billing_collections_dunning_process_setup] | Set up Data 360 and Marketing Cloud Growth, or send from the Collection Plan record page [Help: ind.billing_collections_dunning_process_setup] |
 | Any "Open" item above | Not yet measured | Measure it, then tag |
 
 A collections symptom with none of these: describe the object as the user, check sharing, then
