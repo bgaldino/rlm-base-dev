@@ -12,8 +12,8 @@ and persisting them back to the mapped SObjects.
 > the public **Runtime Context Instance Management** and **Persistence Context
 > Management** REST references and cross-checked against live-org behavior. The
 > runtime REST endpoints are all implemented and resolve, but
-> the create `contextId` is **REQUEST-scoped by default** and does not survive
-> across separate `sf api request` calls, and `query-record`/`query-tags` are
+> the create `contextId` is **REQUEST-scoped by default** (`context_session.py` selects SESSION when a later step is requested) and does not survive
+> across separate `sf api request` calls at REQUEST scope, and `query-record`/`query-tags` are
 > **pilot-gated**. On a normal org, drive the whole lifecycle from one Apex
 > transaction or one Flow. Re-verify edge behavior on the target release at merge.
 
@@ -169,8 +169,8 @@ DELETE /connect/contexts/{contextId}     evict the instance
 `context_session.py` sequences this whole flow from **one Python process** (see
 below); the individual scripts each do one step. Note "one process" is not the
 same as "one request": each step is still a separate `sf api request`, so a
-REQUEST-scoped `contextId` will not survive from create to query/persist — see the
-next section.
+REQUEST-scoped `contextId` will not survive from create to query/persist; the
+script selects SESSION when a later step is requested — see the next section.
 
 ## `contextId` is request-scoped — the fact that shapes everything
 
@@ -211,9 +211,10 @@ Consequences:
   needs **SESSION scope** (pilot) and/or the RLM setting **"Runtime Context
   Instance Reuse to Improve Response Times"** (id **`ContextReuse`**, under Revenue
   Lifecycle Management Setup), within `contextTtl`.
-- `context_session.py` is the reuse/pilot entry point, but even it can't keep a
-  REQUEST contextId alive across its own steps (each shells out to a separate
-  `sf api request`) — use Apex or a Flow for the whole lifecycle in one request.
+- `context_session.py` is the reuse entry point: it can't keep a REQUEST contextId
+  alive across its own steps (each shells out to a separate `sf api request`), so it
+  selects SESSION when a later step is requested. For the whole lifecycle in one
+  request use Apex or a Flow.
 - The standalone `create/query/persist/delete` scripts accept `--context-id` for
   the reuse-enabled or step-by-step-debugging case (each prints a one-line stderr
   scope warning). A *not-found* means the instance expired between calls.
@@ -464,10 +465,11 @@ Unlike `query-record`/`query-tags`, **`persist-records` is NOT pilot-gated** —
 live POST parses the body and reaches contextId validation (400 `RECORD_NOT_FOUND`
 on a dead id, rather than `API_DISABLED_FOR_ORG`). The endpoint is implemented and
 GA. But it's bounded by the **REQUEST-scoped** `contextId`, and
-**`context_session.py --persist` does NOT survive this** — despite being "one
-process," each step shells out to a *separate* `sf api request`, so the
+**At REQUEST scope `context_session.py --persist` does not survive this** — despite being "one
+process," each step shells out to a *separate* `sf api request`, so a
 REQUEST-scoped contextId minted by create is already `RECORD_NOT_FOUND` by the
-persist call (and `--update-attr` PATCH hits the same wall). **The persist path
+persist call (and `--update-attr` PATCH hits the same wall). The script selects
+SESSION for those steps; persist under SESSION was not re-run [Open: not re-run on 264]. **The persist path
 that works on a normal org is the Apex bridge:** `Context.IndustriesContext` doing
 build → (`updateContextAttributes`) → `persistContext` in **one Apex transaction**
 (`sf apex run --file`), which returns the `referenceId`. The REST `persist-records`

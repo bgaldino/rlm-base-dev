@@ -12,8 +12,7 @@ and demos, POCs and testing. A user without Modify All Data and View All Data is
 anything is read, with a message that nothing was changed [Repo: unpackaged/post_utils/classes/RLM_AccountUtilities.cls].
 [Measured: 2026-11-26, 264, scratch, one org] An admin lacking Customize Application completes the
 reset, but the decision-table refresh that follows a reset is not queued for that user.
-The sales-rep persona does not carry `RLM_UtilitiesPermset` [Open: the change was in an unmerged
-branch when written; confirm on main before relying on it].
+The sales-rep persona does not carry `RLM_UtilitiesPermset` [Repo: cumulusci.yml]; the permission set is assigned to the running admin [Repo: unpackaged/post_utils/README.md].
 
 ## What blocks a delete
 

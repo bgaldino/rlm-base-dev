@@ -33,7 +33,7 @@ sharing` Apex class, as the Manager is, and queued from a `without sharing` one.
 contract-activation (record-triggered) and order-activation (Platform Event) flows set no run
 mode, and both refreshed for that user. Activating a contract
 (`RLM_Contract_Activation_Refresh_Pricing_Tables`) refreshed its three tables within 13 seconds;
-the order-activation flow took about four minutes (above). Inferred: a Default-mode flow takes
+the order-activation flow took about four minutes (see *The order-activation flow*, below). Inferred: a Default-mode flow takes
 its caller's context, and record-triggered and Platform Event flows run in system context without
 sharing, which would explain both activation flows. Inferred: the check is skipped for any
 running user in system context without sharing, so anyone who can start or trigger such a flow,
@@ -105,9 +105,9 @@ for a sales rep [Measured: 2026-11-18, 264, scratch, one org]. When the sales re
 Modify All Data or Customize Application, activated an order with the refresh queue empty,
 every table the flow names refreshed within about four minutes (*Asset Action Source Entries
 V2* moved `LastIncrementalSyncDate`, the other 13 `LastSyncDate`) [Measured: 2026-11-18, 264,
-scratch, one org], so the admin check below didn't stop this flow. Inferred: although it runs as
+scratch, one org], so the admin check above didn't stop this flow. Inferred: although it runs as
 the activating user, it runs in system context without sharing (*In a flow, run mode decides…*,
-below).
+above).
 *Asset Action Source Entries V2* still read Stale six minutes after one activation and an
 amendment priced in that window was wrong [Measured: 2026-11-16, 264, scratch]: refresh once
 (*Refreshing*), then poll until Fresh and don't re-trigger before the next change

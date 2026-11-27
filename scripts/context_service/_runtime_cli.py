@@ -23,12 +23,11 @@ from ._resolve import fetch_detail, resolve_definition_id, resolve_mapping
 # One-line note printed by the standalone (non-session) scripts. A runtime
 # contextId is a request-scoped cache handle. Each of these CLIs is its own `sf`
 # invocation, so a contextId minted by one does NOT reach the next unless the
-# instance was created SESSION-scoped (pilot) with Instance-Reuse on and within
-# contextTtl. ``context_session.py`` does not fix this on its own — it, too,
-# shells each lifecycle step through a separate `sf api request`, so a
-# REQUEST-scoped (default) contextId expires there exactly as it does here. The
-# GA one-request path is Apex (``Context.IndustriesContext``) or a single Flow;
-# the SESSION/reuse path is the pilot-gated cross-call option.
+# instance was created SESSION-scoped (some orgs gate it) and within
+# contextTtl. ``context_session.py`` shells each lifecycle step through a
+# separate `sf api request`, so it selects SESSION when a later step is requested;
+# the standalone scripts default to REQUEST. The GA one-request path is Apex
+# (``Context.IndustriesContext``) or a single Flow.
 CONTEXT_ID_SCOPE_NOTE = (
     "Note: a runtime contextId is request-scoped and does NOT survive across "
     "separate CLI invocations by default. context_session.py creates a "

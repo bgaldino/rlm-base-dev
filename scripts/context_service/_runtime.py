@@ -21,11 +21,11 @@ Transport is the injected ``_apply.Transport`` adapter (or any object exposing
 
 **Runtime identity.** A ``contextId`` is a request-scoped opaque cache handle
 (UUID/hex), NOT an SObject id — never prefix-validate it. By default (REQUEST
-scope) it does **not** survive across separate ``sf`` invocations, and
-``context_session.py`` does not change that: it, too, shells each lifecycle step
-through its own ``sf api request``. To chain create→use→persist across CLI calls
-you must create the instance with ``--context-scope SESSION`` (pilot-gated;
-requires the org's "Runtime Context Instance Reuse to Improve Response Times"
+scope) it does **not** survive across separate ``sf`` invocations. The
+standalone scripts default to REQUEST; ``context_session.py`` shells each step
+through its own ``sf api request`` and selects SESSION when a later step is
+requested. To chain create→use→persist across CLI calls the instance must be
+created with ``--context-scope SESSION`` (some orgs gate it behind the "Runtime Context Instance Reuse to Improve Response Times"
 setting, within ``contextTtl``) or reuse an existing instance by id. The GA
 one-request path is Apex (``Context.IndustriesContext``) or a single Flow, where
 the whole hydrate→query→persist runs inside one transaction.
@@ -725,11 +725,10 @@ class RuntimeSession:
     """Sequence the runtime lifecycle steps from a single Python process.
 
     Orchestrates create (or reuse) → update → write-tags → query → persist →
-    delete back-to-back and returns a structured summary. Note this is **not** a
-    request-scope workaround: each step is still a separate ``sf api request``, so
-    a REQUEST-scoped (default) ``contextId`` minted by the create step will not be
-    valid for the later steps. To chain the steps across those calls, create with
-    ``--context-scope SESSION`` (pilot-gated) or reuse an existing instance by id;
+    delete back-to-back and returns a structured summary. Each step is a separate
+    ``sf api request``, so a REQUEST-scoped ``contextId`` minted by the create step
+    would not be valid for the later steps. The CLI selects SESSION scope when a
+    later step is requested (some orgs gate it), or reuse an existing instance by id;
     for a true single-request lifecycle, use Apex (``Context.IndustriesContext``)
     or one Flow.
     """

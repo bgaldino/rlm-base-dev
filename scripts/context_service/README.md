@@ -470,8 +470,9 @@ these scripts. What's script-specific:
 
 - **Request-scope → `context_session.py` is the entry point.** A `contextId` is
   request-scoped, so it can't be reused across separate `sf api request` calls
-  unless SESSION scope / the *Runtime Context Instance Reuse* setting is on;
-  `context_session.py` does create→use→persist→delete in one process. The
+  unless SESSION scope (and, on some orgs, the *Runtime Context Instance Reuse* setting) is on;
+  `context_session.py` does create→use→persist→delete in one process and selects
+  SESSION when `--query/--persist/--update-attr/--write-tag` is given. The
   standalone scripts accept `--context-id` (reuse/debugging) and print a scope
   warning. **On a normal GA org, validate hydration via Apex** (`runtime-and-persistence.md`
   → *Start here*) — the stateless REST scripts can't complete the lifecycle.

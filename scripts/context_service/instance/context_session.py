@@ -11,11 +11,11 @@ It sequences the lifecycle from one Python process:
       → persist-records    (--persist)
       → delete/evict        (unless --keep or reusing --context-id)
 
-⚠️  This does **not** work around contextId scoping. Each step above is a
+⚠️  Scoping: each step above is a
 separate ``sf api request``, so a runtime ``contextId`` created with the default
 REQUEST scope will not survive to the query/persist steps. To chain create →
 use → persist across those calls the instance must be SESSION-scoped: this
-script now defaults to SESSION whenever --query, --persist, --update-attr or
+script defaults to SESSION whenever --query, --persist, --update-attr or
 --write-tag is given (some orgs gate SESSION behind the "Runtime Context Instance
 Reuse" setting, within contextTtl), or reuse an existing instance via ``--context-id``. For a GA
 single-request lifecycle, drive it from Apex (``Context.IndustriesContext``) or a
