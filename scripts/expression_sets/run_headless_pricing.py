@@ -114,14 +114,20 @@ def build_pricing_data(request: Dict[str, Any], *, pricebook: Optional[str],
     return {"SalesTransaction": header}
 
 
-def resolve_context_ids(transport: Transport) -> "tuple[str, str]":
-    """The sales transaction context definition id and its QuoteEntitiesMapping id."""
-    rows = transport.soql(
-        "SELECT Id FROM ContextDefinition WHERE DeveloperName = "
-        f"'{soql_literal(CONTEXT_DEFINITION)}'")
-    cd = rows[0].get("Id") if rows else None
+def resolve_context_ids(transport: Transport, definition_id: Optional[str] = None,
+                        mapping_id: Optional[str] = None) -> "tuple[str, str]":
+    """The sales transaction context definition id and its QuoteEntitiesMapping id.
+    An id passed in is kept; only the missing one is looked up."""
+    cd = definition_id
     if not cd:
-        raise ExpressionSetClientError(f"No ContextDefinition {CONTEXT_DEFINITION}.")
+        rows = transport.soql(
+            "SELECT Id FROM ContextDefinition WHERE DeveloperName = "
+            f"'{soql_literal(CONTEXT_DEFINITION)}'")
+        cd = rows[0].get("Id") if rows else None
+        if not cd:
+            raise ExpressionSetClientError(f"No ContextDefinition {CONTEXT_DEFINITION}.")
+    if mapping_id:
+        return cd, mapping_id
     maps = transport.soql(
         "SELECT Id, Title FROM ContextMapping WHERE ContextDefinitionVersion."
         f"ContextDefinitionId = '{soql_literal(cd)}'")
@@ -205,8 +211,9 @@ def main(argv=None) -> int:
     p.add_argument("--currency", default="USD", help="CurrencyIsoCode (default USD).")
     p.add_argument("--start-date", default=date.today().isoformat(),
                    help="Default line StartDate (default: today, local date; use the org's date if it differs).")
-    p.add_argument("--context-definition-id")
-    p.add_argument("--context-mapping-id")
+    p.add_argument("--context-definition-id", help="Use this context definition (default: looked up).")
+    p.add_argument("--context-mapping-id", help="Use this context mapping (default: the definition's "
+                   "QuoteEntitiesMapping).")
     p.add_argument("--api-version", default=DEFAULT_API_VERSION)
     p.add_argument("--print-request", action="store_true",
                    help="Print the action body and stop (no call).")
@@ -226,10 +233,7 @@ def main(argv=None) -> int:
         return 2
     t = Transport(args.target_org, args.api_version)
     try:
-        if args.context_definition_id and args.context_mapping_id:
-            cd, cm = args.context_definition_id, args.context_mapping_id
-        else:
-            cd, cm = resolve_context_ids(t)
+        cd, cm = resolve_context_ids(t, args.context_definition_id, args.context_mapping_id)
         body = build_action_body(args.procedure, cd, cm, data)
         if args.print_request:
             print(json.dumps(body, indent=2))

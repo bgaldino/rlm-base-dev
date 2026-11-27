@@ -3216,7 +3216,7 @@ def test_headless_response_failures():
         req = Path(td) / "r.json"
         req.write_text(json.dumps({"lines": [{"Product": "p"}]}))
         undo = _patch_cli(hp, Transport=_T,
-                          resolve_context_ids=lambda t: ("cd", "cm"))
+                          resolve_context_ids=lambda t, *ids: ("cd", "cm"))
         try:
             for extra in ([], ["--json"]):
                 with contextlib.redirect_stdout(io.StringIO()):
@@ -3230,6 +3230,32 @@ def test_headless_response_failures():
             check("a clean run exits 0", rc == 0, rc)
         finally:
             undo()
+
+
+def test_headless_context_id_overrides():
+    """Each explicit context id is kept; only the missing one is looked up."""
+    print("test_headless_context_id_overrides")
+    import scripts.expression_sets.run_headless_pricing as hp
+
+    class _T:
+        def __init__(self):
+            self.queries = []
+
+        def soql(self, q):
+            self.queries.append(q)
+            if "FROM ContextDefinition " in q:
+                return [{"Id": "cdFound"}]
+            return [{"Id": "cmFound", "Title": "QuoteEntitiesMapping"}]
+    t = _T()
+    check("both given: no lookup",
+          hp.resolve_context_ids(t, "cd1", "cm1") == ("cd1", "cm1") and not t.queries)
+    check("mapping given: definition looked up, mapping kept",
+          hp.resolve_context_ids(_T(), None, "cm1") == ("cdFound", "cm1"))
+    t = _T()
+    check("definition given: its mapping looked up",
+          hp.resolve_context_ids(t, "cd1") == ("cd1", "cmFound")
+          and "'cd1'" in t.queries[-1] and len(t.queries) == 1)
+    check("neither given: both looked up", hp.resolve_context_ids(_T()) == ("cdFound", "cmFound"))
 
 
 def test_overlay_group_emptied_precheck():
@@ -3333,6 +3359,7 @@ def main():
                test_import_guards, test_set_step_formula, test_null_rank_guard,
                test_overlay_multi_version, test_row_lock_retry,
                test_headless_pricing_inputs, test_headless_response_failures,
+               test_headless_context_id_overrides,
                test_overlay_group_emptied_precheck,
                test_preview_log_prefix, test_import_labels_block):
         fn()
