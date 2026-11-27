@@ -1180,9 +1180,7 @@
         "Name": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
           "description": "The ID of the user who owns this record. This field is a polymorphic relationship field.",
-          "type": "picklist",
-          "relationshipName": "Owner",
-          "refersTo": "Group, User"
+          "type": "picklist"
         },
         "OwnerId": {
           "type": "reference",
@@ -1378,9 +1376,7 @@
         "SourceItemIdentifier": {
           "properties": "Create, Filter, Group, Sort, Update",
           "description": "The ID of the source line item. This field is a polymorphic relationship field.",
-          "type": "picklist",
-          "relationshipName": "SourceLineItem",
-          "refersTo": "FulfillmentOrderLineItem, OrderItem"
+          "type": "picklist"
         },
         "SourceLineItemId": {
           "type": "reference",

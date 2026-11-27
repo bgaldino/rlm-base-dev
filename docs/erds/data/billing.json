@@ -265,9 +265,7 @@
         "ErrorMessage": {
           "properties": "Filter, Group, Sort",
           "description": "Required. The ID of the user who made the request that resulted in the creation of the error log. This field is a polymorphic relationship field.",
-          "type": "reference",
-          "relationshipName": "Owner",
-          "refersTo": "Group, User"
+          "type": "reference"
         },
         "PrimaryRecord2Id": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -751,9 +749,7 @@
         "BillingPeriodStartDate": {
           "properties": "Filter, Group, Nillable, Sort",
           "description": "The ID of the parent billing schedule group record that's related to the billing period item. Available in API version 64.0 and later. This field is a relationship field.",
-          "type": "dateTime",
-          "relationshipName": "BillingScheduleGroup",
-          "refersTo": "BillingScheduleGroup"
+          "type": "dateTime"
         },
         "BillingScheduleGroupId": {
           "type": "reference",
@@ -1220,10 +1216,7 @@
         "InvBatchDraftToPostedRunNumber": {
           "properties": "Filter, Group, Sort",
           "description": "Required. The ID of the invoice batch run record associated with the invoice batch draft to posted run record. This field is a relationship field.",
-          "type": "string",
-          "relationshipName": "InvoiceBatchRun",
-          "relationshipType": "Master-detail",
-          "refersTo": "InvoiceBatchRun"
+          "type": "string"
         },
         "InvoiceBatchRunId": {
           "type": "reference",
@@ -5692,9 +5685,7 @@
         "Name": {
           "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
           "description": "The ID of the owner of the general ledger account assignment rule record. This field is a polymorphic relationship field.",
-          "type": "int",
-          "relationshipName": "Owner",
-          "refersTo": "Group, User"
+          "type": "int"
         },
         "Priority": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -6114,10 +6105,7 @@
         "PaymentRunMatchingValue": {
           "properties": "Create, Filter, Group, Sort",
           "description": "Required. The parent payment schedule for the payment schedule item. This field is a relationship field.",
-          "type": "picklist",
-          "relationshipName": "PaymentSchedule",
-          "relationshipType": "Master-detail",
-          "refersTo": "PaymentSchedule"
+          "type": "picklist"
         },
         "PaymentScheduleItemNumber": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",

@@ -129,7 +129,7 @@ WINDOW = 3
 # citation, row, headline or whole file leaving the audit shows up as a smaller
 # number instead of as "all checks passed" — the failure mode the per-site guards
 # above exist to prevent, and the reason `tests/test_branch_scope.py` pins its own.
-EXPECTED_CHECKS = 117
+EXPECTED_CHECKS = 118
 
 ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "erd-data.json")
 CLM_ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "contracts-erd-data.json")
@@ -392,6 +392,13 @@ def main():
     again = copy.deepcopy(erd)
     check("every_reference_field_has_a_relationship_row_and_relinking_adds_zero",
           validator.link_new_objects(again) == 0)
+    # A refersTo on a field the 264 snapshot types as a non-reference is stale doc metadata;
+    # relinking would turn it into a false edge.
+    snap_objects = snap["264"]["objects"]
+    stale = [(n, f) for n, o in erd["objects"].items() for f, x in o["fields"].items()
+             if x.get("refersTo") and f in snap_objects.get(n, {}).get("fields", {})
+             and not snap_objects[n]["fields"][f].get("referenceTo")]
+    check("no_refersTo_on_a_field_the_snapshot_types_as_non_reference", not stale, f"stale: {stale}")
 
     real_describe = validator.describe_sobject
     validator.describe_sobject = lambda org, name: {"name": "PricebookEntry", "fields": []}

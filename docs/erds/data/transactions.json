@@ -3648,9 +3648,6 @@
         "OriginalLineNumber": {
           "properties": "Createable, Filter, Group, Nillable, Sort, Updateable",
           "description": "The number of the original order item detail line. Salesforce uses this information to create a record to amend, renew, or cancel an order. This field is available in API version 64.0 and later.",
-          "relationshipName": "OrderItemDetail",
-          "relationshipType": "Lookup",
-          "refersTo": "LineNumber",
           "type": "picklist"
         },
         "PeriodBoundary": {

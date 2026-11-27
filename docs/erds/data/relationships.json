@@ -200,12 +200,6 @@
     },
     {
       "source": "BillingPeriodItem",
-      "target": "BillingScheduleGroup",
-      "field": "BillingPeriodStartDate",
-      "type": "lookup"
-    },
-    {
-      "source": "BillingPeriodItem",
       "target": "InvoiceBatchRun",
       "field": "InvoiceBatchRunId",
       "type": "lookup"
@@ -4203,12 +4197,6 @@
     {
       "source": "InvBatchDraftToPostedRun",
       "target": "InvoiceBatchRun",
-      "field": "InvBatchDraftToPostedRunNumber",
-      "type": "master-detail"
-    },
-    {
-      "source": "InvBatchDraftToPostedRun",
-      "target": "InvoiceBatchRun",
       "field": "InvoiceBatchRunId",
       "type": "lookup"
     },
@@ -4721,12 +4709,6 @@
       "target": "Account",
       "field": "PaymentAccountId",
       "type": "lookup"
-    },
-    {
-      "source": "PaymentScheduleItem",
-      "target": "PaymentSchedule",
-      "field": "PaymentRunMatchingValue",
-      "type": "master-detail"
     },
     {
       "source": "DisputeItem",
