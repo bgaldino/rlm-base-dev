@@ -12,7 +12,7 @@ Read this to map a collections concept to an object, field or picklist. Parent:
 | Plan item | `CollectionPlanItem` | One invoice on a plan (`InvoiceId`); Help adds up to 10 invoices per run of the Create Collection Plan Items For Invoices flow [Help: ind.billing_collection_plans_and_plan_items_create]. |
 | Reason | `CollectionPlanReason` | The build seeds CPR01 to CPR05 [Repo: scripts/apex/seedCollectionsCaseMatrix.apex]; a fresh build holds 5 and no plans [Measured: 2026-11-27, 264, fresh scratch build, API 68.0]. |
 | Promise to pay | `PaymentSchedule` (Type PromiseToPay) + `PaymentScheduleItem` | Linked to the plan by `ReferenceEntityId`, `UsageType` CollectionPlan [Repo: unpackaged/post_collections/flows/RLM_Create_Promise_to_Pay.flow-meta.xml]. |
-| Dispute | `Case` (and Dispute, a license-gated object) | The repo's collections flow creates a Case [Repo: unpackaged/post_collections_case_flow/flows/RLM_Create_Case_for_Collection.flow-meta.xml]; Dispute Management is a separate Help feature [Help: ind.billing_disputes_overview] [Help: ind.billing_dispute_management_enable]. |
+| Dispute | `Case` (and Dispute, a license-gated object [Help: ind.billing_dispute_management_enable]) | The repo's collections flow creates a Case [Repo: unpackaged/post_collections_case_flow/flows/RLM_Create_Case_for_Collection.flow-meta.xml]; Dispute Management is a separate Help feature [Help: ind.billing_disputes_overview] [Help: ind.billing_dispute_management_enable]. |
 | Follow-up | `Task` (`WhatId` the plan or invoice) | Collector to-dos. |
 | Late fee | `DebitMemo` | Intended output of the late-fee action, which has not been run; see [setup-and-operate.md](setup-and-operate.md). |
 | Write-off | `CreditMemo` (reason code) + invoice write-off fields | Help: a credit memo whose Reason Code you add first updates the invoice's write-off fields, after which no more credits or payments can be applied or unapplied [Help: ind.billing_write_off_invoices_impact]. |
@@ -62,7 +62,10 @@ Read this to map a collections concept to an object, field or picklist. Parent:
   `payments-and-credits.md`); do not mistake those for promises: filter on Type.
 - A user sees schedules only with Payment Operations or Payment Admin
   [Help: ind.billing_collection_plan_payment_promise_collect]; the specialist set reads and writes
-  `PaymentSchedule` and items [Measured: 2026-11-27, 264, fresh scratch build, API 68.0].
+  `PaymentSchedule` and items [Measured: 2026-11-27, 264, fresh scratch build, API 68.0]. That
+  measurement is of object permissions, not of a user's visible rows, so whether the specialist set
+  alone shows a collector another user's promises, or Payment Operations or Payment Admin is also
+  needed, is [Open: as a user with the specialist set alone, query PaymentSchedule for a promise another user created].
 - Promise lifecycle after creation (item states on a settled invoice, batch cancel, reconciling a
   manual payment against a promised one): [Open: not measured; create a promise, post a payment on
   the invoice, run the payment batch and read the items].
@@ -71,10 +74,10 @@ Read this to map a collections concept to an object, field or picklist. Parent:
 
 - `Invoice` is not insertable by DML and `Balance` is not updateable, so Apex tests cannot build
   invoices; use query-shape assertions or an org with billing runs
-  [Measured: 2026-11-26, 264, fresh scratch].
+  [Measured: 2026-11-26, 264, fresh scratch build].
 - `Status` values include Draft, Draft In Progress, Pending, Posting In Progress, Posted, Canceled,
   Error, Void In Progress, Voided, Split In Progress. Count receivables as
-  `Status = 'Posted' AND Balance > 0`. [Measured: 2026-11-26, 264, fresh scratch]
+  `Status = 'Posted' AND Balance > 0`. [Measured: 2026-11-26, 264, fresh scratch build]
 - `DaysInvoiceOverdue` is platform-calculated and was null on all Posted invoices checked (none was
   overdue); its value on an overdue invoice is [Open: age an invoice past due and read it].
 
@@ -83,11 +86,11 @@ Read this to map a collections concept to an object, field or picklist. Parent:
 - Case org-wide default is Private on a fresh build (`DefaultCaseAccess` None), Account is
   Read/Write, CollectionPlan is internal ReadWrite and external Private. A collector sees only
   cases they own or that are shared, so a disputed list is per user by design.
-  [Measured: 2026-11-26, 264, fresh scratch]
+  [Measured: 2026-11-26, 264, fresh scratch build]
 - USER_MODE cannot tell an absent record from an unshared one: a plan hidden by sharing reads as
-  "no plan". [Measured: 2026-11-26, 264, fresh scratch]
+  "no plan". [Measured: 2026-11-26, 264, fresh scratch build]
 - Account sharing hides names, not rows: `Invoice`, `BillingScheduleGroup` and `BillingArrangement`
-  stay visible when Account is Private, and a USER_MODE Account read simply omits the hidden id.
-  [Measured: 2026-11-27, 264, scratch, Login As persona with Account read and no View All]
+  stay visible when Account is Private, and a USER_MODE Account read simply omits the hidden id. Checked as a Login As persona with Account read and no View All.
+  [Measured: 2026-11-27, 264, fresh scratch build]
 - Whether describe hides license-gated Dispute fields from a user without the Billing license, so
   that user sees a real-looking 0: [Open: describe Dispute as a user without the license].

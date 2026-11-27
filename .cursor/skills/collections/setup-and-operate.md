@@ -31,7 +31,7 @@ Each claim carries its own tag.
    the Collection Plan record page [Help: ind.billing_collections_dunning_process_setup]. Whether orchestrated dunning can be
    enabled on a fresh build without Marketing Cloud Growth, and what a reminder step produces:
    [Open: enable it on a disposable org and read the orchestration plan]. Whether reminder emails also need a
-   verified sending domain: [Open: not measured].
+   verified sending domain: [Open: send a dunning reminder from a disposable org and read the delivery result].
 
 ## Operate
 
@@ -64,15 +64,16 @@ unpackaged/post_collections/flows/RLM_Create_Late_Fee.flow-meta.xml]. A REST cre
 InvoiceGenerationStatus [Measured: 2026-11-27, 264, fresh scratch build, API 68.0]. The flow itself
 was not run, since screen flows have no headless route: [Open: run the quick action in the UI as a
 specialist and read the DebitMemo]. The late-fee action was reported reverted and hidden in 264
-[Open: reported in field work, not measured].
+[Open: read the quick action's metadata and visibility on a fresh 264 build].
 
 **Write off.** `Invoice.RLM_Write_Off_Invoice` launches `RLM_WriteOffInvoices`, which calls the
 `writeOffInvoices` action with a reason code and the reason "Bad Debt" [Repo:
 unpackaged/post_collections/flows/RLM_WriteOffInvoices.flow-meta.xml]. The API is
 `POST /services/data/v68.0/commerce/invoicing/invoices/actions/write-off` with
 `{"invoices":[{"invoiceId","reasonCode","reason"}]}` [Measured: 2026-11-27, 264, fresh scratch build,
-API 68.0]. The dev-guide example field `description` is rejected (JSON_PARSER_ERROR, "Unrecognized
-field"); the field is `reason`. With reason code "Bad Debt" the call returned INVALID_API_INPUT
+API 68.0]. The dev-guide example sends `description` [Dev guide: connect-resources-write-off-invoices];
+the call rejects it (JSON_PARSER_ERROR, "Unrecognized field") and the field is `reason`
+[Measured: 2026-11-27, 264, fresh scratch build, API 68.0]. With reason code "Bad Debt" the call returned INVALID_API_INPUT
 because the picklists are empty. The successful write-off and its effect on invoice balance and
 write-off fields: [Open: add the reason value (Setup step 4), re-run, read the invoice]. After a
 write-off no further credits or payments can be applied or unapplied
@@ -85,7 +86,7 @@ update bill-to contact, extend due date, incorrect invoice charge and other inqu
 Resolve Case quick action [Help: ind.billing_disputes_overview,
 ind.billing_dispute_management_enable]. The repo's Case-based collections flow and matrix:
 [repo-collections-tier.md](repo-collections-tier.md). Chargebacks and card disputes:
-[Open: not measured].
+[Open: record a card chargeback against a payment and read the payment and invoice].
 
 **Retries and reminders.** Payment retries on collection-plan items and the Send Reminder button:
 the repo removed the no-op button; [Open: a working Send Reminder is not built].
@@ -101,7 +102,7 @@ needs a UI run to count as measured.
 1. Build with `collections` on; add Status values and memo Reason Code values (Setup steps 3 and 4).
 2. Create and post two invoices for one account (`txn-data-harness`); they are the receivables.
 3. As the specialist, create a plan and add both invoices; read `TotalInvoiceBalance`.
-4. Enter `DaysPastDue` and `Duedate`; set Status Active.
+4. Enter `DaysPastDue` and `Duedate`; set a Status value you added.
 5. Record a promise on one invoice; apply the payment (`billing-operations`); read the items.
 6. Write the other invoice off; read its write-off fields and balance.
 7. Close the plan; read `IsClosed`.

@@ -104,10 +104,11 @@ open [Help: ind.billing_setup_credit_memos_payments_application_rules]:
 **Settings code.** The value is stored coded: the build deploys `ruleBasedCrAndPymtAppln` =
 `{"first":"Payments","rules":["EA","OI","HI"]}` (the metadata has no separate enable element)
 [Repo: unpackaged/post_billing_id_settings/settings/Billing.settings-meta.xml]
-[Repo: scripts/txn_data_harness/docs/contracts-billing-settlement.md]. EA is Match Balance and OI
-is Prioritize Oldest Invoices, both seen in the response's `appliedRules`
-[Measured: 2026-11-26, 264, scratch org, Line Level, API 68.0]; HI is Prioritize Highest Balance Invoices
-[inferred: from the codes and their order; no call reported a third rule]. The code for Match ID was
+[Repo: scripts/txn_data_harness/docs/contracts-billing-settlement.md]. The response's `appliedRules`
+named Match Balance and Prioritize Oldest Invoices
+[Measured: 2026-11-26, 264, scratch org, Line Level, API 68.0]. That EA is Match Balance and OI is
+Prioritize Oldest Invoices [inferred: from the codes and their order; the response carries names, not codes],
+and HI is Prioritize Highest Balance Invoices [inferred: from the codes and their order; no call reported a third rule]. The code for Match ID was
 not seen. Endpoint behavior:
 *Measured: rule-based application* below.
 
@@ -206,9 +207,10 @@ The harness wraps this as `cli unapply` (`txn-data-harness`).
   `appliedRules` Match Balance alone. An unmatched payment reported Match Balance then Prioritize
   Oldest Invoices. [Measured: 2026-11-26, 264, scratch, Line Level, API 68.0]
 - **Candidates.** Without `targetDate` only invoices posted that UTC day were candidates (inferred
-  from calls on one day, not repeated; the dev guide says `targetDate` selects invoices posted on or after it):
+  from calls on one day, not repeated):
   two invoices posted the previous day that matched a payment's balance exactly were skipped, and
   passing their date made them match. [Measured: 2026-11-26, 264, scratch, Line Level, API 68.0]
+  The dev guide says `targetDate` selects invoices posted on or after it [Dev guide: connect-resources-rules-application].
 - **Nothing open** gives `isSuccess` true, `appliedRules` empty and every count 0. **Nothing
   eligible** (an open payment and a `targetDate` after every invoice) gives `isSuccess` false with
   "We couldn't find eligible invoices to apply rules-based credits and payments" under `errors`, no
@@ -291,7 +293,7 @@ Collections, dunning, disputes and the write-off and late-fee operations are in 
   payments can be applied or unapplied. Use the Write-Off API or a flow action
   [Help: ind.billing_write_off_invoices_impact,
   ind.billing_write_off_invoices_invoke_action]. The Reason Code picklists are empty on a fresh
-  build, so the first call fails until you add a value ([collections](../collections/SKILL.md) →
+  build, so the call fails while the picklist is empty ([collections](../collections/SKILL.md) →
   `setup-and-operate.md`).
 - **Invoice aging** components show buckets and overdue counts on Account and Order pages
   [Help: ind.billing_invoice_aging]. The repo ships aging, dispute and collections

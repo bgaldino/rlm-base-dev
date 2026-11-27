@@ -272,7 +272,7 @@ skill does not cover them yet.
 - A later read-only query of the same org also returned two schedules created after the run
   (BS-000000004 and -005) still `PendingForecast` with null `LastForecastRunTargetDate`, and
   `ForecastBatchRunId` null even on the three `Forecasted` schedules, which differs from
-  the dev guide's description of that field as the forecast run reference.
+  the dev guide's description of that field as the forecast run reference [Dev guide: sforce_api_objects_billingschedule].
 - Not measured: multi-period or ramped schedules, amended or canceled schedules, run
   duration beyond "under a minute", the UI path, the Console, and a non-admin user.
 

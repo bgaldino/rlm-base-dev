@@ -26,7 +26,7 @@ Expected on a fresh build: 0 plans, 5 reasons, no active version of
 - After a promise: one schedule of Type PromiseToPay, 1 to 3 items from the flow, `PromiseToPayCount`
   incremented, and the sum of requested amounts at most the invoice balance.
 - After a write-off: the invoice's write-off fields set and a credit memo with the reason code
-  [Open: not measured] (see [setup-and-operate.md](setup-and-operate.md)).
+  [Open: complete a write-off per the setup steps and read the credit memo and the invoice] (see [setup-and-operate.md](setup-and-operate.md)).
 - After a payment: balances per `billing-operations` → `verification.md` (`cli verify`).
 
 ## Persona checks
@@ -36,11 +36,11 @@ For each persona (collector, billing operations, bare managed role, read-only):
 1. Login As (the profile must show the app; a Minimum Access profile does not, see
    [permissions-and-personas.md](permissions-and-personas.md)).
 2. Open the Collections account page: the pill reads "In Collections" with the collections set and
-   "Status Unavailable" with only the bare role [Measured: 2026-11-26, 264, scratch, Login As].
+   "Status Unavailable" with only the bare role [Measured: 2026-11-26, 264, fresh scratch build].
 3. Open the dashboard: every section either shows data or says why not; none shows 0 for a section the
    persona cannot read. Debit memos read "not available".
 4. Case Metrics for a user who reads Case but not Dispute: Open Billing Cases a real 0, the dispute
-   figures "Unavailable" [Measured: 2026-11-26, 264, scratch, Login As]. The metric
+   figures "Unavailable" [Measured: 2026-11-26, 264, fresh scratch build]. The metric
    counts only open Cases of Type Billing.
 5. Run the same page as the admin only to compare totals; never as the check.
 
@@ -53,5 +53,5 @@ label excludes what it could not read.
 ## Scale checks
 
 With 505 accounts the picker listed the first 500 with a notice and a working name search
-[Measured: 2026-11-26, 264, scratch, live Chrome]. Larger volumes: [Open: not measured; build 10,000
+[Measured: 2026-11-26, 264, fresh scratch build, live Chrome]. Larger volumes: [Open: not measured; build 10,000
 invoices and confirm "Too many records" appears instead of a limit error].

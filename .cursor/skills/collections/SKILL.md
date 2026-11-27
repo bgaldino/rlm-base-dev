@@ -44,7 +44,7 @@ Anything untagged is a pointer to a sub-file.
    [Measured: 2026-11-27, 264, fresh scratch build, API 68.0]. The closing flow ships Draft
    [Repo: unpackaged/post_collections/flows/RLM_Close_Collection_Plan_and_Associated_Cases.flow-meta.xml].
 3. **Access is not one grant.** The specialist user permission needs the Billing Advanced license
-   [Measured: 2026-11-26, 264, scratch, Login As] and the managed specialist set carries no Case,
+   [Measured: 2026-11-26, 264, fresh scratch build] and the managed specialist set carries no Case,
    Payment, Task or DebitMemo access [Measured: 2026-11-27, 264, fresh scratch build, API 68.0].
    Pick the grants by task in [permissions-and-personas.md](permissions-and-personas.md).
 4. **Unreadable is not zero.** A refused read shows "Unavailable"; a failed read says it failed;
@@ -75,13 +75,13 @@ Anything untagged is a pointer to a sub-file.
 - **DO NOT** read `Case.Description` in bulk or in a for loop for a list view; 200 cases at the
   32,000-character maximum take 6.4 MB ([building-collections-uis.md](building-collections-uis.md)).
 - **DO NOT** treat every "No such column" as a refusal: a single-currency org has no
-  `CurrencyIsoCode` on Invoice or Payment [Measured: 2026-11-26, 264, fresh scratch].
+  `CurrencyIsoCode` on Invoice or Payment [Measured: 2026-11-26, 264, fresh scratch build].
 - **DO NOT** use a filtered `SUM` as a per-currency total in a multi-currency org; it returns the
-  corporate-converted amount [Measured: 2026-11-26, 264, fresh scratch].
+  corporate-converted amount [Measured: 2026-11-26, 264, fresh scratch build].
 - **DO NOT** verify app navigation with a Minimum Access persona
   ([permissions-and-personas.md](permissions-and-personas.md) → Test personas).
 - **DO NOT** use `Invoice.DaysInvoiceOverdue` to order or filter: it was null on Posted invoices
-  [Measured: 2026-11-26, 264, fresh scratch]. Derive from `DueDate`.
+  [Measured: 2026-11-26, 264, fresh scratch build]. Derive from `DueDate`.
 - **DO NOT** edit `unpackaged/post_ux/`; collections pages and apps come from `templates/`.
 - **DO NOT** promise a screen-flow action (late fee, promise to pay) can be driven headlessly;
   no route was found ([setup-and-operate.md](setup-and-operate.md)).

@@ -7,8 +7,7 @@ are the source.
 ## Flag and flow
 
 - The `collections` flag defaults to true; the build always assigns the native
-  `CollectionsAndRecoveryPsl` [Repo: cumulusci.yml]. An older
-  "opt-in" wording may still exist in text; trust the file.
+  `CollectionsAndRecoveryPsl` [Repo: cumulusci.yml].
 - `prepare_collections` runs, in order: `deactivate_collections_case_matrix`,
   `deploy_post_collections`, `seed_collections_case_matrix`, `deploy_collections_case_flow`,
   `assign_permission_sets` (`RLM_CollectionsUI`) [Repo: cumulusci.yml].
@@ -40,7 +39,7 @@ are the source.
 - `RLM_Collections_Account_Record_Page` hosts the balance cards and overrides Account View only
   inside the Collection Console app ([permissions-and-personas.md](permissions-and-personas.md)). `RLM_Collections_Home_Page` does not include
   `rlmBillingCaseMetrics`, whose only target is the home page, so that component sits on no page
-  [Measured: 2026-11-26, 264, scratch, all 82 FlexiPages retrieved].
+  [Repo: unpackaged/post_billing_ui/lwc/rlmBillingCaseMetrics/rlmBillingCaseMetrics.js-meta.xml].
 
 ## Billing UI components (`unpackaged/post_billing_ui/lwc`)
 

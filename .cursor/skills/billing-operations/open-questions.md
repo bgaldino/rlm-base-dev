@@ -25,7 +25,7 @@ then move it into the sub-file for its stage with a `[Measured: ...]` tag.
   activated order. [Open: activate orders that vary one condition at a time]
 - **Invoice email sender.** Reported to be the running user. [Open: run as two users and read the
   sent email]
-- **Outbound hooks for invoice delivery.** [Open: not scoped]
+- **Outbound hooks for invoice delivery.** [Open: list the outbound hooks an org offers for invoice delivery]
 - **Reporting and analytics coverage** of billing objects. [Open: list the report types an org
   offers for Invoice, Payment and CreditMemo]
 
@@ -34,21 +34,21 @@ then move it into the sub-file for its stage with a `[Measured: ...]` tag.
 - **Tax-only credits and `ManualOverride`** on the credit invoice API. [Open: credit an invoice
   for tax only and send the override] [Dev guide: connect-requests-credit-invoice-input]
 - **Credit memo addresses** reported to need tax strategy Calculate, and a change to voiding a
-  zero-amount memo. [Open: not measured]
+  zero-amount memo. [Open: void a zero-amount memo and create a memo with a tax strategy other than Calculate, then read the results]
 - **Card fee as a debit memo** created by a flow on Payment. [Open: build and run the flow]
 - **The late-fee action** reported reverted and hidden in 264; the shipped late-fee flow is covered
   in [collections](../collections/setup-and-operate.md). [Open: check the quick action in a 264 org]
-- **Chargebacks and disputes.** [Open: not measured]
+- **Chargebacks and disputes.** [Open: record a card chargeback against a payment and read the payment and invoice]
 
 ## Payments
 
 - **Payment retries on collection-plan items** and the dunning-email sending domain
-  (see [collections](../collections/setup-and-operate.md)). [Open: not measured]
+  (see [collections](../collections/setup-and-operate.md)). [Open: run a retry on a plan item and send a dunning reminder on a disposable org, then read the results]
 - **Payment method sets, the payment link flow and `PaymentRunMatchingValue` routing.** [Open:
   configure a set and run a payment scheduler] [Dev guide: connect-resources-create-payment-scheduler]
 - **Reconciling a manual payment against a promise to pay**, and what a batch run does to a promise
   item on an already settled invoice (see [collections](../collections/object-model.md)).
-  [Open: not measured]
+  [Open: create a promise, post a manual payment on its invoice, run the payment batch and read the items]
 
 ## Accounting
 
