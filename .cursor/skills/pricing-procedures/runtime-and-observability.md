@@ -275,7 +275,7 @@ harness build]. The response carries each result's `dataPath` as a list, for exa
 `["CTX_Quote_1", "CTX_QuoteLineItem_2"]`.
 
 Pricing adjustment batch data: no retention setting exists, deletes from Apex or Flow hit open
-defects (W-20894282), and Apex that references these objects needs API 63 or later [Open: VOC
+defects, and Apex that references these objects needs API 63 or later [Open: VOC
 desk analysis; no live measure here, as it needs an Apex run against an org with adjustment batch data].
 
 ## Open questions
