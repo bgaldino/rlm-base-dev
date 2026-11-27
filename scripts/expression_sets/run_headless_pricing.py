@@ -171,6 +171,30 @@ def line_results(response: Any) -> List[Dict[str, Any]]:
     return [dict(v, dataPath=k) for k, v in ordered]
 
 
+def response_problems(response: Any) -> List[str]:
+    """Why a response is not a clean pricing run (empty list = clean).
+
+    An action can fail inside an HTTP 200: ``isSuccess`` false, ``errors`` set, or
+    ``pricingProcessErrors`` alongside partial line results. All of these must fail
+    the run, whatever the output format, so a scripted golden-number check cannot
+    pass on a failed or partial price.
+    """
+    item = response[0] if isinstance(response, list) and response else None
+    if not isinstance(item, dict):
+        return ["the action returned no result"]
+    problems: List[str] = []
+    if item.get("isSuccess") is False:
+        problems.append("the action reported isSuccess=false")
+    if item.get("errors"):
+        problems.append(f"action errors: {item['errors']}")
+    perrors = _parse((item.get("outputValues") or {}).get("pricingProcessErrors"))
+    if perrors:
+        problems.append(f"pricingProcessErrors: {perrors}")
+    if not line_results(response):
+        problems.append("no line results")
+    return problems
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="Price lines through one pricing procedure "
                                 "headless (read-only; nothing is saved).")
@@ -214,21 +238,18 @@ def main(argv=None) -> int:
     except ExpressionSetClientError as exc:
         eprint(f"FAILED: {exc}")
         return 1
+    problems = response_problems(response)
     if args.json:
         print(json.dumps(response, indent=2))
-        return 0
-    item = response[0] if isinstance(response, list) and response else {}
-    errors = _parse((item.get("outputValues") or {}).get("pricingProcessErrors"))
-    if errors:
-        eprint(f"pricingProcessErrors: {errors}")
-    rows = line_results(response)
-    if not rows:
-        eprint("No line results; rerun with --json to read the response.")
-        return 1
-    for n, r in enumerate(rows, start=1):
-        cells = "  ".join(f"{k}={r.get(k)}" for k in RESULT_TAGS)
-        print(f"line {n}: {cells}")
-    return 0
+    for msg in problems:
+        eprint(f"FAILED: {msg}")
+    if not args.json:
+        for n, r in enumerate(line_results(response), start=1):
+            cells = "  ".join(f"{k}={r.get(k)}" for k in RESULT_TAGS)
+            print(f"line {n}: {cells}")
+        if problems:
+            eprint("Rerun with --json to read the raw response.")
+    return 1 if problems else 0
 
 
 if __name__ == "__main__":

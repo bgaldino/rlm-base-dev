@@ -3185,6 +3185,53 @@ def test_headless_pricing_inputs():
           err and "EndDate" in err and "Weeks" in err, err)
 
 
+def test_headless_response_failures():
+    """A failed or partial action fails the run (exit 1), with or without --json."""
+    print("test_headless_response_failures")
+    import io
+    import contextlib
+    import scripts.expression_sets.run_headless_pricing as hp
+    line = {"NetUnitPrice": [{"value": 5, "dataPath": ["CTX_Quote_1", "CTX_QuoteLineItem_1"]}]}
+
+    def resp(**item):
+        return [dict({"isSuccess": True, "outputValues": {"pricingResult": line}}, **item)]
+    check("a clean response has no problems", hp.response_problems(resp()) == [])
+    check("isSuccess=false is a problem",
+          bool(hp.response_problems(resp(isSuccess=False))))
+    check("action errors are a problem",
+          bool(hp.response_problems(resp(errors=[{"message": "boom"}]))))
+    check("pricingProcessErrors with partial results is a problem", bool(
+        hp.response_problems([{"isSuccess": True, "outputValues": {
+            "pricingResult": line, "pricingProcessErrors": '["bad line"]'}}])))
+    check("an empty response is a problem", bool(hp.response_problems([])))
+
+    class _T:
+        def __init__(self, *a, **k):
+            pass
+
+        def connect(self, *a, **k):
+            return RESPONSE[0]
+    RESPONSE = [resp(isSuccess=False)]
+    with tempfile.TemporaryDirectory() as td:
+        req = Path(td) / "r.json"
+        req.write_text(json.dumps({"lines": [{"Product": "p"}]}))
+        undo = _patch_cli(hp, Transport=_T,
+                          resolve_context_ids=lambda t: ("cd", "cm"))
+        try:
+            for extra in ([], ["--json"]):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    rc = hp.main(["--target-org", "x", "--procedure", "P",
+                                  "--request", str(req)] + extra)
+                check(f"a failed action exits 1 {extra}", rc == 1, rc)
+            RESPONSE[0] = resp()
+            with contextlib.redirect_stdout(io.StringIO()):
+                rc = hp.main(["--target-org", "x", "--procedure", "P",
+                              "--request", str(req), "--json"])
+            check("a clean run exits 0", rc == 0, rc)
+        finally:
+            undo()
+
+
 def test_overlay_group_emptied_precheck():
     """An overlay may not remove every child of a group unless the group goes too."""
     print("test_overlay_group_emptied_precheck")
@@ -3285,7 +3332,8 @@ def main():
                test_shipped_fixtures, test_client_auth_hint,
                test_import_guards, test_set_step_formula, test_null_rank_guard,
                test_overlay_multi_version, test_row_lock_retry,
-               test_headless_pricing_inputs, test_overlay_group_emptied_precheck,
+               test_headless_pricing_inputs, test_headless_response_failures,
+               test_overlay_group_emptied_precheck,
                test_preview_log_prefix, test_import_labels_block):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed.")
