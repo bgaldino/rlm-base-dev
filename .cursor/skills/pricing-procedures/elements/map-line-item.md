@@ -93,7 +93,7 @@ and raise `sectionCount`. [Help]
 - Price Propagation and Map Line Item cannot coexist in one procedure; core rejects the save. [Core]
 - Mapping count limits: 70 by default, 100 max (`ind.pricing_limits.htm`; table in
   [`../runtime-and-observability.md`](../runtime-and-observability.md) → *Pricing limits*). [Help] Core enforces the org limit at save: (count of `section-N-input1` + `section-N-output` parameters) / 2 must not exceed it, else `The limit of {0} mappings that can be added to the Map Line Item element was reached in the org. Delete some mappings and try again.` [Core]. The org value matches Help: default 70, min 1, max 100, API 256+ [Core].
-- Author `sectionJsonStringN` **unescaped** in Connect payloads. Documented UI path is paste of the JSON. Overlay mechanics: [`expression-sets/SKILL.md`](../../expression-sets/SKILL.md) → *Map Line Item — special case*; unescape provenance: [`expression-set-connect-api-reference.md`](../../../../docs/references/expression-set-connect-api-reference.md) → *Map Line Item to Detail Item*.
+- Author `sectionJsonStringN` **unescaped** in Connect payloads. Documented UI path is paste of the JSON. Overlay mechanics: [`toolkit-quick-start-and-examples.md`](../../expression-sets/toolkit-quick-start-and-examples.md) → *Map Line Item — special case*; unescape provenance: [`expression-set-connect-api-reference.md`](../../../../docs/references/expression-set-connect-api-reference.md) → *Map Line Item to Detail Item*.
 
 ## Metadata shape
 

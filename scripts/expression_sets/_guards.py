@@ -7,7 +7,7 @@ imports this module, so it must import nothing the toolkit's plain Python lacks.
 Two facts drive these guards (todo packs 172 and 175):
 
 * **Which version runs.** An expression set can hold several versions, several of
-  them active at once (``ramp264``: v1, v3 and v4 active; v4 ran). The 264 object
+  them active at once (an upgraded org: v1, v3 and v4 active; v4 ran). The 264 object
   reference for ``ExpressionSetVersion.Rank`` says that when more than one enabled
   version matches and their start/end windows overlap, the version with the
   **highest Rank** is chosen. The rest of :func:`executing_version`'s rule was
@@ -420,7 +420,7 @@ def import_target_refusal(
             f"the import would replace {target.get('ApiName')} "
             f"(v{target.get('VersionNumber')}), rebinding one version's content onto "
             "a different existing version (rejected on a version-name collision after "
-            "partially applying, ramp264). " + alternatives
+            "partially applying). " + alternatives
         )
     label = incoming.get("name") or target.get("Name")
     if not label:

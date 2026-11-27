@@ -21,6 +21,7 @@ The pure payload/graph/overlay logic lives in ``_payload`` / ``_graph`` /
 """
 
 import json
+import os
 import subprocess
 import sys
 from typing import Any, Callable, Dict, List, Optional
@@ -73,6 +74,10 @@ def _extract_error_codes(text: str) -> List[str]:
 def _run_sf(
     args: List[str], *, input_text: Optional[str] = None, timeout: int = _REQUEST_TIMEOUT
 ) -> subprocess.CompletedProcess:
+    # `sf` writes ~/.sf/sf-<date>.log; where that is read-only (an agent sandbox) it
+    # dies with EPERM, which the error text would blame on the alias or auth.
+    env = dict(os.environ)
+    env.setdefault("SF_DISABLE_LOG_FILE", "true")
     try:
         return subprocess.run(
             ["sf", *args],
@@ -80,6 +85,7 @@ def _run_sf(
             text=True,
             input=input_text,
             timeout=timeout,
+            env=env,
         )
     except FileNotFoundError as exc:
         # Name the org this call targeted, so the login command runs as printed;

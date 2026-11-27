@@ -216,5 +216,17 @@ All use `RollUpPrice=false`. Snapshot only. Discover live:
 | `Null Value cannot be aggregated value...` | Null in the aggregated tag, or tag type not Currency/Numeric | Add `isNotNull` Where; use a Currency/Numeric tag [Core] |
 | Parent misses grandchildren | Roll Up reads direct children's aggregated tag | Use the same tag as input and output, or [price-propagation.md](./price-propagation.md) [Core] |
 
+## Stale output when no line matches
+
+An Aggregate Price element with a Where condition writes its output only when at least one line
+matches. With no match it writes nothing, so an output persisted to a custom field keeps its old
+value [Measured: 2026-11-26, 264, ent-sb0 harness build; traced in core 264].
+Recipe: a top-level Assignment of 0 to the output tag before the discount step (and before the
+aggregate), plus a before-save Flow on Quote for a quote emptied of lines (line count 0 and
+field not 0 sets the field to 0). The standard header totals reset only because the platform
+rolls them up. Placement limits, both refused when measured: an Assignment after the discount
+step (only Aggregate or Rounding may follow) and one inside a List Group (the first element of a
+group must be a list filter).
+
 ## Open questions
 - Stored quoting of `condition-K-output-data`: copy from a Builder-saved sample. Write Back key spellings in the Configuration table match core. A second section failing at run time is read from code, not run live.

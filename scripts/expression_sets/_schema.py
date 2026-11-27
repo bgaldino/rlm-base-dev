@@ -1006,8 +1006,40 @@ def validate_overlay_against_definition(
                     f"'{version.get('apiName')}'.",
                 )
 
+    _check_no_group_emptied(overlay, version, result)
     _warn_unresolved_step_variable_refs(overlay, version, result)
     return result
+
+
+def _check_no_group_emptied(overlay: dict, version: dict, result: "ValidationResult") -> None:
+    """Reject a ``removeSteps`` that removes every child of a group.
+
+    The platform refuses it mid-PATCH ("<step> can't be the last step in a group")
+    and the version is left inactive, so catch it before any deactivation. Children
+    the same overlay adds to the group count as remaining.
+    """
+    removed = {i.get("name") for i in overlay.get("removeSteps", []) or []
+               if isinstance(i, dict) and i.get("name")}
+    if not removed:
+        return
+    children: dict = {}
+    for st in version.get("steps", []) or []:
+        if isinstance(st, dict) and st.get("parentStep"):
+            children.setdefault(st["parentStep"], []).append(st.get("name"))
+    added = {}
+    for st in overlay.get("addSteps", []) or []:
+        if isinstance(st, dict) and st.get("parentStep"):
+            added.setdefault(st["parentStep"], []).append(st.get("name"))
+    for parent, names in children.items():
+        if parent in removed:
+            continue  # the group goes with its children
+        if all(n in removed for n in names) and not added.get(parent):
+            result.error(
+                "removeSteps",
+                f"removes every step of group '{parent}'; the platform rejects it "
+                f"(a group can't be left without a step) and leaves the version "
+                f"inactive. Remove the group '{parent}' too, or keep a child.",
+            )
 
 
 def _step_variable_refs(step: dict) -> "tuple[Set[str], Set[str]]":

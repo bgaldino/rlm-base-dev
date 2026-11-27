@@ -113,6 +113,12 @@ and similar. Discover with
 | Step rejected on save | Wrong `lookupTable.type`, or lookup name not found | Match name and type |
 | Works in one org only | Org-specific lookup record | Reference by name, not id |
 
+## Plan cache after a deploy
+
+The procedure plan cache is evicted only by an `IsActive` change, so after deploying a procedure
+cycle `IsActive` and then refresh the decision tables [Open: VOC desk analysis; measuring needs an IsActive cycle on a procedure plan that is live in a pricing run, which would disturb the shared org].
+Wiring order: [`../../pricing-wiring/SKILL.md`](../../pricing-wiring/SKILL.md).
+
 ## Open questions
 
 - How a Builder save fills `<decisionTable>` `mappings` (the dev guide lists the fields only) needs a live sample.

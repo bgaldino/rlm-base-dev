@@ -1132,7 +1132,7 @@ def test_cli_restore_boundary():
                                ("TEST_V2", {"GetPrice": "Get Price TEST_V2"})],
                   restores)
 
-            # A version chain (ramp264: the importer targets the executing v40, the
+            # A version chain (an upgraded org: the importer targets the executing v40, the
             # payload is TEST_V1) is refused before ANY write (todo pack 172): no
             # ResourceInitializationType alignment, no mutation, no restore — in
             # preview as well as with --confirm.
@@ -2120,7 +2120,7 @@ def test_failed_mutation_keeps_plans_online():
           not any("Procedure health" in m or "WARNING" in m for m in logs4), logs4)
 
 
-# ramp264's RLM_DefaultPricingProcedure version chain (todo packs 172/175):
+# An upgraded org's RLM_DefaultPricingProcedure version chain (todo packs 172/175):
 # three versions active at once; the highest-numbered active one (v40) executes.
 RAMP264_VERSIONS = [
     {"Id": "9QM1", "ApiName": "RLM_DefaultPricingProcedure_V1",
@@ -2159,7 +2159,7 @@ def _formula_metadata(child="CompoundUplift", formula="ItemUnitPrice * 1"):
 
 
 def test_import_guards():
-    """_guards: executing_version and import_target_refusal over ramp264's version
+    """_guards: executing_version and import_target_refusal over an upgraded org's version
     chain (refused) and an active+draft set (proceeds when the payload names the
     target) — todo pack 172."""
     print("test_import_guards")
@@ -2326,16 +2326,16 @@ def test_import_guards():
           "TK172_Chain_V1 share the label" in msg and "2026-11-24" in msg
           and "set_step_formula.py" in msg and "Nothing was written" in msg, msg)
 
-    # ramp264: every version carried the same label; the importer targeted v40.
+    # Upgraded org: every version carried the same label; the importer targeted v40.
     ramp = [dict(v, Name="RLM Revenue Management Default Pricing Procedure")
             for v in RAMP264_VERSIONS]
     v1, v40 = ramp[0], ramp[3]
     label = "RLM Revenue Management Default Pricing Procedure"
     msg = import_target_refusal("RLM_DefaultPricingProcedure", ramp, v40,
                                 payload((v1["ApiName"], label))) or ""
-    check("ramp264: a _V1 payload against the executing v40 is refused as a rebind",
+    check("upgraded org: a _V1 payload against the executing v40 is refused as a rebind",
           "rebinding" in msg and "_V1 (v1, active)" in msg and "v20 (v2)" in msg, msg)
-    check("ramp264: a payload for v40 is refused too (its label is shared)",
+    check("upgraded org: a payload for v40 is refused too (its label is shared)",
           "share the label" in (import_target_refusal(
               "RLM_DefaultPricingProcedure", ramp, v40,
               payload((v40["ApiName"], label))) or ""))
@@ -3142,6 +3142,211 @@ def test_client_auth_hint():
           and relabel_command(target_org="o") is None)
 
 
+def test_headless_pricing_inputs():
+    """build_pricing_data defaults, end dates, and line_results parsing."""
+    print("test_headless_pricing_inputs")
+    from scripts.expression_sets._client import ExpressionSetClientError
+    from scripts.expression_sets.run_headless_pricing import (
+        build_pricing_data, end_date_for_term, line_results)
+    check("end date = start + term - 1 day (Annual)",
+          end_date_for_term("2026-11-26", 1, "Annual") == "2027-11-25")
+    check("end date handles Months and a short month",
+          end_date_for_term("2026-01-31", 1, "Months") == "2026-02-27")
+    data = build_pricing_data(
+        {"lines": [{"Product": "p", "SubscriptionTerm": 3, "SubscriptionTermUnit": "Annual"}]},
+        pricebook="01s", currency="USD", start_date="2026-11-26")
+    st = data["SalesTransaction"]
+    line = st["SalesTransactionItem"][0]
+    check("header and line carry Pricebook and CurrencyIsoCode",
+          st["Pricebook"] == line["Pricebook"] == "01s"
+          and st["CurrencyIsoCode"] == line["CurrencyIsoCode"] == "USD")
+    check("end date is start + term - 1 day, as a date-time",
+          line["EndDate"] == "2029-11-25T00:00:00.000Z"
+          and line["StartDate"] == "2026-11-26T00:00:00.000Z", line)
+    check("period boundary and item source defaulted",
+          line["PeriodBoundary"] == "Anniversary" and line["SalesTransactionItemSource"])
+    res = line_results([{"outputValues": {"pricingResult": json.dumps(
+        {"NetUnitPrice": [{"value": 5, "dataPath": "CTX_QuoteLineItem_2"}]})}}])
+    check("line results read from the JSON string", res and res[0]["NetUnitPrice"] == 5)
+    live = line_results([{"outputValues": {"pricingResult": {"NetUnitPrice": [
+        {"value": 7, "dataPath": ["CTX_Quote_1", "CTX_QuoteLineItem_3"]},
+        {"value": 5, "dataPath": ["CTX_Quote_1", "CTX_QuoteLineItem_2"]}]}}}])
+    check("live shape: dataPath is a list; lines come back in payload order",
+          [r["NetUnitPrice"] for r in live] == [5, 7], live)
+    try:
+        build_pricing_data(
+            {"lines": [{"Product": "p", "SubscriptionTerm": 1,
+                        "SubscriptionTermUnit": "Weeks"}]},
+            pricebook=None, currency="USD", start_date="2026-11-26")
+        err = None
+    except ExpressionSetClientError as exc:
+        err = str(exc)
+    check("an unsupported term unit is a clear error, not a late proration failure",
+          err and "EndDate" in err and "Weeks" in err, err)
+
+
+def test_headless_response_failures():
+    """A failed or partial action fails the run (exit 1), with or without --json."""
+    print("test_headless_response_failures")
+    import io
+    import contextlib
+    import scripts.expression_sets.run_headless_pricing as hp
+    line = {"NetUnitPrice": [{"value": 5, "dataPath": ["CTX_Quote_1", "CTX_QuoteLineItem_1"]}]}
+
+    def resp(**item):
+        return [dict({"isSuccess": True, "outputValues": {"pricingResult": line}}, **item)]
+    check("a clean response has no problems", hp.response_problems(resp()) == [])
+    check("isSuccess=false is a problem",
+          bool(hp.response_problems(resp(isSuccess=False))))
+    check("action errors are a problem",
+          bool(hp.response_problems(resp(errors=[{"message": "boom"}]))))
+    check("pricingProcessErrors with partial results is a problem", bool(
+        hp.response_problems([{"isSuccess": True, "outputValues": {
+            "pricingResult": line, "pricingProcessErrors": '["bad line"]'}}])))
+    check("an empty response is a problem", bool(hp.response_problems([])))
+
+    class _T:
+        def __init__(self, *a, **k):
+            pass
+
+        def connect(self, *a, **k):
+            return RESPONSE[0]
+    RESPONSE = [resp(isSuccess=False)]
+    with tempfile.TemporaryDirectory() as td:
+        req = Path(td) / "r.json"
+        req.write_text(json.dumps({"lines": [{"Product": "p"}]}))
+        undo = _patch_cli(hp, Transport=_T,
+                          resolve_context_ids=lambda t, *ids: ("cd", "cm"))
+        try:
+            for extra in ([], ["--json"]):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    rc = hp.main(["--target-org", "x", "--procedure", "P",
+                                  "--request", str(req)] + extra)
+                check(f"a failed action exits 1 {extra}", rc == 1, rc)
+            RESPONSE[0] = resp()
+            with contextlib.redirect_stdout(io.StringIO()):
+                rc = hp.main(["--target-org", "x", "--procedure", "P",
+                              "--request", str(req), "--json"])
+            check("a clean run exits 0", rc == 0, rc)
+        finally:
+            undo()
+
+
+def test_headless_context_id_overrides():
+    """Each explicit context id is kept; only the missing one is looked up."""
+    print("test_headless_context_id_overrides")
+    import scripts.expression_sets.run_headless_pricing as hp
+
+    class _T:
+        def __init__(self):
+            self.queries = []
+
+        def soql(self, q):
+            self.queries.append(q)
+            if "FROM ContextDefinition " in q:
+                return [{"Id": "cdFound"}]
+            return [{"Id": "cmFound", "Title": "QuoteEntitiesMapping"}]
+    t = _T()
+    check("both given: no lookup",
+          hp.resolve_context_ids(t, "cd1", "cm1") == ("cd1", "cm1") and not t.queries)
+    check("mapping given: definition looked up, mapping kept",
+          hp.resolve_context_ids(_T(), None, "cm1") == ("cdFound", "cm1"))
+    t = _T()
+    check("definition given: its mapping looked up",
+          hp.resolve_context_ids(t, "cd1") == ("cd1", "cmFound")
+          and "'cd1'" in t.queries[-1] and len(t.queries) == 1)
+    check("neither given: both looked up", hp.resolve_context_ids(_T()) == ("cdFound", "cmFound"))
+
+
+def test_overlay_group_emptied_precheck():
+    """An overlay may not remove every child of a group unless the group goes too."""
+    print("test_overlay_group_emptied_precheck")
+    from scripts.expression_sets._schema import validate_overlay_against_definition
+    version = {"apiName": "V1", "steps": [
+        {"name": "G", "stepType": "ListGroup"},
+        {"name": "A", "parentStep": "G"}, {"name": "B", "parentStep": "G"}]}
+    definition = {"versions": [version]}
+    bad = validate_overlay_against_definition(
+        {"removeSteps": [{"name": "A"}, {"name": "B"}]}, definition, "V1")
+    check("removing every child of a group is refused", not bad.passed)
+    ok = validate_overlay_against_definition(
+        {"removeSteps": [{"name": "A"}]}, definition, "V1")
+    check("removing one child is allowed", ok.passed)
+    ok2 = validate_overlay_against_definition(
+        {"removeSteps": [{"name": "G"}, {"name": "A"}, {"name": "B"}]}, definition, "V1")
+    check("removing the group with its children is allowed", ok2.passed)
+
+
+def test_preview_log_prefix():
+    """A dry-run transport marks lifecycle log lines with [preview]."""
+    print("test_preview_log_prefix")
+    from scripts.expression_sets._lifecycle import LifecycleEngine
+
+    class _T:
+        dry_run = True
+        target_org = "o"
+        logger = staticmethod(lambda m, *a, **k: seen.append(m))
+    seen = []
+    LifecycleEngine(_T()).log("PATCHed expression set X.")
+    check("a preview marks lifecycle lines", seen == ["[preview] PATCHed expression set X."], seen)
+
+
+def test_import_labels_block():
+    """A 'labels' block in the import file labels a clone after create and layers
+    onto the target version on replace; it never reaches the Connect body."""
+    print("test_import_labels_block")
+    import scripts.expression_sets.import_expression_set as import_mod
+    from scripts.expression_sets._payload import payload_labels, strip_readonly_fields
+    from scripts.expression_sets._resolve import ResolveError
+    check("payload_labels keeps string pairs only",
+          payload_labels({"labels": {"A": "Alpha", "B": 1, "C": ""}}) == {"A": "Alpha"})
+    check("labels is stripped from the Connect body",
+          "labels" not in strip_readonly_fields({"apiName": "X", "labels": {"A": "a"}}))
+    with tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "clone.json"
+        path.write_text(json.dumps({
+            "apiName": "CLONE", "labels": {"GetPrice": "Get Price"},
+            "versions": [{"apiName": "CLONE_V1", "steps": [], "variables": []}]}))
+        calls = []
+
+        def record(engine, **kw):
+            calls.append((kw["version_api_name"], dict(kw["name_to_label"])))
+            return {"ok": True, "changed": sorted(kw["name_to_label"]), "error": None}
+
+        state = {"created": False}
+
+        class _CreateEngine(_FakeEngine):
+            def post_definition(self, *a, **k):
+                state["created"] = True
+                return {"id": "9QLn"}
+
+        def resolve_def(*a, **k):
+            if not state["created"]:
+                raise ResolveError("not found")
+            return "9QAn"
+
+        undo = _patch_cli(
+            import_mod, LifecycleEngine=_CreateEngine, Transport=lambda **k: None,
+            resolve_definition_id=resolve_def,
+            resolve_version_by_es_id=lambda *a, **k: {
+                "Id": "9QMn", "ApiName": "CLONE_V1", "IsActive": True, "VersionNumber": 1},
+            validate_definition=lambda *a, **k: _passing_validation(),
+            restore_labels_after_clobber=record)
+        try:
+            rc = import_mod.main(["--target-org", "x", "--input-file", str(path),
+                                  "--confirm"])
+            check("create: exit 0", rc == 0, rc)
+            check("create: the labels block is applied to the new version",
+                  calls == [("CLONE_V1", {"GetPrice": "Get Price"})], calls)
+            calls.clear()
+            state["created"] = False
+            rc = import_mod.main(["--target-org", "x", "--input-file", str(path),
+                                  "--confirm", "--no-preserve-labels"])
+            check("create --no-preserve-labels applies nothing", rc == 0 and not calls, calls)
+        finally:
+            undo()
+
+
 def main():
     for fn in (test_graph, test_payload, test_overlay, test_tooling,
                test_label_preservation, test_failed_mutation_keeps_plans_online,
@@ -3152,7 +3357,11 @@ def main():
                test_overlay_content_verification, test_empty_description_reads_back_null,
                test_shipped_fixtures, test_client_auth_hint,
                test_import_guards, test_set_step_formula, test_null_rank_guard,
-               test_overlay_multi_version, test_row_lock_retry):
+               test_overlay_multi_version, test_row_lock_retry,
+               test_headless_pricing_inputs, test_headless_response_failures,
+               test_headless_context_id_overrides,
+               test_overlay_group_emptied_precheck,
+               test_preview_log_prefix, test_import_labels_block):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed.")
     return 1 if _FAIL else 0
