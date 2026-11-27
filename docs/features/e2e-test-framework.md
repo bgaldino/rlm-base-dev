@@ -246,6 +246,12 @@ Salesforce platform operations (Order activation, Asset creation) are asynchrono
   and New Contract (these need a priced quote). `RLM_CreateOrdersFromQuote` no longer checks the
   status itself, so starting Create Order mid-reprice fails with "the calculation status of the
   quote is invalid".
+- **Quote readiness for Create Order** — `RLM_CreateOrdersFromQuote` stops at a screen that names what is
+  missing unless the quote has a Bill To Contact, at least one line, and Bill To and Ship To street, city and
+  country (formula `fxn_Quote_Ready_For_Ordering`). The shipped `RLM_Create_New_Quote` flow fills the Bill To
+  Contact from the first contact on the account and the Bill To address from the account, so quotes built
+  through it pass. A quote created some other way (API, Place Sales Transaction, a data load) does not get
+  them: give the account a contact and set the Bill To Contact and addresses on the quote before ordering.
 
 Default: 180s timeout, 10s poll interval.
 
