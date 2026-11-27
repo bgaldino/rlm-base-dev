@@ -36,7 +36,8 @@ scratch org built by this repo.
    - Smart Approvals: the Help says Number or Text only and no NOT operator
      [Help: `ind.approvals_smart_approval_limitations`]. The traced allow-list is wider
      (datatypes and operators in [limitations.md](limitations.md) → Smart Approvals);
-     treat Number and Text as the documented-safe types.
+     treat Number and Text as the documented-safe types. A roll-up summary, picklist and
+     percent-formula condition passed with equal values ([limitations.md](limitations.md) → Questions settled by a measured run).
 3. **Model "each level also needs the levels below" as one serial chain.** Step N starts
    when the level is at least N and step N−1 was approved. Give each independent
    dimension its own chain name so it runs in parallel. The repo ships this
@@ -81,7 +82,8 @@ scratch org built by this repo.
   conditions too; both make the flow ineligible [Help: `ind.approvals_smart_approval_limitations`].
 - **DO NOT** hard-code user, group or queue IDs in an orchestration you package or deploy
   between orgs [Help: `ind.approvals_add_an_approval_button_for_sales_reps`]. Assign by group
-  name, as the repo does.
+  name, as the repo does. Flow Builder warns "can't be packaged" on User, Group and Queue steps, so use a Resource-type
+  approver in a packaged flow [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build].
 - **DO NOT** expect to choose the submitter. In one run that started the flow over REST with
   another user's ID in the `submitter` input, `SubmittedById` was still the running user
   [Measured: 2026-11-10, 264]; the repo's Apex bridge always passes the running user.
@@ -104,6 +106,8 @@ scratch org built by this repo.
 | Approvals across negotiation rounds (each round a cloned quote) | `quote-negotiation-rounds` |
 | Submit, approve, reject, recall or inspect a submission; test headlessly | This skill → [actions-and-objects.md](actions-and-objects.md) |
 | Smart Approvals, preview, email, delegation limits; what's still unknown | This skill → [limitations.md](limitations.md) |
+| Rule-Based Auto-Approvals (Auto-Approve Step) | This skill → [rule-based-auto-approvals.md](rule-based-auto-approvals.md) |
+| Approver types, unanimous approval, delegation, who can act or see | This skill → [approval-operations.md](approval-operations.md) |
 | Change how the line approval level is computed | `pricing-procedures` and `expression-sets` (the `approval_flags.json` overlay) |
 | Map a field into the pricing context | `context-service` (`datasets/context_plans/Approvals`) |
 | Load or change alert definitions | `sfdmu-data-plans` (`datasets/sfdmu/qb/en-US/qb-approvals`) |
@@ -158,6 +162,11 @@ Measured end to end on a QuantumBit build [Measured: 2026-11-10, 264]:
   permissions and the measured behaviour.
 - [limitations.md](limitations.md): read before relying on Smart Approvals, Preview, email,
   delegation or Slack. It also lists the questions the docs leave open.
+- [rule-based-auto-approvals.md](rule-based-auto-approvals.md): read when a step should
+  auto-approve on a flow-computed Boolean, or a "true" flag still goes to review.
+- [approval-operations.md](approval-operations.md): read when setting approver types, unanimous
+  approval or delegation, deciding who can act and see, or diagnosing screens, notifications and
+  Flow Builder saves.
 
 ## Examples
 
@@ -219,7 +228,7 @@ items:
   as active (the repo's Apex test skip messages call it Deploy-as-active); a non-production org allows it regardless. Without it,
   deploy as Draft and activate separately [Platform behaviour, traced; production gating is
   not measured]. In a scratch org built by this repo the setting read off (Metadata API field
-  `enableFlowDeployAsActiveEnabled` in FlowSettings; a fresh org was not read separately); a changed approval orchestration
+  `enableFlowDeployAsActiveEnabled` in FlowSettings; false on a fresh never-built org too [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]); a changed approval orchestration
   deployed as Active still became the new Active version and the old one became Obsolete, and
   an unchanged redeploy as Active created no version. A redeploy with only the status changed
   to Draft over an Active flow also created no version and did not deactivate the flow

@@ -146,11 +146,13 @@ foundations:
       path: .cursor/skills/advanced-approvals/SKILL.md
       purpose: "Advanced Approvals: modeling sign-off matrices (cumulative levels, chains, conditions), submit/review/recall/reject actions, Smart Approvals and Preview limits, and the repo's shipped quote approval"
       consumed_by_pmos: []
-      provenance: 264 Help and dev-guide snapshot, plus a live end-to-end run of the shipped quote approval on a QuantumBit build (2026-11-10)
+      provenance: 264 Help and dev-guide snapshot, a live end-to-end run of the shipped quote approval on a QuantumBit build (2026-11-10), and live measurements of approver types, reviewer access, delegation and rule-based auto-approvals on a 264 build (2026-11-26)
       sub_skills:
         - .cursor/skills/advanced-approvals/matrix-modeling.md
         - .cursor/skills/advanced-approvals/actions-and-objects.md
         - .cursor/skills/advanced-approvals/limitations.md
+        - .cursor/skills/advanced-approvals/rule-based-auto-approvals.md
+        - .cursor/skills/advanced-approvals/approval-operations.md
 
     - id: transaction-line-editor
       path: .cursor/skills/transaction-line-editor/SKILL.md
@@ -584,6 +586,15 @@ foundations:
       path: .cursor/skills/document-generation/SKILL.md
       purpose: "Document template (.docx) authoring, token extraction, template lifecycle, and end-to-end generation"
       consumed_by_pmos: []
+      sub_skills:
+        - .cursor/skills/document-generation/template-lifecycle-and-testing.md
+        - .cursor/skills/document-generation/architecture-and-tokens.md
+        - .cursor/skills/document-generation/item-types-and-template-record.md
+        - .cursor/skills/document-generation/troubleshooting.md
+        - .cursor/skills/document-generation/data-mapper-authoring.md
+        - .cursor/skills/document-generation/extract-engine-reference.md
+        - .cursor/skills/document-generation/dynamic-images.md
+        - .cursor/skills/document-generation/quote-line-attributes-and-rep-access.md
       tooling:
         - scripts/docgen/docgen_template_extract_tokens.py
         - scripts/docgen/docgen_template_build.py
@@ -598,6 +609,8 @@ foundations:
         - .cursor/skills/salesforce-contracts/setup-and-diagnostics.md
         - .cursor/skills/salesforce-contracts/content-and-migration.md
         - .cursor/skills/salesforce-contracts/data-model-and-queries.md
+        - .cursor/skills/salesforce-contracts/sharing-and-access.md
+        - .cursor/skills/salesforce-contracts/contract-record-behaviors.md
 
     - id: df-workshop-setup
       path: .cursor/skills/df-workshop-setup/SKILL.md
