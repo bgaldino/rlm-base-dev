@@ -57,7 +57,7 @@ pip install -r scripts/doc_snapshot/requirements.txt
 python -m playwright install chromium
 ```
 
-- `help` and atlas `dev-guide` presets need `playwright`. Both sites render in
+- `help` and atlas `dev-guide` presets need `playwright`. `requirements.txt` pins the version whose bundled Chromium build matches an existing browser cache (1.65.2 uses build 1255); a Playwright upgrade needs a fresh `playwright install chromium`. Both sites render in
   the browser and block plain HTTP clients, so the tool drives a real Chromium.
   `source: site` dev-guide presets use plain HTTP and need no browser.
 - `markdownify` is optional. Without it, `dev-guide` falls back to a built-in
