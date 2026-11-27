@@ -143,13 +143,22 @@ def _fetch_shared_detail(args):
     return detail
 
 
+# Flags that need the contextId to survive across separate calls (single source for the
+# default-scope rule and the --context-scope help text).
+SESSION_TRIGGER_FLAGS = ("query", "persist", "update_attr", "write_tag", "keep")
+
+
+def _flag_name(dest):
+    return "--" + dest.replace("_", "-")
+
+
 def effective_scope(args):
     """Scope for the create body. Later steps run as separate `sf api request` calls, so a
     REQUEST-scoped contextId is gone by then (query-record fails RECORD_NOT_FOUND); default to
     SESSION whenever a later step is requested (or --keep, which is only useful across calls) and the caller did not choose a scope."""
     if args.context_scope:
         return args.context_scope
-    later = args.query or args.persist or args.update_attr or args.write_tag or args.keep
+    later = any(getattr(args, d, None) for d in SESSION_TRIGGER_FLAGS)
     return "SESSION" if later else None
 
 
@@ -169,8 +178,9 @@ def main(argv=None) -> int:
                         help="Set metadata.contextScope on create. SESSION lets "
                              "the contextId survive "
                              "across separate CLI calls (subject to contextTtl). "
-                             "Defaults to SESSION when --query, --persist, --update-attr "
-                             "or --write-tag is given, else REQUEST "
+                             "Defaults to SESSION when any of "
+                             + ", ".join(_flag_name(d) for d in SESSION_TRIGGER_FLAGS)
+                             + " is given, else REQUEST "
                              "(request-local, ~15 s). Pass REQUEST to force it.")
     parser.add_argument("--context-id",
                         help="Operate on an existing instance (skip create; also skips "

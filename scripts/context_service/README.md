@@ -460,7 +460,7 @@ Two op-specific guards, both **live-verified** on v67.0:
 >
 > `examples/contextServiceLifecycle.apex` is a standalone, fill-in-the-placeholders
 > Apex script exercising the same lifecycle via `Context.IndustriesContext` — the
-> GA runtime path on orgs without `ContextServicePilot`. Run by hand with
+> portable runtime path where SESSION is gated (measured on 262). Run by hand with
 > `sf apex run --file`; not wired into any CCI task/flow.
 
 The mechanism (request-scope, the pilot gates, the Apex/Flow path, the dirty-persist
@@ -474,7 +474,7 @@ these scripts. What's script-specific:
   `context_session.py` does create→use→persist→delete in one process and selects
   SESSION when `--query/--persist/--update-attr/--write-tag/--keep` is given. The
   standalone scripts accept `--context-id` (reuse/debugging) and print a scope
-  warning. **On a normal GA org, validate hydration via Apex** (`runtime-and-persistence.md`
+  warning. **Where SESSION is gated (measured on 262), validate hydration via Apex** (`runtime-and-persistence.md`
   → *Start here*) — the stateless REST scripts can't complete the lifecycle.
 - **Dry-run contract.** Under `--dry-run`, mutations (create, `persist-records`,
   the two PATCHes, both DELETEs) only **log**; read-shaped POSTs (`query-record`,

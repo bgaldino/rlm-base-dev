@@ -91,9 +91,8 @@ All Data and Customize Application (measured facts: [usage-operations.md](../usa
 
 ## The order-activation flow
 
-The order-activation flow queues its own tables: the order-activation flow
-`RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info` refreshes the asset and
-binding-object tables and `Commitment_based_Rate_Adjustment` on order activation. Its start element
+The order-activation flow `RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info`
+queues its own tables: the asset and binding-object tables and `Commitment_based_Rate_Adjustment`, on order activation. Its start element
 sets `flowRunAsUser` TriggeringUser
 [Repo: force-app/main/default/flows/RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info.flow-meta.xml], and the flow ran as the user who activated the order: debug logs showed the event
 process switch from Automated Process to that user before the flow ran, for an admin and

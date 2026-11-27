@@ -85,4 +85,4 @@ rejected [Open: reasoning only].
 ## Not in 264
 
 - Submitting only the ready root offerings of an order (partial order submission) has no page in the
-  264 Help snapshot [Open: not in the 264 snapshot].
+  264 Help snapshot.

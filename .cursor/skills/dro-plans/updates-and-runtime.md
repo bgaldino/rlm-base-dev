@@ -550,8 +550,7 @@ unpackaged/post_quantumbit/namedCredentials/], so any callout through `BillingSy
 `OrderFulfillmentSystemNC` or `OrderFulfillmentSystemNCcanned` sends through it. Without principal access to it, a
 callout step on the mock provider (`DFOApexMockService`, which sends to `BillingSystemNC`) failed with
 `SF_DRO_STEP_API_00124` [Measured: 2026-11-25, 264, scratch, one org]; a callout through the other three would likely
-fail the same way [inferred: same external credential], though no shipped provider or Apex uses them [Repo:
-force-app/, unpackaged/, datasets/; only their own metadata names them]. `RLM_MockTax` is used only as the tax
+fail the same way [inferred: same external credential], though no shipped provider or Apex uses them (only their own metadata names them). `RLM_MockTax` is used only as the tax
 engine's merchant credential [Repo: datasets/sfdmu/qb/en-US/qb-tax/TaxEngine.csv], and the mock tax engine does not
 send through it: `RLM_MockTaxAdapter` makes no HTTP callout [Repo: unpackaged/pre/4_tax/RLM_MockTaxAdapter.cls]. The
 `DRO_Integrations` permission set (`unpackaged/post_quantumbit/`, deployed with the credential) grants that one
@@ -571,11 +570,10 @@ assigned to them.
   `ExternalCredentialParameter`; on a non-tso build `DRO_Integrations` was the only grantor [Measured: 2026-11-26, 264,
   scratch, one org].
 - The grant cannot live in the base `RLM_QuantumBit` under `force-app`: that deploys before `deploy_quantumbit`
-  creates the credential, and builds without quantumbit never have it [Repo: cumulusci.yml step order].
+  creates the credential, and builds without quantumbit never have it [Repo: cumulusci.yml].
 - `SalesforceContractsExtCredentials` (an `AwsSv4` credential for service `texttract`, Help's spelling) matches Help's
   Contracts AI extraction credential [Help: ind.sf_contracts_create_an_external_credential_and_named_credential;
-  inferred from its shape]; no named credential, Apex, flow or DRO step in the repo calls through it [Repo:
-  force-app/, unpackaged/, datasets/; only its own metadata and the tso RLM_QuantumBit name it].
+  inferred from its shape]; no named credential, Apex, flow or DRO step in the repo calls through it (only its own metadata and the tso RLM_QuantumBit name it).
   `DRO_Integrations` does not grant its principal.
   Its `AwsAccountId` is a committed placeholder: `deploy_quantumbit` sets it in the deploy zip from the
   sensitive `aws_account_id` option or `RLM_AWS_ACCOUNT_ID`, and leaves the parameter out when neither is

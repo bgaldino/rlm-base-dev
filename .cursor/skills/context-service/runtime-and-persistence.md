@@ -24,7 +24,7 @@ roadblock table).
 
 | Org capability | Working runtime path | Perm needed |
 |----------------|----------------------|-------------|
-| **Normal GA org** (no pilot) | **Apex `Context.IndustriesContext`** (scripted / debugging) **or one Flow** chaining the invocable actions (no-code). Whole lifecycle in **one request/transaction.** | just GA **`IndustriesContext`** |
+| **Org that gates SESSION** | **Apex `Context.IndustriesContext`** (scripted / debugging) **or one Flow** chaining the invocable actions (no-code). Whole lifecycle in **one request/transaction.** | just GA **`IndustriesContext`** |
 | SESSION-scope pilot (`SessionScopeContext` via `ContextServicePilot`) and/or "Runtime Context Instance Reuse" (`ContextReuse`) | The REST scripts / multi-call REST — `contextId` survives across calls | pilot / reuse setting |
 
 **With SESSION scope (measured on a `ContextServicePilot` org, 262 / v67.0), the REST path
@@ -63,7 +63,7 @@ call. So on that 264 org the `--query` failure was the REQUEST default, not a ga
 SESSION is [Open: only one 264 org measured, persist not re-run].
 
 Where SESSION is gated and Instance Reuse is off, **Apex (or a single Flow)
-is the working path** — it needs no pilot permission, only GA
+is the working path** — it needs no SESSION permission, only GA
 `IndustriesContext`. Both keep create → query → (update) → persist in one request,
 where the `contextId` never expires and the query methods aren't behind the REST
 pilot gate.
@@ -140,9 +140,8 @@ static inspection tools (`describe_context.py`, `trace_context.py`,
 consuming engines — pricing, DocGen, BRE / expression sets, the configurator,
 billing, DRO — hydrate their own contexts as part of their own flows. Nothing in
 the org build calls these scripts, and they are **not** wired into any CCI flow.
-They carry **pilot caveats** the design-time `apply/delete/mutate_context.py` do
-not: on a GA org `query`/`persist` need `ContextServicePilot`, and Apex
-`Context.IndustriesContext` is the GA runtime path (see **Start here** above).
+They carry **SESSION caveats** the design-time `apply/delete/mutate_context.py` do
+not: SESSION scope may be gated on some orgs (SKILL.md rule 10); Apex/Flow is the portable path (see **Start here** above).
 
 ## The runtime lifecycle
 
@@ -333,7 +332,7 @@ names off the definition (`describe_context.py`, or the node/attribute
 
 > **Why the scripts still exist.** The REST runtime scripts are the documented,
 > tool-agnostic contract (and work fully on a pilot-enabled / reuse-enabled org),
-> but on a normal org the **Apex snippet above is the reliable way to validate
+> but on an org that gates SESSION the **Apex snippet above is the reliable way to validate
 > that a definition actually hydrates** — the debugging/validation purpose these
 > scripts serve, not a production runtime.
 
@@ -467,7 +466,7 @@ process," each step shells out to a *separate* `sf api request`, so a
 REQUEST-scoped contextId minted by create is already `RECORD_NOT_FOUND` by the
 persist call (and `--update-attr` PATCH hits the same wall). The script selects
 SESSION for those steps; persist under SESSION was not re-run [Open: not re-run on 264]. **The persist path
-that works on a normal org is the Apex bridge:** `Context.IndustriesContext` doing
+that works where SESSION is gated is the Apex bridge:** `Context.IndustriesContext` doing
 build → (`updateContextAttributes`) → `persistContext` in **one Apex transaction**
 (`sf apex run --file`), which returns the `referenceId`. The REST `persist-records`
 call works only when the instance survives — i.e. with **SESSION scope** (pilot)
@@ -631,9 +630,8 @@ scratch org with an active definition (e.g. `RLM_SalesTransactionContext`):
    [--node NAME]` for a ready-to-run id-only payload. Confirm each record's
    `businessObjectType` is the **mapped SObject name** (e.g. `Quote`), which the
    builder emits.
-2. `context_session.py … --data-file records.json --query` — on a
-   **pilot-enabled** org this returns a `contextId` and the hydrated values. On a
-   normal org expect `API_DISABLED_FOR_ORG` on the query (see "The REST endpoints
+2. `context_session.py … --data-file records.json --query` — on an
+   org that allows SESSION this returns a `contextId` and the hydrated values. Where SESSION is gated (measured on 262) expect `API_DISABLED_FOR_ORG` on the query (see "The REST endpoints
    resolve" above) and/or a not-found `contextId` between calls; fall back to the
    Apex path to validate hydration.
 3. Add `--persist --target-mapping-name <mapping>` → the script polls
@@ -646,7 +644,7 @@ scratch org with an active definition (e.g. `RLM_SalesTransactionContext`):
    `errorNodes`. Also pilot/reuse-gated (SESSION scope for the REST path).
 4. `list_context_interfaces.py` → lists interfaces; `--interface <name>` → one.
    (Not gated — a plain Connect GET.)
-5. **Apex validation (the reliable path on a normal org):** run the
+5. **Apex validation (the reliable path where SESSION is gated):** run the
    `Context.IndustriesContext` `buildContext` + `leanerQueryTags` snippet from
    "The viable inspection path is Apex" via `sf apex run`. `recordIds` non-empty
    and real `tagValue`s confirm the definition + mapping hydrate; `recordIds:[]`

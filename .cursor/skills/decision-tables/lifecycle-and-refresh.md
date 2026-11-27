@@ -151,7 +151,7 @@ Measured on a fresh 264 build, 40 tables:
   [Measured: 2026-11-19, 264, scratch, one org]. A screen flow with no run mode runs in the user's
   context and its subflow inherits that (inferred), so a non-admin's reset is expected to refresh
   nothing; the subflow still finished because the bulk flow's fault path counts the error instead
-  of raising it [Repo: RLM_Refresh_Decision_Tables_Bulk]. [Open: run the reset itself as a
+  of raising it [Repo: unpackaged/post_utils/flows/RLM_Refresh_Decision_Tables_Bulk.flow-meta.xml]. [Open: run the reset itself as a
   non-admin and check whether its screen reports it, and the stamps]
   Activating a contract or an order as that sales rep refreshed every table its activation flow
   names [Measured: 2026-11-18 (order) and 2026-11-19 (contract), 264, scratch, one org;

@@ -38,7 +38,7 @@ is ground truth over the docs.
 4. **Entries start Draft; activate them.** Active entries accept only limited edits, so
    finish the entry while Draft [Help: ind.rm_create_a_base_rate_card_entry]; its tiers were
    locked once it was Active on this repo's 264 loads
-   [Repo: datasets/sfdmu/qb/en-US/qb-rates/README.md, live-verified].
+   [Repo: datasets/sfdmu/qb/en-US/qb-rates/README.md].
 5. **Start a rating procedure from a clone.** Clone the Default or the Negotiable template
    (Help also allows a custom build), simulate, then activate
    [Help: ind.rm_clone_the_default_rating_procedure].
@@ -54,7 +54,7 @@ is ground truth over the docs.
 
 - **DO NOT** treat an activated rate as editable. An Active entry takes limited changes
   (status) [Help: ind.rm_create_a_base_rate_card_entry], and a tier under it is locked on
-  this repo's 264 loads [Repo: datasets/sfdmu/qb/en-US/qb-rates/README.md, live-verified].
+  this repo's 264 loads [Repo: datasets/sfdmu/qb/en-US/qb-rates/README.md].
   Correct a Draft, or deactivate first.
 - **DO NOT** let tier ranges overlap. Bounds are inclusive and tiers cannot overlap
   [Help: ind.rm_create_a_tier_rate_card_entry].
@@ -68,7 +68,7 @@ is ground truth over the docs.
   Rate Management does not support them [Help: ind.rm_rate_mngmnt_limits].
 - **DO NOT** assume a fresh decision table after a rate change. Refresh and wait; a stale
   table prices with the old rate and does not error
-  [Repo: datasets/sfdmu/qb/en-US/qb-rates/README.md; see ../decision-tables/SKILL.md].
+  [Repo: datasets/sfdmu/qb/en-US/qb-rates/README.md]. See ../decision-tables/SKILL.md.
 - **DO NOT** reload rate plans into an org with live usage assets without reading
   [`../usage-consumption/SKILL.md`](../usage-consumption/SKILL.md) DO NOT list.
 
@@ -252,7 +252,7 @@ Snapshot; discover with `rg -n -i "rate.?card|rating" cumulusci.yml` and `ls dat
 | Rate card, entry, tier, price book rate card data | `datasets/sfdmu/qb/en-US/qb-rates`, `datasets/sfdmu/q3/en-US/q3-rates` (`insert_qb_rates_data`, `insert_q3_rates_data`) |
 | Attribute rate card | `qb-rates` also loads an Attribute-type card with no price book rate card [Repo: datasets/sfdmu/qb/en-US/qb-rates/RateCard.csv, PriceBookRateCard.csv]. Help says Usage Selling and Consumption Management does not support attribute-based rate cards (Quick Rule 8); do not build on it |
 | Usage resources and PURs, policies and grants | `qb-rating`, `qb-rating-entitlements` (and `q3-` equivalents) |
-| Flow | `prepare_rating`: load, `activate_rating_records`, `activate_rates` (REST; the Apex DML path failed on Release 262 [Repo: tasks/rlm_activate_rates.py]). Every step needs `rating`; the rates load and both activations also need `rates`; loads need `refresh` off, with `qb`, or `q3` without `qb` [Repo: cumulusci.yml → prepare_rating] |
+| Flow | `prepare_rating`: load, `activate_rating_records`, `activate_rates` (REST; the Apex DML path failed on Release 262 [Repo: tasks/rlm_activate_rates.py]). Every step needs `rating`; the rates load and both activations also need `rates`; loads need `refresh` off, with `qb`, or `q3` without `qb` [Repo: cumulusci.yml] |
 | Procedures | `RLM_DefaultRatingProcedure`, `Negotiable_Rating_Procedure`, `RLM_DefaultRatingDiscoveryProcedure` (see `expression-sets`) |
 | Revenue Settings | `configure_revenue_settings` sets the usage rating discovery procedure |
 | Extended context | `extend_context_rate_management` and `extend_context_rating_discovery`, both only when `rating` is on |
