@@ -60,7 +60,7 @@ quote UI (`ui-group-ramp.md`, measured on 264).
    segment's group.**
 4. **Between mutating calls, poll `Quote.CalculationStatus` to a settled state**
    before the next call. Treat an unrecognized status as *stop and look*, never
-   "assume done" (see [Status](#status)).
+   "assume done" (see [Status](verify-and-discover.md#status)).
 5. **Compound uplift is group + engine, not a line write.** Set the per-segment
    percentage in **`QuoteLineItem.UnitPriceUplift`** (writeable). Set the mode in
    **`RampUpliftType`** (`Standard`|`Compound`) on the ramp **group** — with
@@ -68,7 +68,7 @@ quote UI (`ui-group-ramp.md`, measured on 264).
    cascades to segment subgroups and lines); with it OFF, on the single ramp segment
    group. `RampUpliftType` is engine-owned on the *line* and rejected there. The
    compounding itself is driven by the pricing procedure's `PriceRevision` element;
-   see [Compound uplift](#compound-uplift).
+   see [Compound uplift](compound-uplift.md).
 6. **`RampIdentifier` is the cross-segment linkage — constant per product across
    all segments.** Group the read-back matrix on it, not `SegmentIdentifier` (unique
    per line). `ParentQuoteLineGroupId` is **not** a linkage key: with multi-schedule
@@ -78,32 +78,21 @@ quote UI (`ui-group-ramp.md`, measured on 264).
    prices, subtotals, and totals; read them back.
 8. **`org_config.username` for `sf` CLI; `access_token` for REST only** (per
    `AGENTS.md`).
-9. **A group-ramped bundle added by API (`AddProducts` into ramped segments) with a one-time or evergreen child cannot be amended (`PlaceSalesTransactionPersistException`,
-   shorthand "500"; measured on one 264 org; cancel failed too where tried).** The same shape with a one-time child
-   built in the quote UI amended (evergreen not tried in the UI). For an API-built one-time child the failure persisted while any of the child's Assets remained. Built that way the child gets no ramp ids (lines present before EditGroup, then cloned, were stamped; that shape's amend was not measured) and assetizes as one
-   Asset per segment it sits in; built in the UI a one-time child is stamped and, left in N segments, becomes one Asset whose
-   quantity accumulates (1, 2, 3 over three segments). See
-   [bundle-children-lifecycle.md](bundle-children-lifecycle.md).
-10. **In a UI-built Compound group ramp, a segment's uplift applies to every ramp-stamped line in it, and isn't
-    rounded.** The segment's Unit Price Uplift % lands on One-Time and Evergreen lines too, whose
-    `TotalPrice` doesn't follow the uplifted net; set `UnitPriceUplift` 0 on a line to exempt it
-    (measured 2026-11-11 on two fresh 264 scratch orgs). No line needs the exemption when the source's one-time and evergreen items sit outside the segments (top-level, unramped lines took no uplift, below), or when every ramped line should take the uplift `[inferred]`.
-    **A line edit re-applied the compound uplift to untouched ramp lines.** A Place PATCH of only some
-    lines' `UnitPriceUplift` [Measured: 2026-11-11, 264, scratch, one org], and a System-pricing PATCH of
-    one ramp line with delta pricing on [Measured: 2026-11-12, 264, scratch, another org], each moved the
-    net unit price of the other uplifted lines by the segment uplift again, unrounded, on a Compound ramp;
-    totals did not change. After the Place PATCH, the line editor's Reprice All restored them
-    [Measured: 2026-11-11, 264, scratch, one org]. After a System PATCH on a delta-pricing org, a Force
-    reprice of the whole quote with no line changes restored every net price exactly [Measured: 2026-11-13,
-    264, scratch, one org; Compound ramp, three segments, two products, delta pricing on; quote only, not
-    ordered; a Place call with Force pricing, not the line-editor button]. Run a whole-quote reprice
-    after any ramp edit and read the net prices, not the totals `[inferred]`. The cause is not isolated. A line without a `RampIdentifier`
-    took no uplift (a standalone Evergreen product, one org). The uplifted price keeps full
-    precision, not cents (one of those orgs; the other already rounded after the uplift); add a
-    rounding step after the ramp uplift if the source rounds. These behaviours weren't measured on a
-    Standard ramp (the 2026-10-29 Standard UI run had one Term product and exact prices). See
-    [ui-group-ramp.md → What the segment uplift reaches](ui-group-ramp.md#what-the-segment-uplift-reaches)
-    and [compound-uplift.md](compound-uplift.md).
+9. **A group-ramped bundle added by API (`AddProducts` into ramped segments) with a one-time or evergreen child cannot be
+   amended** (`PlaceSalesTransactionPersistException`) [Measured: 2026-11-05/06, 264, scratch, one org]. Built in the quote UI the same shape
+   amended (evergreen not tried in the UI). Cancel failed too where tried. Detail and the assetization shapes:
+   [bundle-children-lifecycle.md](bundle-children-lifecycle.md#amend-and-cancel-limitation).
+10. **In a UI-built Compound group ramp, a segment's uplift applies to every ramp-stamped line in it, unrounded**
+    (One-Time and Evergreen lines too, whose `TotalPrice` doesn't follow the uplifted net; `UnitPriceUplift` 0 on a line
+    exempts it). **A partial line edit re-applies the uplift to untouched ramp lines** (net prices move, totals don't):
+    finish every ramp edit with a whole-quote Force reprice and read net prices, not totals. No line needs the exemption
+    when the source's one-time and evergreen items sit outside the segments (top-level, unramped lines took no uplift)
+    or when every ramped line should take the uplift [Open: measure a mixed ramp where only some ramped lines should take the uplift]. A line without a `RampIdentifier` took no uplift (a
+    standalone Evergreen product, one org). The uplifted price keeps full precision, not cents: add a rounding step
+    after the ramp uplift if the source rounds. [Open: not measured on a Standard ramp; measure one with several products and a rounded price. The 2026-10-29
+    Standard UI run had one Term product and exact prices]
+    [Measured: 2026-11-11/13, 264, scratch orgs] (detail in [pitfalls.md](pitfalls.md#partial-line-patch-on-a-compound-ramp),
+    [ui-group-ramp.md](ui-group-ramp.md#what-the-segment-uplift-reaches), [compound-uplift.md](compound-uplift.md)).
 
 ## DO NOT
 
@@ -112,117 +101,36 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   `TotalPrice`, `CalculationStatus`, `QuoteNumber`. They are computed — the call
   fails if you set them.
 - **DO NOT** set `RampIdentifier` or `SegmentIdentifier` on a line — the ramp
-  actions stamp them. Whether a caller write is refused is not measured (see
-  [field-legality.md](field-legality.md)).
+  actions stamp them. [Open: whether a caller write is refused is not measured] ([field-legality.md](field-legality.md)).
 - **DO NOT** write `RampUpliftType` on `QuoteLineItem`/`OrderItem` via Place — it
-  is engine-owned there (rejected as not-writeable even when FLS shows editable).
-  Set it on the ramp **group** — the **top-level `RampScheduleGroup`** in
-  multi-schedule mode (repo default), or the single segment group when the setting is
-  off; it cascades to every ramped line in the schedule.
+  is engine-owned there (rejected as not-writeable even when FLS shows editable). Set it on the ramp **group**: the
+  **top-level `RampScheduleGroup`** in multi-schedule mode (repo default), or the single segment group when the
+  setting is off; it cascades to every ramped line in the schedule.
 - **DO NOT** use the trial segment type `Trial` — the live enum is **`FreeTrial`**
   (`SegmentType` ∈ `Yearly`, `Custom`, `FreeTrial`, `Prorated`).
-- **DO NOT** clone more than one group per call — `recordIds` takes exactly one id
-  (the last segment's group).
-- **DO NOT** expect a clone to vary quantity or price per period — it copies the
-  prior segment as-is. To grow a ramp, set per-segment values (quantity,
-  `UnitPriceUplift`) after cloning. Do not fake growth silently; note it.
-- **DO NOT** rely on an active CML model to add **standalone** products to a ramp segment.
-  Help (*Considerations for Ramp Deals*): configuration rules don't recognize quote or order
-  groups, and a rule that adds a standalone product to a segment doesn't ramp it or add it to
-  later segments. A rule-added **child of a ramped parent** is ramped and carried forward.
-  A group-level `require` (a `groupBy = SalesTransactionItemGroup` container) adds its products to
-  ramped segments with blank `RampIdentifier`, `SegmentIdentifier` and `SegmentType` when it fires
-  during a Connect clone or a `configurationMethod: Force` Place without `groupRampAction`. Rules keyed
-  on `IsLineGroupRamped__std` and `ItemSegmentType == "Yearly"` fired during the clone even with every Place call
-  set to `Skip`. A `Force` Place with `groupRampAction: AddProducts` stamped the products it added, but
-  not blank lines already on the quote (one 264 org, 2026-11-06, test model, standalone Term Annual
-  products; order and amend of the blank lines not measured). See
-  [constraint-models → Ramp groups and segments](../constraint-models/SKILL.md#ramp-groups-and-segments).
-  The bundles tested in ramped segments, added in the quote UI or cloned, kept ramp ids on every line; see
-  [Cloning a segment that holds a bundle](bundle-children-lifecycle.md#cloning-a-segment-that-holds-a-bundle).
-- **DO NOT** allow only one instance per type on a virtual transaction (`Quote`) container in a group ramp.
-  The container sees every segment's lines at once: the configurator is handed every line of the quote in one
-  set, and no per-group scope was found on the input side. A `groupBy` container partitions by an attribute
-  value; whether that can scope a ramp segment wasn't shown. Source shows the solver's cardinality check allows
-  one line of an unsplit type (or in a `[0..1]` relation) per relation, and a quote-level virtual container puts
-  every segment's lines in one relation, so a second segment's line would fail it [Platform behaviour, traced in
-  part]. The measured message below is not the solver's text, so whether this check produced it isn't
-  established. What Place does to a cloned segment line's status and quantity wasn't traced (live check). See the container rule in
-  [constraint-models → Checks across top-level lines](../constraint-models/quantities-from-attributes.md#checks-across-top-level-lines-a-virtual-quote-container).
-  Measured 2026-11-11 (fresh 264 `ent-sb0` scratch org, quote UI): with the bundle relation `[0..1]` and `@(split = false)` on the top-level line types it held,
-  the ramp quote got "You can't add more than one of the same '<product>' product to the '<type>' product
-  class" and the configurator couldn't save. Widening those relations' cardinality and dropping
-  `split = false` from those types (changed together) fixed it. Write the container's cross-line checks as
-  totals across all segments. The container pattern, including its `[0..1]` bundle bound for an unramped
-  quote, is in the same section. Whether a `[0..1]` or `split = false` bound alone is the trigger, or a
-  setting is also involved, wasn't isolated (live check).
-  Model a one-instance type per bundle, not in a shared quote-level container.
-- **DO NOT** treat a null `RampIdentifier` on read-back as a graph mistake — it
-  usually means the org's **context definitions are stale**; a Context Definition
-  sync fixes it (see `.cursor/skills/context-service/SKILL.md`). Other known causes: a line a
-  group-level CML `require` added (DO NOT above), and a one-time or evergreen bundle child added with
-  `AddProducts` into ramped segments (Quick Rule 9), and a standalone Evergreen line
-  ([ui-group-ramp.md](ui-group-ramp.md)).
-- **DO NOT** trust a `pricingPref: "System"` reprice to fix a **cloned** group-ramp segment. When delta
-  pricing applies (rule linked below), only the edited lines and the
-  lines that depend on them re-run, so a clone's stale lines can be skipped; Help says Compound Uplift lines in a
-  ramp group are repriced on every run regardless of delta pricing
-  [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`], so the skip would apply only to
-  lines without Compound Uplift [inferred]. A
-  segment created by clone can keep its clone-time price indefinitely.
-  Delta pricing (on in every Foundations-built org
-  [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`]) is defined once in
-  [pricing-procedures](../pricing-procedures/runtime-and-observability.md#delta-pricing);
-  when it doesn't apply, every line reprices
-  ([transaction-line-editor → runtime behavior](../transaction-line-editor/runtime-behavior.md)).
-
-  Measured 2026-10-29/30 on 264 with a probe that set the uplift at placement:
-  - 8 of 8 builds came out of cloning with the last segment un-uplifted (setting the uplift
-    after the clones instead avoided it, 8 of 8);
-  - one System reprice repaired 7 of them (the request contents were not recorded, so it
-    isn't known to be header-only; a graph-style System request with only the Quote header
-    isn't priced, though a request carrying a context id is when lines exist, not measured
-    [Platform behaviour, traced]);
-  - the 8th stayed stuck through that reprice and two more System reprices;
-  - one **`Force`** reprice fixed it (todo 160).
-
-  Make the final reprice `Force`. On a ramped renewal, amendment or cancellation quote, do it
-  before the order is activated, not after (see
-  [asset-lifecycle-changes → verification](../asset-lifecycle-changes/verification.md)).
-  Then check that every ramp line's `PriceWaterfallIdentifier`
-  starts with its **own** Id. One that starts with `Quote_QuoteLineItem_<other Id>` hasn't been
-  fully priced since its clone. (`build_quote_to_asset.py` asserts this.)
-- **DO NOT** trust the lines you didn't touch after a **partial line PATCH on a Compound ramp.**
-  Measured 2026-11-11 on a fresh 264 `ent-sb0` scratch org (a UI-built Compound ramp): a
-  Place PATCH (`pricingPref: "System"`, `configurationMethod: Force`) that set only some lines'
-  `UnitPriceUplift` re-applied the uplift to the other ramp lines. Their `NetUnitPrice` was uplifted
-  again on top of the already uplifted net (each segment by its applied % once more), while
-  their `TotalPrice` stayed put. **Reprice All** in the line editor restored every line; a `Force`
-  reprice wasn't tried for this Place-PATCH case; it was tried after a System PATCH (see above). What the source shows: when delta
-  skipping doesn't apply, every line runs through every pricing element again, and the uplift step isn't
-  idempotent, so an untouched line is uplifted again; when it applies, only the edited lines and their
-  dependents re-run [Platform behaviour, traced]. Help adds that a Compound Uplift Price Revision step reprices every line in the ramp group on each run regardless of delta pricing [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`]; that fits the re-uplift of untouched ramp lines [inferred]. The 2026-11-11 org was built from the repo's scratch
-  definition, so delta pricing was probably on, but its setting wasn't read there, and whether the re-uplifted
-  lines (the Term child) were dependents of the edited ones, or this is a different path, is not established
-  (live check). On a second org with the setting read as on, a System PATCH of one ramp line with no field change (configuration Skip) left every line's waterfall id unchanged, yet re-applied the compound uplift to every uplifted line's `NetUnitPrice`, unrounded, with totals unchanged [Measured: 2026-11-12, 264, scratch; one org]. Help's rule fits which lines moved, but not the unchanged waterfalls or the uplift compounding on the stored net; that path is not traced. Don't
-  rely on a partial PATCH leaving other lines untouched. To reproduce: on a Compound UI ramp,
-  PATCH `UnitPriceUplift` on some lines of segments 2 and 3 only, then read the other lines'
-  `NetUnitPrice` in those segments (measured with a bundle: the PATCHed lines were its Evergreen and
-  One-Time children, the re-uplifted ones its Term child). Finish every ramp line edit with Reprice
-  All and re-read all segments.
-- **DO NOT** reprice a lifecycle quote after its order is activated. Lifecycle lines are priced
-  from the source asset's current state, and activation rewrites that state [Platform behaviour,
-  traced in part]; see
-  [asset-lifecycle-changes/verification.md](../asset-lifecycle-changes/verification.md).
-  Measured once on a renewal quote: a full reprice (every line, pricing `Force`, configuration
-  `Skip`) after the order was activated set the renewal lines' totals and the quote total to
-  0 [Measured: 2026-11-12, 264, scratch org]: each lot became a -lot/+lot pair netting 0, and the
-  order and assets were unchanged. Not measured on amendments or cancellations, or on any ramped
-  quote; why the reprice returned 0 is not traced. Read quote values before activation and
-  don't reprice afterwards.
+- **DO NOT** clone more than one group per call (`recordIds` takes exactly one id, the last segment's group), or
+  expect a clone to vary quantity or price per period: it copies the prior segment as-is, so set per-segment values
+  (quantity, `UnitPriceUplift`) after cloning. Do not fake growth silently; note it.
+- **DO NOT** rely on an active CML model to add **standalone** products to a ramp segment, or put a one-instance
+  rule on a quote-level virtual container (it sees every segment's lines at once). A rule-added child of a ramped
+  parent is ramped. Measured detail: [pitfalls.md](pitfalls.md#cml-rules-and-ramp-segments).
+- **DO NOT** treat a null `RampIdentifier` on read-back as a graph mistake before checking stale context
+  definitions (sync them), a line a group-level CML `require` added, an `AddProducts` bundle child, or a
+  standalone Evergreen line: [pitfalls.md](pitfalls.md#null-rampidentifier).
+- **DO NOT** trust a `pricingPref: "System"` reprice to fix a **cloned** segment: delta pricing can skip its stale
+  lines. Make the final reprice `Force` and check each ramp line's `PriceWaterfallIdentifier` starts with its own Id
+  ([pitfalls.md](pitfalls.md#system-reprice-of-a-cloned-segment)).
+- **DO NOT** trust untouched lines after a **partial line PATCH on a Compound ramp**
+  ([pitfalls.md](pitfalls.md#partial-line-patch-on-a-compound-ramp)).
+- **DO NOT** reprice a lifecycle quote after its order is activated: lifecycle lines price from the source asset's
+  current state and activation rewrites it. A renewal and a cancellation repriced to 0; other amendment shapes and
+  ramped quotes are unmeasured, so treat them the same ([pitfalls.md](pitfalls.md#reprice-after-activation),
+  [asset-lifecycle-changes/verification.md](../asset-lifecycle-changes/verification.md)).
 - **DO NOT** claim a build "works" from an offline dry-run — a mutating ramp run
   must be verified against a **live 264 org**, writing only to a confirmed
   **writable** org.
+- **DO NOT** assume a custom Create Ramp Schedule flow receives the quote id: it receives no inputs on 264
+  ([custom-ramp-flow.md](custom-ramp-flow.md)).
 
 ## Entry Conditions
 
@@ -230,365 +138,30 @@ quote UI (`ui-group-ramp.md`, measured on 264).
 |---|---|
 | Build / add a segment to / verify a multi-year **group** ramp quote | This skill |
 | Build or check a group ramp **in the quote UI** (demo, rep-built quote) | `ui-group-ramp.md` |
-| Get **compound** per-segment uplift right (the `PriceRevision` engine, `IsCompoundUpliftEnabled`, prerequisites) | [Compound uplift](#compound-uplift) → `.cursor/skills/pricing-procedures/elements/price-revision-compound-uplift.md` |
+| Get **compound** per-segment uplift right (the `PriceRevision` engine, `IsCompoundUpliftEnabled`, prerequisites) | [Compound uplift](compound-uplift.md) → `.cursor/skills/pricing-procedures/elements/price-revision-compound-uplift.md` |
 | Turn on **Advanced Detail Line Pricing** / sync context definitions (a compound prerequisite) | `.cursor/skills/context-service/SKILL.md` |
-| Resolve Account / Pricebook / Product2 / PricebookEntry ids | [Discovering ids](#discovering-ids) |
+| Resolve Account / Pricebook / Product2 / PricebookEntry ids | [Discovering ids](verify-and-discover.md#discovering-ids) |
 | Build a non-ramp quote → order → asset | `scripts/build_quote_to_asset.py`; `.cursor/skills/txn-data-harness/SKILL.md` |
 | The v68 Connect endpoint catalog (place, clone, ramp-deal, amend/renew/cancel) | `docs/salesforce/264/dev-guide/index.md` (tracked 264 dev-guide index — use the `/connect/rev/...` payloads above). `docs/api/transaction-management-apis-reference.md` is a v68-grounded summary of the same routes; prefer the dev-guide page when the two disagree |
-| A null `RampIdentifier` / stale context definitions | `.cursor/skills/context-service/SKILL.md`; for a line a group-level CML `require` added, or a one-time/evergreen child added with `AddProducts`, see [DO NOT](#do-not) and Quick Rule 9; a standalone Evergreen line carries none ([ui-group-ramp.md](ui-group-ramp.md)) |
+| A null `RampIdentifier` / stale context definitions | `.cursor/skills/context-service/SKILL.md`; for a line a group-level CML `require` added, or a one-time/evergreen child added with `AddProducts`, see [bundle-children-lifecycle.md](bundle-children-lifecycle.md#amend-and-cancel-limitation) and Quick Rule 9; a standalone Evergreen line carries none ([ui-group-ramp.md](ui-group-ramp.md)) |
+| Replace the admin flow behind Create Ramp Schedule, or edit a segment's uplift after creation | [custom-ramp-flow.md](custom-ramp-flow.md) |
+| A reprice, clone or partial-PATCH result looks wrong | [pitfalls.md](pitfalls.md) |
 
 ## The proven build sequence
 
-`<PLACEHOLDER>` values are ids you resolve first (see [Discovering ids](#discovering-ids)).
-Windows are contiguous per-period spans. For **`SegmentType=Yearly`**, send segment 1
-through EditGroup as **exactly 365 days** (`StartDate` + 364 days). Help says "exactly 365
-days for all segments, fixed" (`ind.qocal_ramp_deal_for_groups_create.htm.md`). Measured on
-264 (2026-10-28), though, **clones end each later segment on the calendar anniversary**:
-2027-05-01..2028-04-30 is 366 days and works. So only segment 1 can't contain 29 February. If
-it did, it would end a day short of the anniversary and the segments would drift; pick another
-start or use `Custom`. Later leap years are fine. `build_quote_to_asset.py --ramp-kind group`
-refuses such a start. For variable durations use **`SegmentType=Custom`**.
+Full payloads, the leap-year rule, the multi-schedule parent and the response checks are in
+[build-sequence.md](build-sequence.md). In order:
 
-**Multi-schedule mode (repo default).** With `enableGroupRampMultiSchedulePref=true`
-(this repo's setting), a group ramp is the **two-level** structure — a top-level
-`Type='RampScheduleGroup'` group with the period segments nested under it — and
-`RampUpliftType` is set on that **parent** (Quick Rule 5). EditGroup and clone make only the
-segments; you add the parent (step 2). After each mutating call,
-read the groups back (`SELECT Id, Type, ParentQuoteLineGroupId, IsRamped FROM
-QuoteLineGroup WHERE QuoteId='<QUOTE_ID>'`) to get the parent-schedule and
-last-segment ids rather than assuming them.
+1. **`placeSalesTransaction` create:** Quote + period-1 group + one `QuoteLineItem` per product (`Product2Id` and
+   `PricebookEntryId`, Quote `CurrencyIsoCode` = account currency). Check the body for `errorResponse`, not just a Quote id.
+2. **`groupRampAction: "EditGroup"`:** `IsRamped=true`, `SegmentType=Yearly`, segment 1 exactly 365 days; each
+   `referenceId` the record's own Id. In multi-schedule mode add the `RampScheduleGroup` parent yourself after the clones.
+3. **`POST /connect/rev/sales-transaction/actions/clone`** once per additional period, cloning the last segment's group.
+4. **Place PATCH:** `RampUpliftType='Compound'` on the parent group and `UnitPriceUplift` per segment line, `pricingPref: "Force"`.
 
-### 1. `placeSalesTransaction` (create) — Quote + group + lines
-
-`POST /connect/rev/sales-transaction/actions/place`. Fields are **siblings of
-`attributes`**, not nested under a `fields` key; `@{refX.id}` wires children to
-parents created in the same call.
-
-```json
-{
-  "pricingPref": "System",
-  "configurationPref": { "configurationMethod": "Skip" },
-  "graph": { "graphId": "rampCreate", "records": [
-    { "referenceId": "refQuote", "record": {
-        "attributes": { "type": "Quote", "method": "POST" },
-        "Name": "<deal name>", "QuoteAccountId": "<ACCOUNT_ID>",
-        "CurrencyIsoCode": "<ACCOUNT_CURRENCY>",
-        "Status": "Draft", "Pricebook2Id": "<PRICEBOOK_ID>" } },
-    { "referenceId": "refGroup", "record": {
-        "attributes": { "type": "QuoteLineGroup", "method": "POST" },
-        "Name": "Year 1", "QuoteId": "@{refQuote.id}" } },
-    { "referenceId": "refLine0", "record": {
-        "attributes": { "type": "QuoteLineItem", "method": "POST" },
-        "QuoteId": "@{refQuote.id}", "QuoteLineGroupId": "@{refGroup.id}",
-        "Product2Id": "<PRODUCT2_ID>", "PricebookEntryId": "<PBE_ID>",
-        "Quantity": 1, "SubscriptionTerm": 12,
-        "StartDate": "2026-01-01", "EndDate": "2026-12-31",
-        "PeriodBoundary": "AlignToCalendar", "BillingFrequency": "Monthly",
-        "BillingTreatmentId": "<TREATMENT_ID>" } }
-  ] }
-}
-```
-
-Add one `refLineN` per product. A ramp line needs **both** `Product2Id` and
-`PricebookEntryId` (PBE alone fails). For **group** ramps the product needs **no
-per-product ramp flag** — all subscription (term-defined) products that meet the
-requirements are eligible by default (264 Help, *Ramp Deals for Groups Transition*);
-`Product2.CanRamp` gates the *line*-ramp path, not this one. Set
-`CurrencyIsoCode` on the Quote to the **account currency** — this repo enables
-multicurrency (`config/project-scratch-def.json`), so omitting it lets the quote take
-the running user's currency and mismatch the PBE/billing-treatment currency (the
-proven builder sets it, `scripts/build_quote_to_asset.py`).
-A term-defined line with a `BillingFrequency` that differs from its selling model's pricing
-term needs a `BillingTreatmentId` (Active, Change Billing Frequency selected); a matching
-frequency needs none ([billing-setup](../billing-setup/SKILL.md), item 3). Where one is needed,
-resolve one for the account currency (see [Discovering ids](#discovering-ids));
-this mirrors `scripts/build_quote_to_asset.py`.
-
-> **Check the response body after every Place call — a returned Quote id is not
-> success.** `place` reports per-record graph failures in an **`errorResponse`** array
-> while still returning **HTTP 200** *and* still creating the parent `Quote` (a naive
-> "did I get a quote id?" check then proceeds on a quote with no/partial lines, and
-> polling it can look settled). Before polling, fail on a top-level `errorCode`, and on
-> a dict response fail if `errorResponse` is non-empty **or** `isSuccess === false`.
-> This applies to the create call here and the `EditGroup` call in step 2; the proven
-> builder does exactly this (`scripts/build_quote_to_asset.py`). (The `clone` call in
-> step 3 has its own contract — `success:false` + populated `errors[]` — covered there.)
-
-### 2. `placeSalesTransaction` (EditGroup) — mark period 1 ramped
-
-Same endpoint, with **`groupRampAction: "EditGroup"`**. This flips the group and
-stamps `RampIdentifier` on its lines.
-
-**Each `referenceId` must be the record's own Id**, as in the dev guide's example. EditGroup
-matches the groups to convert by `referenceId`; with a label such as `"g"` nothing matches and
-the call fails with `UNKNOWN_EXCEPTION` *"Index 0 out of bounds for length 0"* (measured on 264,
-2026-10-28; `GroupRampActionHandler.handleEditGroup` indexes the empty match list).
-
-**Multi-schedule mode (repo default): add the parent yourself.** Measured on 264, neither
-EditGroup nor clone creates the `RampScheduleGroup`, and an order without one fails activation
-with *"Specify a ramp schedule group for ramp segment"* (todo 159). After the clones, POST a
-`QuoteLineGroup` with `Type: "RampScheduleGroup"` (a Place with the Quote PATCH and that POST),
-then set each segment's `ParentQuoteLineGroupId` to it by DML: a Place that reparents a group to
-one it creates fails with *"Cyclic dependencies detected"*. `build_quote_to_asset.py
---ramp-kind group` does all of this. Then read the groups back to capture the parent-schedule id
-(needed for `RampUpliftType` in step 4) and the segment ids.
-
-```json
-{
-  "groupRampAction": "EditGroup",
-  "pricingPref": "System",
-  "graph": { "graphId": "rampEdit", "records": [
-    { "referenceId": "<QUOTE_ID>", "record": {
-        "attributes": { "type": "Quote", "method": "PATCH", "id": "<QUOTE_ID>" } } },
-    { "referenceId": "<GROUP_ID>", "record": {
-        "attributes": { "type": "QuoteLineGroup", "method": "PATCH", "id": "<GROUP_ID>" },
-        "StartDate": "2026-01-01", "EndDate": "2026-12-31",
-        "SortOrder": 1, "IsRamped": true, "SegmentType": "Yearly" } }
-  ] }
-}
-```
-
-The platform rewrites `SortOrder` (measured: 1 became −999999999, the next clone −999999998),
-so order segments by `StartDate`, not by the values you sent.
-
-### 3. `cloneSalesTransaction` — add each subsequent period
-
-`POST /connect/rev/sales-transaction/actions/clone`, once per additional period,
-each cloning the most recent ramped group:
-
-```json
-{ "salesTransactionId": "<QUOTE_ID>",
-  "recordIds": [ "<LAST_RAMPED_GROUP_ID>" ],
-  "options": { "lineScope": "AllLines" } }
-```
-
-Per the dev guide the v68 clone response is `{ requestId, salesTransactionId, success, errors }`
-(`docs/salesforce/264/dev-guide/articles/connect-responses-clone-sales-transaction-output.md`);
-measured clones also returned a `trackerId` key, null in group clones (ramp runs) and in whole-quote clones, and a
-`trackerUrl` key, null in whole-quote clones (see
-[quote-negotiation-rounds → deep-clone.md](../quote-negotiation-rounds/deep-clone.md#response-and-completion)).
-`success:false` with a populated `errors[]` is a
-synchronous failure — stop. On `success:true` the save runs **async**. The dev guide says `requestId`
-identifies that process; every measured response had `requestId` null, so it can't be the gate there. The
-large-transaction clone path wasn't traced. Gate on `Quote.CalculationStatus` —
-poll it to a settled state ([Status](#status)) before the next call. Do **not**
-read or clone the next group until it settles; then read back the new group's id
-for the next clone. The quote can still read as settled from before the call, so also poll
-until the new group exists with `IsRamped`, `SortOrder`, `StartDate` and `EndDate` set (as
-`build_quote_to_asset.py` does).
-
-### 4. `placeSalesTransaction` (PATCH) — apply compound uplift, then reprice
-
-Cloning copies the prior segment as-is; it does **not** set the uplift. To produce a
-compound ramp you must, after the segments exist, PATCH `RampUpliftType='Compound'`
-onto the **top-level `RampScheduleGroup`** (multi-schedule; the single segment group
-when the setting is off) and the per-segment **`UnitPriceUplift`** onto each segment's
-line, in one Place graph, then reprice and poll. This step is what actually yields the
-compound result — the three calls above alone do not. Segments
-reparented to the `RampScheduleGroup` by DML priced as Standard until this PATCH sent
-`RampUpliftType` [Measured: 2026-11-16, 264, scratch]. `build_quote_to_asset.py --ramp-kind
-group` sets neither `RampUpliftType` nor `UnitPriceUplift` [Repo], so send this step yourself.
-[Open: whether `RampUpliftType` set on the `RampScheduleGroup` POST takes effect; until tested,
-send it in this PATCH] It also needs the fully-configured
-`PriceRevision` engine ([Compound uplift](#compound-uplift)).
-
-```json
-{
-  "pricingPref": "Force",
-  "graph": { "graphId": "rampCompound", "records": [
-    { "referenceId": "q", "record": {
-        "attributes": { "type": "Quote", "method": "PATCH", "id": "<QUOTE_ID>" } } },
-    { "referenceId": "sg", "record": {
-        "attributes": { "type": "QuoteLineGroup", "method": "PATCH", "id": "<RAMP_SCHEDULE_GROUP_ID>" },
-        "RampUpliftType": "Compound" } },
-    { "referenceId": "l1", "record": {
-        "attributes": { "type": "QuoteLineItem", "method": "PATCH", "id": "<SEGMENT_2_LINE_ID>" },
-        "UnitPriceUplift": 5 } },
-    { "referenceId": "l2", "record": {
-        "attributes": { "type": "QuoteLineItem", "method": "PATCH", "id": "<SEGMENT_3_LINE_ID>" },
-        "UnitPriceUplift": 3 } }
-  ] }
-}
-```
-
-Segment 1 is the baseline (leave `UnitPriceUplift` 0). `pricingPref: "Force"`
-re-runs pricing on **every** line, so the engine applies the compound uplift. On the graph-request Place
-path, `System` prices a request only if it carries at least one line or line-attribute record (an all-delete request is priced only if the header still has lines; a request holding only the Quote
-header, such as a lone `RampUpliftType` change, isn't priced); a request carrying a context id is
-priced whenever the transaction has lines, and an org setting can skip pricing altogether. `System` delta
-pricing, where the org has it on, may also skip lines (see DO NOT) [Platform behaviour, traced]; see the header-only rule in
-[transaction-line-editor → runtime behavior](../transaction-line-editor/runtime-behavior.md). Poll `CalculationStatus`
-to a settled state, then read back ([Read-back](#read-back--the-ramp-schedule)) and
-verify the compounding numerically.
-
-> **Apex-invocable variant.** Some connectors expose clone as a CLASSIC Apex
-> invocable whose args are wrapped in an `inputs` array. `lineScope` lives inside the
-> Apex-defined **`options`** input (with optional `recordTypeId`), not at the top level
-> (`actions-obj-deep-clone-sales-transaction.md`):
-> `{ "inputs": [ { "salesTransactionId": "...", "recordIds": ["..."], "options": { "lineScope": "AllLines" } } ] }`.
-> Same semantics; use whichever the transport exposes.
-
-### <a name="status"></a>Poll `CalculationStatus` between calls
-
-`Quote.CalculationStatus` is read-only and moves through tax/price/save states.
-Match against the **live v68 enum** (from `scripts/erd/schema_diff/264-schema.json`),
-not a suffix wildcard — several in-flight values are `QueuedFor…`-**prefixed** (they
-do not *end* in `Queued`) and `TaxCalculationInProcess` is not `…InProgress`:
-
-- **Settled — success:** `CompletedWithTax` (the org returns this where the describe
-  lists `TaxCalculationSuccess` — treat both as success); `CompletedWithoutPricing`
-  (settled, but pricing was **skipped** — not a priced result, so do not report
-  prices from it; with `require_priced`, `E2ECommon.robot` treats it as failed and reprices once).
-- **`CompletedWithPricing` — settled *when tax doesn't run*.** Pricing is done; on
-  an org that calculates estimated tax, tax runs next. Which applies depends on the org:
-  - **Foundations default build:** estimated tax on quotes and orders is **off**
-    (`unpackaged/post_quote_est_tax_settings/`; the `quote_est_tax` flag, with `tax`,
-    turns it on). Tax never
-    runs, so `CompletedWithPricing` is **terminal**. Live 264.7, 2026-10-14: quotes
-    stopped there with no `taxPref`.
-  - **Estimated tax on and `taxPref` omitted:** `taxPref` defaults to running tax
-    (`connect-requests-place-sales-transaction-input.md`), so `CompletedWithPricing`
-    is **still in flight**; wait for `CompletedWithTax`.
-  - **`taxPref: "Skip"`:** terminal on any org.
-  - The platform also skips tax when any line has a **negative quantity**, so a
-    quantity reduction (a negative-quantity line) is terminal at `CompletedWithPricing`
-    even with estimated tax on. A price-lowering amendment instead fails with
-    `AmountNegative` while estimated tax is on.
-  - Robust pollers accept both values as settled; see `E2ECommon.robot`
-    `@{QUOTE_CALC_PRICED}`.
-- **Settled — failure (the poll stops):** any `…Failed` — `TaxCalculationFailed`,
-  `PriceCalculationFailed`, `SaveFailedOrIncomplete`, `ConfigurationFailed`,
-  `ReconciliationFailed`, `GroupRampConfigurationFailed`, `PstBaseStepFailed`,
-  `ARCStepFailed`, `QuoteRequestFailed`, `CloneFailed`, `ImportQLIFailed`.
-  No source says whether a failed status clears on its own; the repo pollers don't wait for it
-  (`E2ECommon.robot`, `_Is Failed Calculation Status`).
-  [Open: leave a failed quote untouched for several minutes and re-read `CalculationStatus`]
-  `E2ECommon.robot` `Wait For Quote Calculation` reprices once
-  (Place Sales Transaction, `pricingPref` Force) and fails the test if the second wait also fails.
-  The large-deal reference, written for `Order.CalculationStatus` (Release 262), likewise allows a
-  bounded reprice retry for `PstBaseStepFailed`, `ConfigurationFailed`, `GroupRampConfigurationFailed`,
-  `PriceCalculationFailed`, `TaxCalculationFailed`, `SaveFailedOrIncomplete` and `ReconciliationFailed`
-  (it also lists `OrderRequestFailed`, an Order-only value;
-  `troubleshooting/large-deal-preprocess-reference.md`).
-- **Settled partially, investigate (guide) vs. reprice once (repo poller):** `QuoteRequestPartiallySaved`, `PartialSaveSuccess`.
-  Divergence: the repo poller puts both in `@{QUOTE_CALC_FAILED}`, so `_Is Failed Calculation Status`
-  is true and `Wait For Quote Calculation` reprices once, like a failure (`E2ECommon.robot`). The large-deal
-  reference (Order statuses) says investigate rather than retry for `OrderRequestPartiallySaved` and
-  `PartialSaveSuccess` (`troubleshooting/large-deal-preprocess-reference.md`); it does not name
-  `QuoteRequestPartiallySaved`, so that value follows the same rule by analogy `[inferred]`.
-- **In-flight (keep polling):** `NotStarted`, `TaxCalculationWaiting`,
-  `TaxCalculationInProcess`, `PriceCalculationQueued`, `PriceCalculationInProgress`,
-  `Saving`, `ConfigurationInProgress`, `ReconciliationInProgress`,
-  `ContextHydrationInProgress`, `ARCInProgress`, `CloneInProgress`, `ImportQLIInProgress`, `ImportQLISuccess`
-  (the import is done but pricing may not have started; `E2ECommon.robot` retries it only when `require_priced` is set), and every
-  `QueuedFor…` value (`QueuedForConfiguration`, `QueuedForPricing`,
-  `QueuedForPricingAndSaving`, `QueuedForSaving`, `QueuedForARC`, `QueuedForClone`).
-
-**A value in none of these = stop and look**, not "keep polling" or "assume done".
-
-## <a name="compound-uplift"></a>Compound price uplift
-
-Read [`compound-uplift.md`](compound-uplift.md) when you apply or verify a **Compound** uplift:
-the quote-side prerequisites and a quick read-back check. The engine (the ramp `PriceRevision`
-element) and the full per-period arithmetic are in
-[`../pricing-procedures/elements/price-revision-compound-uplift.md`](../pricing-procedures/elements/price-revision-compound-uplift.md).
-The PATCH payload itself is step 4 above.
-
-## Read-back → the ramp schedule
-
-**Assert the groups first.** A clone after a failed `EditGroup` still returns `success:true`: it
-copies a group that was never converted, leaving segments with `IsRamped` and `SortOrder` null that
-look like a healthy ramp by count and name. Before reading prices, check:
-- every segment group has `IsRamped = true`, a non-null `SortOrder` and a `SegmentType`;
-- the segment count is the number of periods;
-- in multi-schedule mode (repo default), exactly one group has `Type = 'RampScheduleGroup'`. It is
-  the parent, not a segment (observed with `IsRamped = false` and `SortOrder` 0; leave it out of the
-  segment checks), and it carries the expected `RampUpliftType`. Every segment's
-  `ParentQuoteLineGroupId` must be the `RampScheduleGroup`'s Id. A segment with no parent prices correctly and passes the
-  checks above, then fails at order activation with "Specify a ramp schedule group for ramp
-  segment".
-
-```bash
-sf data query --target-org <sf_alias> -q "SELECT Id, Name, Type, ParentQuoteLineGroupId, \
-  IsRamped, SortOrder, SegmentType, RampUpliftType \
-  FROM QuoteLineGroup WHERE QuoteId='<QUOTE_ID>' ORDER BY StartDate NULLS FIRST"
-```
-
-Then the lines:
-
-```bash
-sf data query --target-org <sf_alias> -q "SELECT Product2.Name, Product2.StockKeepingUnit, \
-  SegmentName, IsPrimarySegment, RampIdentifier, StartDate, EndDate, Quantity, \
-  UnitPrice, NetUnitPrice, TotalPrice, NetTotalPrice, UnitPriceUplift, \
-  ApplUnitPriceUpliftPct, RampUpliftType, QuoteLineGroupId \
-  FROM QuoteLineItem WHERE QuoteId='<QUOTE_ID>' ORDER BY StartDate NULLS FIRST"
-```
-
-Order by `StartDate` to find segment 1: `IsPrimarySegment` was false on **every** segment of a
-UI-built ramp (measured 2026-11-11, fresh 264 `ent-sb0` scratch org), so it can't single out a segment.
-
-Report: account, products, **TCV** (Σ all line totals across all segments),
-per-period subtotal and **% of TCV**, and the ramp-by-product matrix (grouped on
-`RampIdentifier`, labelled by `Product2.Name`/`StockKeepingUnit`). Sum the
-platform-computed **`NetTotalPrice`** for TCV and subtotals — it is the
-**post-discount, prorated** line total that propagates to the posted invoice
-(`scripts/txn_data_harness/docs/contracts-sales-txn-quote.md`). Do **not** sum `TotalPrice`:
-it isn't reliably the net total. In the 2026-11-11 UI ramps (fresh 264 `ent-sb0` scratch orgs) it
-equalled quantity × net on Term lines but stayed at the un-uplifted price on One-Time and Evergreen
-lines (Quick Rule 10). Do **not** derive totals from `Quantity × NetUnitPrice` either (unreliable for
-term-priced/prorated lines). Both totals are read-only
-(never *set* them) but queryable; all numbers come from the priced quote.
-
-## <a name="discovering-ids"></a>Discovering ids
-
-The ask won't give Salesforce ids — resolve them first. Map spoken product intent
-("gen-AI licenses", "premium support") to real SKUs from the catalog; don't invent
-SKUs.
-
-```bash
-# Account — SELECT CurrencyIsoCode: multicurrency is on (repo default), and it drives
-# the Quote/PBE/BillingTreatment currency below.
-sf data query --target-org <sf_alias> -q \
-  "SELECT Id, Name, CurrencyIsoCode FROM Account WHERE Name = '<name>'"
-# PricebookEntry — a ramp needs BOTH Product2Id and this. Match the SKU on
-# Product2.StockKeepingUnit (the repo's SKU field, per scripts/build_quote_to_asset.py
-# and scripts/txn_data_harness/discovery.py — NOT ProductCode). Filter to the ACCOUNT
-# currency and require BOTH the entry and the product active (IsActive = true AND
-# Product2.IsActive = true), and read the selling model: a product can expose several
-# (e.g. Evergreen / Term Monthly / Term Annual) and the model dictates which line
-# fields are legal, so pick a TermDefined one deliberately (not the first row).
-sf data query --target-org <sf_alias> -q \
-  "SELECT Id, Product2Id, Pricebook2Id, UnitPrice, \
-     ProductSellingModel.Name, ProductSellingModel.SellingModelType \
-   FROM PricebookEntry \
-   WHERE Product2.StockKeepingUnit = '<SKU>' AND Pricebook2.IsStandard = true \
-     AND IsActive = true AND Product2.IsActive = true \
-     AND CurrencyIsoCode = '<ACCOUNT_CURRENCY>'"
-# Group-ramp eligibility: no per-product ramp flag is required — any subscription
-# (term-defined) product that meets the requirements is eligible by default (264
-# Help). `Product2.CanRamp` is the LINE-ramp flag, not a group-ramp prerequisite.
-# BillingTreatment for <TREATMENT_ID> — needed when the line's BillingFrequency differs from
-# the selling model's term unit (billing-setup item 3). Then it must be Active, match the
-# ACCOUNT currency, and have CanChangeBillingFrequency = true (when a treatment is needed,
-# Place rejects one without it).
-sf data query --target-org <sf_alias> -q \
-  "SELECT Id, Name, CanChangeBillingFrequency FROM BillingTreatment \
-   WHERE Status = 'Active' AND CurrencyIsoCode = '<ACCOUNT_CURRENCY>' \
-   AND CanChangeBillingFrequency = true ORDER BY Name"
-```
-
-## Field legality (live 264 / v68.0)
-
-Read [`field-legality.md`](field-legality.md) when a Place or PATCH call rejects a field, or before
-writing a line field: which ramp and pricing fields are writable on input on live 264.
-
-## A headless toolkit is in development
-
-A dependency-free `scripts/ramp_deals/` toolkit (schedule math, payload builders,
-status polling, read-back invariants) mirroring `scripts/expression_sets/` is being
-built on branch **`feat/ramp-deals-core`** (not yet merged to `main`). Until it
-lands, use the raw Connect calls above. When it merges, wire its CLIs into this
-skill's routing.
+Poll `Quote.CalculationStatus` between calls and read the groups back before the prices
+([verify-and-discover.md](verify-and-discover.md)). Compound uplift: [compound-uplift.md](compound-uplift.md) and
+[the engine](../pricing-procedures/elements/price-revision-compound-uplift.md).
 
 ## Examples
 
@@ -609,7 +182,7 @@ skill's routing.
 5. For compound uplift (step 4 of the sequence): PATCH `RampUpliftType='Compound'`
    on the **top-level `RampScheduleGroup`** and per-segment `UnitPriceUplift`, then
    reprice (`pricingPref:"Force"`) and poll (needs the fully-configured
-   `PriceRevision` engine — [Compound uplift](#compound-uplift)).
+   `PriceRevision` engine — [Compound uplift](compound-uplift.md)).
 6. Read back; report TCV, per-year subtotal, % of TCV, ramp-by-product matrix.
 
 Expected compound shape for this 3-year ramp (base 360, uplifts 5/3% — baseline +
@@ -644,20 +217,30 @@ only with a rounding step after the ramp uplift, see `compound-uplift.md`).
       prior factor).
 - [ ] Any mutating run executed against a confirmed **writable** live 264 org.
 
+
 ## Sub-files
 
+- `build-sequence.md` — the API build with payloads (create, EditGroup, clone, compound PATCH). Read it to build a group ramp.
+- `verify-and-discover.md` — `CalculationStatus` polling, the read-back queries and report, and resolving Account, price book entry and billing treatment ids. Read it between and after build calls.
+- `pitfalls.md` — measured detail behind the DO NOT list: CML rules in ramp segments, null `RampIdentifier`, reprice of a cloned segment, partial PATCH re-uplift, reprice after activation.
 - `compound-uplift.md` — Compound price uplift: the quote-side prerequisites, a read-back
   check, and the unrounded precision (round after the uplift); the engine and full arithmetic live
   in `pricing-procedures`. Read it when applying or checking Compound.
-- `field-legality.md` — which ramp and pricing line fields are writable on live 264. Read it when a
-  call rejects a field.
+- `field-legality.md` — which ramp and pricing line fields are writable on live 264, including `QuoteLineGroup.UnitPriceUplift`. Read it when a call rejects a field.
+- `custom-ramp-flow.md` — the Create Ramp Schedule admin flow contract (no inputs on 264), editing a segment's uplift after creation, and ramping products automatically. Read it before customizing the ramp flow.
 - `bundle-children-lifecycle.md` — a group-ramped bundle with a one-time or evergreen child: limiting the child to
-  segment 1 (unticking it, or a root answer that zeroes rule-sized children), what a UI-built bundle ramp carries per segment (every child, split default components), assetization shape, the amend/cancel 500 on API-built bundles (UI-built differ), renewal rules and lifecycle-recipe prerequisites. Read it before
+  segment 1, what a UI-built bundle ramp carries per segment, assetization shape, the amend/cancel 500 on API-built bundles, renewal rules and lifecycle-recipe prerequisites. Read it before
   amending, cancelling or renewing a ramped bundle.
-- `ui-group-ramp.md` — building a Standard or Compound group ramp in the 264 quote UI (Create Ramp
-  Schedule → Edit Ramp Schedule → Browse Catalogs into *Current and Subsequent Segments*), the
+- `ui-group-ramp.md` — building a Standard or Compound group ramp in the 264 quote UI, the
   expected prices and assets, which lines the segment uplift reaches, and how to verify. Read it for
   a UI demo or a UI-built quote.
+
+## Headless toolkit (in development)
+
+A dependency-free `scripts/ramp_deals/` toolkit (schedule math, payload builders, status polling, read-back
+invariants) mirroring `scripts/expression_sets/` is being built on branch `feat/ramp-deals-core`, not yet merged to
+`main`. Until it lands, use the raw Connect calls in [build-sequence.md](build-sequence.md); when it merges, wire its
+CLIs into this skill's routing.
 
 ## Related References
 
@@ -672,3 +255,4 @@ only with a rounding step after the ramp uplift, see `compound-uplift.md`).
 - **Non-ramp quote→order→asset builder:** `scripts/build_quote_to_asset.py`;
   `.cursor/skills/txn-data-harness/SKILL.md`.
 - **RLM object/field model:** `.cursor/skills/revenue-cloud-data-model/SKILL.md`.
+

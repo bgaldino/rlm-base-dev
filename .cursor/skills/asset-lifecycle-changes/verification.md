@@ -23,7 +23,7 @@ For each change, record the state after every step:
    the measured runs. On a No Change line, `Skip` refused a non-zero quantity ("Specify 0 in
    Quantity...") and `Force` accepted it, turning the line's `QuoteAction.Type` to Amend, even
    at quantity 0 [Measured: 2026-11-12, 264, scratch; one standalone asset, single-line quotes,
-   System pricing]. On an incomplete test bundle `Skip` plus a `QuoteAction` edit was ordered while `Force` was refused by a validation log (SKILL.md Quick Rule 7), so check rules and bundle validation separately when you use `Skip`. On a bundle amendment quote `Force` on one component also turned other lines to Amend (the root each time, the other component in one of two runs) [Measured: 2026-11-12, 264, scratch, one org]; `Skip` plus a `QuoteAction` Amend edit turned only the edited line; read every line's `QuoteAction.Type` back (SKILL.md Quick Rule 7). Then read:
+   System pricing]. On an incomplete test bundle `Skip` plus a `QuoteAction` edit was ordered while `Force` was refused by a validation log ([Quick Rule 7](amendments-and-attributes.md#rule-7-constraints-apply-to-amendments-too)), so check rules and bundle validation separately when you use `Skip`. On a bundle amendment quote `Force` on one component also turned other lines to Amend (the root each time, the other component in one of two runs) [Measured: 2026-11-12, 264, scratch, one org]; `Skip` plus a `QuoteAction` Amend edit turned only the edited line; read every line's `QuoteAction.Type` back ([Quick Rule 7](amendments-and-attributes.md#rule-7-constraints-apply-to-amendments-too)). Then read:
     - each line's `Quantity`, `UnitPrice` and `TotalPrice`. On an amendment quote
       `Quantity` is the delta, and `StartQuantity` and `EndQuantity` the totals before and
       after. A line's source asset is on `QuoteAction.SourceAssetId`; `QuoteLineItem` has
@@ -47,8 +47,9 @@ For each change, record the state after every step:
    prices (line and quote totals of 0 on a measured renewal, each lot a -lot/+lot pair; order
    and assets unchanged [Measured: 2026-11-12, 264, scratch, one org]). After
    activation, start a new lifecycle quote from the updated asset. Treat this as holding
-   for renewal, amendment and cancellation lines (measured only on a renewal, not on any
-   ramped quote); a Force reprice touches every line [Platform behaviour, traced], so it
+   for a renewal or cancellation, and, until measured, for other amendment shapes and ramped quotes. An activated
+   cancellation also went to 0, while an amend-add and an Evergreen-reduce amendment quote did not change
+   [Measured: 2026-11-26, 264, ent-sb0 harness build]. A Force reprice touches every line [Platform behaviour, traced], so it
    shows the effect most `[inferred]`. Use Reprice All or a Place request with Force pricing; a
    System request with a line record may not reprice every line where Delta Pricing applies
    ([Delta pricing](../pricing-procedures/runtime-and-observability.md#delta-pricing)).
@@ -88,10 +89,10 @@ For each change, record the state after every step:
       [Measured: 2026-11-16, 264, scratch];
     - `AssetAction` (`Type`, `CategoryEnum`, `QuantityChange`, `Amount`), which links to
       the order lines through `AssetActionSource.ReferenceEntityItemId`: the order line's
-      Id, or its `OrderItemDetail` Id when the line has detail rows (SKILL.md Quick Rule 2)
+      Id, or its `OrderItemDetail` Id when the line has detail rows ([Quick Rule 2](amendments-and-attributes.md#rule-2-read-attributes-as-well-as-prices))
       [Platform behaviour, traced].
     - For a CML bundle that will be amended again, the root's latest asset action source
-      rows must carry the node status (SKILL.md Quick Rule 2). `AssetAction.ActionDate` is
+      rows must carry the node status ([Quick Rule 2](amendments-and-attributes.md#rule-2-read-attributes-as-well-as-prices)). `AssetAction.ActionDate` is
       the activation time, so the latest action is the last one activated. The field is
       long text, so read it rather than filtering on it:
       `SELECT Id, ReferenceEntityItemId, RLM_ConstraintEngineNodeStatus__c, AssetAction.ActionDate FROM AssetActionSource WHERE AssetAction.AssetId = '<root asset>' ORDER BY AssetAction.ActionDate DESC`.
@@ -114,7 +115,7 @@ service component and a one-time accessory). The assets' `PricingSource` was not
 | Cancel the top-level asset | Every line −1; prices in detail rows | Unchanged; state periods end at the cancel date; "Cancel / Cancellations" |
 | Cancel or renew a component alone | Refused: "the asset is a bundle component. Provide the top-level asset" | — |
 | Renew | $0; quantity 0 on every line (no Term Defined line) | — |
-| Amend in the UI, inline quantity edit, rules on | Total right; parent prices blank (details +2 and −1); **attributes reset to product defaults** | The asset's new state period carries the defaults |
+| Amend in the UI, inline quantity edit, rules on | Total right; parent prices blank (details +2 and −1); **attributes reset to product defaults** (not reproduced on a current build with node status present; see [cancel-swap-and-linking.md](cancel-swap-and-linking.md#attribute-reset-on-amendment-not-reproduced)) | The asset's new state period carries the defaults |
 
 The action history netted to zero over add, add, remove and cancel (+, +, −, −). The
 attributes stayed unchanged after an `initiateAmendment` with `quantityChange`, a quantity change
@@ -140,7 +141,7 @@ through activation before the next; a reprice moved nothing at any step:
 | Change | Quote | After order and activation |
 |---|---|---|
 | Root answer changed (more locations), mid-period | Each CML-sized child as a delta line at its price; other children 0; root a −1 / +1 detail pair at 0.00. Term Defined lines at 2 + 275/365 terms (day counts illustrative; the rule is what was measured) | New state periods from the amendment date; "Change / Upsells" per delta, amounts equal to the line totals |
-| Second answer changed (more seats) on a later amendment | The first answer reset to its CML default and its children came back negative, until restated in a second Place request (SKILL.md Quick Rule 2) | Ordered after the restatement; state periods carry both answers |
+| Second answer changed (more seats) on a later amendment | The first answer reset to its CML default and its children came back negative, until restated in a second Place request ([Quick Rule 2](amendments-and-attributes.md#rule-2-read-attributes-as-well-as-prices)) | Ordered after the restatement; state periods carry both answers |
 | Added units on a `LastTransaction` asset | A plain delta line at the asset's last net price; no volume-band step; existing units unchanged | State period at the new total, MRR at the last price |
 | The same, with a re-band overlay on the procedure ([change-policy-mapping.md](change-policy-mapping.md) → volume-band row) | The added units at the band for the new total | MRR = existing units at their old price + added units at the new band |
 | Term Defined component to 0 on an anniversary | −qty × net unit × 1 term, in two last-in-first-out detail rows | Component asset kept; state period 0 from the date; "Change / Downsells" for the credit |
@@ -153,9 +154,9 @@ through activation before the next; a reprice moved nothing at any step:
 Amendments on a CML bundle depend on the configurator's node status: on one of these orgs
 (the answer reset reproduced on the other) `AssetActionSource.RLM_ConstraintEngineNodeStatus__c`
 was empty after every activation while `OrderItem.RLM_ConstraintEngineNodeStatus__c` was
-filled. That conflicts with the platform reading in SKILL.md Quick Rule 2, where item-sourced
+filled. That conflicts with the platform reading in [Quick Rule 2](amendments-and-attributes.md#rule-2-read-attributes-as-well-as-prices), where item-sourced
 rows take a mapped line value; the cause is **Open** (live check: which rows were blank). Copying the order lines' value onto the asset action sources before amending stopped
-the reset. SKILL.md Quick Rule 2 has the cause, measured on a third org.
+the reset. [Rule 2 in amendments-and-attributes.md](amendments-and-attributes.md#rule-2-read-attributes-as-well-as-prices) has the measured fix (context rule and trigger); the cause is still Open there.
 
 ## Measured results (fresh 264 `ent-sb0` scratch org, 2026-11-17)
 
@@ -178,32 +179,24 @@ afterwards:
 For every change, each line's quantity and total, every detail row and the header total were
 the same on the quote and its order. After each activation every root asset action source
 row carried the node status. The renewal quote's quote-level full-term roll-up read 0, while
-its `GrandTotal` equalled the order's (SKILL.md Quick Rule 4).
+its `GrandTotal` equalled the order's ([Quick Rule 4](prices-renewals-credits.md#rule-4-where-the-price-lands)).
 
 ## Open: measure before promising
 
-- **Term Defined top-level cancellation** (`initiateCancellation`): a Term Defined
-  component's reduction to 0 prorated by day (above); the cancellation of a Term Defined
-  top-level asset wasn't measured.
-- **Swap values with constraints in force.**
+- **Measured 2026-11-26, now in [cancel-swap-and-linking.md](cancel-swap-and-linking.md):** the Term Defined top-level cancellation credit, swap values with constraints in force, the evergreen swap and invoice credits, and whether the configurator restores a reset attribute.
 - **Invoice values** for every change: the quote and order values above aren't the
   invoice. The measured invoice route invoices schedules through today, and a request
   holding a schedule billed past its target date is refused, so a replay dated in the future
   has no period due yet: check billing at schedule level (amount, period, start), not invoice
   level `[inferred]` from that route. Billing verification is in `rlm-business-apis` → `backdated-asset-lifecycle.md`.
-- **Whether the configurator can restore the reset attributes** on an amendment line.
 - **Changing a bundle component's plan:** a plan held as an attribute on the component's
-  line, or a swap of the component asset. A price amendment on a component's line, a plan
+  line. A swap of the component asset is refused (measured 2026-11-26, [cancel-swap-and-linking.md](cancel-swap-and-linking.md)). A price amendment on a component's line, a plan
   held as a root answer, and a partial move under a one-plan group are measured (above;
   [change-policy-mapping.md](change-policy-mapping.md)).
 - **Evergreen component removal to 0.** A partial Evergreen component reduction is
   measured through order and activation, by `Skip` plus a `QuoteAction` edit (2026-11-12)
   and by `Force` on a complete bundle (2026-11-17, above); removal of the whole quantity
   isn't.
-- **Evergreen swaps:** what a swap's outgoing side credits on an evergreen line. Evergreen
-  reductions (standalone, and a one-lot bundle component) and the renewal of a standalone
-  evergreen asset are measured: SKILL.md Quick Rules 5 and 6, and
-  [change-policy-mapping.md](change-policy-mapping.md).
 - **An earlier-dated change against a future-dated one:** the traced gate in
   [change-policy-mapping.md](change-policy-mapping.md) is unconfirmed (an amend-before-amend capability
   decides; reading it by a dated try on an unramped asset is `[inferred]` from the trace: a refusal

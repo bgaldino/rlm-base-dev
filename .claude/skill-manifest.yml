@@ -217,7 +217,16 @@ foundations:
       path: .cursor/skills/ramped-quotes/SKILL.md
       purpose: "Build/verify multi-year GROUP ramp quotes (place→EditGroup→clone) and per-segment (compound) price uplift"
       consumed_by_pmos: [demo-script, demo-flow, sales-enablement]
-      provenance: live-verified on 264/v68.0 org 2026-07 (field legality + build sequence)
+      provenance: live-verified on 264/v68.0 orgs 2026-07 through 2026-11-26 (field legality, build sequence, ramp flow contract)
+      sub_skills:
+        - .cursor/skills/ramped-quotes/build-sequence.md
+        - .cursor/skills/ramped-quotes/bundle-children-lifecycle.md
+        - .cursor/skills/ramped-quotes/compound-uplift.md
+        - .cursor/skills/ramped-quotes/custom-ramp-flow.md
+        - .cursor/skills/ramped-quotes/field-legality.md
+        - .cursor/skills/ramped-quotes/pitfalls.md
+        - .cursor/skills/ramped-quotes/ui-group-ramp.md
+        - .cursor/skills/ramped-quotes/verify-and-discover.md
       caveats:
         - "Compound-uplift ENGINE (PriceRevision element) lives in pricing-procedures skill (elements/price-revision-compound-uplift.md); this skill covers the transaction build + prerequisites"
         - "Headless scripts/ramp_deals/ toolkit is on unmerged branch feat/ramp-deals-core; skill documents the raw Connect calls until it lands"

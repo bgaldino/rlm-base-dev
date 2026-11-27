@@ -82,8 +82,8 @@ is under `configurationOptions`). Those PATCHes then ran with
 `configurationMethod` only, so this says nothing about rules-on requests nested as documented
 [Measured: 2026-11-12, 264, scratch].
 
-**Line discounts in a Place PATCH.** Measured on 264 scratch orgs (2026-11-12) whose pricing
-procedures were customised, with Place PATCHes on existing `QuoteLineItem`s (`pricingPref: Force`,
+**Line discounts in a Place PATCH.** On scratch orgs whose pricing
+procedures were customised [Measured: 2026-11-12, 264, scratch], with Place PATCHes on existing `QuoteLineItem`s (`pricingPref: Force`,
 `configurationMethod: Skip`):
 
 - `DiscountAmount` is **per unit**: on a line with a quantity above 1 it lowered `NetUnitPrice`
@@ -127,6 +127,13 @@ effective date in the past; rollback's refusal): the invocable inputs, activatio
 UI-flow (`RLM_ARC_Assets`) behaviour, and invoice/credit-memo verification are in
 [backdated-asset-lifecycle.md](backdated-asset-lifecycle.md), with the end-to-end verifier
 `scripts/backdated_arc/verify_backdated_billing.py`.
+
+**Amend, renew and cancel inputs beyond the dev guide** [Measured: 2026-11-26, 264, ent-sb0 harness build]:
+`initiateAmendment` accepts `amendOpportunityId` (returns a linked, priced quote in one call) and `amendRecordId` as an
+**input** (adds the selected assets to an open quote; the dev guide lists it as output only, duplicates are refused);
+Generate Renewal Quote on a forecast record links the quote to that Opportunity. A swap of a bundle child, or of a
+usage-based asset, is refused. `initiateCancellation` on a Term Defined asset counts periods from the asset start.
+Numbers, refusals and the stacked-renewal gate: `asset-lifecycle-changes` → `cancel-swap-and-linking.md`.
 
 **Where an ARC line's price lives.** On a renewal, a cancel or a negative-quantity amendment, the
 platform moves the unit price to the child **`QuoteLineDetail`** / **`OrderItemDetail`** rows

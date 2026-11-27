@@ -52,4 +52,4 @@ Pitfalls that show up on the quote (details in the element file):
   pricing, amendments and renewals.
 - Records created before Winter '27 use standard uplift.
 
-Verify numerically by reading back the segments (SKILL.md → *Read-back → the ramp schedule*).
+Verify numerically by reading back the segments ([verify-and-discover.md](verify-and-discover.md#read-back--the-ramp-schedule)).

@@ -32,10 +32,10 @@ Measured traps:
   it to QuantumBit Software when `qb` is on (`configure_product_discovery_settings`, in
   `prepare_pricing_discovery`) [Repo: `cumulusci.yml`, `robot/rlm-base/resources/E2ECommon.robot`
   `Select Catalog By Name`]. On one measured org, Browse Catalogs opened on a catalog that showed
-  "No products to show" until the rep switched catalog [Measured: early Nov 2026, 264]; the org's
+  "No products to show" until the rep switched catalog [Measured: early Nov 2026, 264, demo orgs]; the org's
   Default Catalog setting wasn't recorded. Before a demo, check which catalog it opens on.
 - **A top-level category whose products sit only in subcategories shows no products** until a
-  subcategory is picked [Measured: early Nov 2026, 264].
+  subcategory is picked [Measured: early Nov 2026, 264, demo orgs].
 - On a group ramp, Browse Catalogs from a segment row asked for the **catalog first**, then **Select
   Segments to Add Products** [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]; an earlier fresh
   build (2026-10-29) recorded the segment prompt first, and the cause of the difference isn't
@@ -162,7 +162,7 @@ must be repriced before activation; the same applies to quote lines
 [Help: `ind.qocal_limitations_for_using_quote_and_order_capture`].
 
 Measured: **Reprice All on a quote whose lines are already priced changed nothing** and showed "The prices
-were refreshed and the configuration was validated." [Measured: early Nov 2026, 264]. The message's
+were refreshed and the configuration was validated." [Measured: early Nov 2026, 264, demo orgs]. The message's
 mention of configuration is unexplained: Reprice All sends Force pricing with configuration skipped (traced
 request shape) [Platform behaviour, traced], but where the toast text comes from was not traced, so whether
 configuration is validated beyond that request shape is not established.
@@ -247,7 +247,7 @@ has a second DDS, and the plan's Header Distribution section runs it after the d
 `datasets/sfdmu/procedure-plans/README.md`].
 
 Measured: **a 10% header discount was applied twice (19% total)** with an active pricing procedure plan
-and `skipOrgSttPricing` on; line discounts on the same quote were exact [Measured: early Nov 2026, 264].
+and `skipOrgSttPricing` on; line discounts on the same quote were exact [Measured: early Nov 2026, 264, demo orgs].
 Both DDS steps ran, the default procedure's and then the plan's distribution procedure's. The repo's own
 measurement agrees: 10% on 5,240 gave 4,244.40, not 4,716 [Repo: `datasets/sfdmu/procedure-plans/README.md`].
 The repo builds the plan inactive and `skipOrgSttPricing` false, so a default build runs one DDS.
@@ -274,7 +274,7 @@ Measured:
 
 - **A line placed by API with configuration rules off can open in the configurator with a different
   configuration than the one saved.** Lines placed with rules on opened correctly
-  [Measured: early Nov 2026, 264]. Place demo lines with rules on, or check each one in the configurator
+  [Measured: early Nov 2026, 264, demo orgs]. Place demo lines with rules on, or check each one in the configurator
   before the demo. Rule behaviour itself is in [`constraint-models`](../constraint-models/SKILL.md).
 
 ## 7. Amendment, renewal and cancellation lines
@@ -293,16 +293,19 @@ What Help says:
 - Swaps, upgrades and downgrades show their action in the **Type** column and SwapIn/SwapOut,
   UpgradeFrom/UpgradeTo, DowngradeFrom/DowngradeTo in **Subtype** [Help: `ind.qocal_swap_upgrade_downgrade_amendments`].
 
-Measured on amendment lines [Measured: early Nov 2026, 264]:
+Amendment-line behaviour [Measured: 2026-11-05, 264, QuantumBit build]:
 
 - **After a UI quantity edit, Sales Price and Net Unit Price are blank on the parent line.** The price
   moves to detail rows (for example +2 and −1 at the unit price) and the line total is right. The API's
   `quantityChange` keeps the price on the parent line, so UI and API amendments look different in the
   editor.
-- **A UI quantity edit with configuration rules on resets the line's attributes to the product
-  defaults**, and activation writes those defaults to the asset. Reopening such a line in the
-  configurator shows the diff against the asset. Don't demo an inline quantity edit on an amendment of a
-  configured product; change the quantity in the configurator, or demo a product without attributes.
+- **A UI quantity edit with configuration rules on reset the line's attributes to the product
+  defaults** on the 2026-11-05 build, and activation wrote those defaults to the asset
+  [Measured: 2026-11-05, 264, QuantumBit build]. Reopening such a line in the configurator shows the diff against the asset. A
+  current build with the configurator node status present kept the attribute
+  [Measured: 2026-11-26, 264, ent-sb0 harness build] (see [cancel-swap-and-linking.md](../asset-lifecycle-changes/cancel-swap-and-linking.md#attribute-reset-on-amendment-not-reproduced)). Check the build before demoing an inline quantity
+  edit on a configured product; where it resets, change the quantity in the configurator, or demo a product without
+  attributes.
 
 Renewal and cancellation line display in the STLE was not measured; see the parent's Open list.
 
@@ -316,7 +319,8 @@ Renewal and cancellation line display in the STLE was not measured; see the pare
    catalog if needed, and pick a leaf subcategory before adding.
 4. Demo lines placed with configuration rules on; open each configurable line once in the configurator.
 5. Procedure plan inactive before any header-discount demo.
-6. Amendment demo: no inline quantity edit on configured products; explain blank parent prices as
+6. Amendment demo: check the build before an inline quantity edit on configured products (it reset attributes on the
+   2026-11-05 build; a 2026-11-26 build kept them, see the amendment-line bullets above); explain blank parent prices as
    detail-row pricing if they appear.
 7. Don't count on Reprice All producing a visible change: on an already-priced quote with nothing
    changed since, our run showed none. After changing a header field that pricing reads, do click it:

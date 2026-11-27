@@ -123,10 +123,10 @@ call (trigger (a)), so the spike's must-hits include a schedule whose next billi
 and record milestone billing of a service an amendment adds as an open decision (`billing-setup`).
 Read each amendment, cancellation and renewal quote's values before its order activates, and don't
 reprice it afterward: a full reprice after activation set a renewal's totals to 0
-(`transaction-line-editor` Quick Rule 5: the rule not to reprice after activation is traced in part
-for every lifecycle quote; the zero total was measured once, on an unramped renewal by API call;
-amendments, cancellations, ramped quotes and the button aren't measured, and why it returned 0 isn't
-traced).
+([Repo: .cursor/skills/asset-lifecycle-changes/SKILL.md], Quick Rule 1; `transaction-line-editor` Quick Rule 5, [Repo: .cursor/skills/transaction-line-editor/SKILL.md]: the rule not to reprice after activation is traced in part
+for every lifecycle quote; the zero total was measured by API call on an unramped renewal [Measured: 2026-11-12, 264, scratch org]
+and an unramped cancellation [Measured: 2026-11-26, 264, ent-sb0 harness build], while an amend-add and an Evergreen-reduce amendment did not change; other
+amendment shapes, ramped quotes and the button aren't measured, and why it returned 0 isn't traced).
 
 ## 5. Phases, gates, skills
 

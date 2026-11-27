@@ -130,3 +130,15 @@ write back the ones that differ ([SKILL.md](SKILL.md) → Validation Checks).
   `TransferQuote`, and a clone leaves it blank [Measured: 2026-11-10, 264, describe and run].
 - What a clone does keep is the opportunity, so the opportunity is the natural parent of
   every round. Rename each clone to its round as soon as it settles.
+
+## Starting round 1: creating a quote from an opportunity (the deal)
+
+[Measured: 2026-11-26, 264.12.x (USA796), ent-sb0 harness build]
+- The **Create quote from deal** path copies the opportunity's **one-time** products only, flattened (no bundle structure) and
+  with no attributes, after the Quote save. Recurring or bundled products are not copied.
+- Inserting a Quote through the API or a flow copies nothing from the opportunity; the repo's New Quote action creates a
+  header-only quote.
+- The UI clone and the Connect clone copy the full structure (bundle relationships and attributes), so for a deal that
+  has bundles, start the first round from the UI or Connect clone of a seeded quote, not from the deal copy.
+- **Start Sync** is UI-only: REST cannot call the standard sync action (use `syncQuoteOpportunity`, [SKILL.md](SKILL.md) → Quick Rule 6).
+- [Open: Stop Sync reportedly keeps the opportunity products and clears only their quote-line links; not measured here.]
