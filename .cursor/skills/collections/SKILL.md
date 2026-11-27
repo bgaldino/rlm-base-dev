@@ -52,10 +52,10 @@ Anything untagged is a pointer to a sub-file.
    ([building-collections-uis.md](building-collections-uis.md)).
 5. **Promises to pay are payment schedules.** A `PaymentSchedule` of Type PromiseToPay with
    1 to 3 items; where the limit lives is in [object-model.md](object-model.md).
-6. **Dunning is orchestration, and emails need Marketing Cloud Growth.** Dunning runs DRO
-   templates [Help: ind.billing_dunning_orchestration_enable]; the email campaign path needs
-   Data 360 and Marketing Cloud [Help: ind.billing_collections_dunning_process_setup]. Not
-   measured here. Step design: `dro-plans`.
+6. **Dunning is orchestration; campaign emails need Marketing Cloud Growth.** Dunning runs DRO
+   templates [Help: ind.billing_dunning_orchestration_enable]; the campaign email path needs
+   Data 360 and Marketing Cloud, and emails can instead be sent directly from the Collection Plan
+   record page [Help: ind.billing_collections_dunning_process_setup]. Not measured here. Step design: `dro-plans`.
 7. **Write-off and late fee need Reason Code values that a fresh build lacks.** Add them before a
    workshop run ([object-model.md](object-model.md), [setup-and-operate.md](setup-and-operate.md)).
 8. **Collections demos need seed data you create.** Nothing seeds `CollectionPlan` rows; the build

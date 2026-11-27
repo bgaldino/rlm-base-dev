@@ -14,7 +14,7 @@ Read this to map a collections concept to an object, field or picklist. Parent:
 | Promise to pay | `PaymentSchedule` (Type PromiseToPay) + `PaymentScheduleItem` | Linked to the plan by `ReferenceEntityId`, `UsageType` CollectionPlan [Repo: unpackaged/post_collections/flows/RLM_Create_Promise_to_Pay.flow-meta.xml]. |
 | Dispute | `Case` (and Dispute, a license-gated object) | The repo's collections flow creates a Case [Repo: unpackaged/post_collections_case_flow/flows/RLM_Create_Case_for_Collection.flow-meta.xml]; Dispute Management is a separate Help feature [Help: ind.billing_disputes_overview] [Help: ind.billing_dispute_management_enable]. |
 | Follow-up | `Task` (`WhatId` the plan or invoice) | Collector to-dos. |
-| Late fee | `DebitMemo` | Created by the late-fee action; see [setup-and-operate.md](setup-and-operate.md). |
+| Late fee | `DebitMemo` | Intended output of the late-fee action, which has not been run; see [setup-and-operate.md](setup-and-operate.md). |
 | Write-off | `CreditMemo` (reason code) + invoice write-off fields | Help: a credit memo whose Reason Code you add first updates the invoice's write-off fields, after which no more credits or payments can be applied or unapplied [Help: ind.billing_write_off_invoices_impact]. |
 | Receivable | `Invoice` (`Balance`, `DueDate`, `Status`) | Posted invoices only are receivables; see below. |
 

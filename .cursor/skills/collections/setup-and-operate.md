@@ -26,9 +26,9 @@ Each claim carries its own tag.
    Steps, turn on Automate Dunning Orchestration in Billing Settings (creates the Billing
    orchestration plan context mapping for `BillingCollectionPlanContext`), install the Dunning
    Orchestration solution (a fulfillment workspace and three email templates; it cannot be
-   uninstalled) [Help: ind.billing_dunning_orchestration_enable]. Dunning emails additionally need
-   Data 360 and Marketing Cloud Growth with consent data
-   [Help: ind.billing_collections_dunning_process_setup]. Whether orchestrated dunning can be
+   uninstalled) [Help: ind.billing_dunning_orchestration_enable]. Campaign dunning emails additionally need
+   Data 360 and Marketing Cloud Growth with consent data; emails can instead be sent directly from
+   the Collection Plan record page [Help: ind.billing_collections_dunning_process_setup]. Whether orchestrated dunning can be
    enabled on a fresh build without Marketing Cloud Growth, and what a reminder step produces:
    [Open: enable it on a disposable org and read the orchestration plan]. Reminder emails also need a
    verified sending domain [Open: not measured].

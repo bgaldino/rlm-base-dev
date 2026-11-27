@@ -32,7 +32,7 @@ then move it into the sub-file for its stage with a `[Measured: ...]` tag.
 ## Credits, memos and tax
 
 - **Tax-only credits and `ManualOverride`** on the credit invoice API. [Open: credit an invoice
-  for tax only and send the override; dev guide: connect-requests-credit-invoice-input]
+  for tax only and send the override] [Dev guide: connect-requests-credit-invoice-input]
 - **Credit memo addresses** reported to need tax strategy Calculate, and a change to voiding a
   zero-amount memo. [Open: not measured]
 - **Card fee as a debit memo** created by a flow on Payment. [Open: build and run the flow]
@@ -45,7 +45,7 @@ then move it into the sub-file for its stage with a `[Measured: ...]` tag.
 - **Payment retries on collection-plan items** and the dunning-email sending domain
   (see [collections](../collections/setup-and-operate.md)). [Open: not measured]
 - **Payment method sets, the payment link flow and `PaymentRunMatchingValue` routing.** [Open:
-  configure a set and run a payment scheduler; dev guide: connect-resources-create-payment-scheduler]
+  configure a set and run a payment scheduler] [Dev guide: connect-resources-create-payment-scheduler]
 - **Reconciling a manual payment against a promise to pay**, and what a batch run does to a promise
   item on an already settled invoice (see [collections](../collections/object-model.md)).
   [Open: not measured]

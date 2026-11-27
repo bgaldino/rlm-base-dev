@@ -21,14 +21,12 @@ authoritative table is `docs/references/revenue-cloud-permissions.md`.
 
 ## What the managed specialist set grants
 
-[Measured: 2026-11-27, 264, fresh scratch build, API 68.0, ObjectPermissions and FieldPermissions query] covers every bullet in this section except the last two.
-
-- Read: Account, Contact, Invoice.
+- Read: Account, Contact, Invoice [Measured: 2026-11-27, 264, fresh scratch build, API 68.0, ObjectPermissions and FieldPermissions query].
 - Create, read, edit, delete: `CollectionPlan`, `CollectionPlanItem`, `CollectionPlanReason`,
-  `PaymentSchedule`, `PaymentScheduleItem`.
+  `PaymentSchedule`, `PaymentScheduleItem` [Measured: 2026-11-27, 264, fresh scratch build, API 68.0, ObjectPermissions and FieldPermissions query].
 - Full with View All and Modify All: the Fulfillment* orchestration objects,
-  `OrchestrationPlanCtxMapping`, `ProductFulfillmentScenario` (this is the dunning side).
-- Field grants: only `CollectionPlan.OverdueRiskIndicator`.
+  `OrchestrationPlanCtxMapping`, `ProductFulfillmentScenario` (this is the dunning side) [Measured: 2026-11-27, 264, fresh scratch build, API 68.0, ObjectPermissions and FieldPermissions query].
+- Field grants: only `CollectionPlan.OverdueRiskIndicator` [Measured: 2026-11-27, 264, fresh scratch build, API 68.0, ObjectPermissions and FieldPermissions query].
 - **No** Case, Payment, DebitMemo or Task access. The dashboard's reads that the set lacks are:
   Case and Payment object read; `Case.AccountId`, `Subject`, `Description`, `Reason`;
   `CollectionPlan.AccountId`, `Duedate`, `ClosedDate`, `DaysPastDue`; `CollectionPlanItem.InvoiceId`;
@@ -44,7 +42,7 @@ authoritative table is `docs/references/revenue-cloud-permissions.md`.
 | `RLM_CollectionsUI` | Collection Plan record page | Ships with the `collections` flag. Not a dashboard grant: it has no access to the dashboard controller. [Repo: unpackaged/post_collections/permissionsets/RLM_CollectionsUI.permissionset-meta.xml] |
 | `RLM_CollectionsDashboard` | Collections Dashboard | Tab, controller and the read-only grants above. Self-sufficient beside the specialist set; works with `billing_ui` on and `collections` off. [Repo: unpackaged/post_billing_ui/README.md] |
 | `RLM_BillingCollectionsRead` | Billing personas reading collection status | `CollectionPlan` and `CollectionPlanItem` read, `CollectionPlan.AccountId`, the `CollectionsAndRecoverySpecialist` user permission. **Standalone, in no group**: a group holding it fails to deploy while any holder lacks `BillingAdvancedPsl`, and keeps its old content [Repo: docs/references/revenue-cloud-permissions.md]. The three billing personas get it beside their group, with Billing Advanced. [Repo: unpackaged/post_personas/permissionsets/RLM_BillingCollectionsRead.permissionset-meta.xml] |
-| `RLM_BillingUI` | Billing UI users | Already grants plan and item read and `CollectionPlan.AccountId` [Repo: docs/references/revenue-cloud-permissions.md]; the plan read still failed without the specialist permission [Measured: 2026-11-26, 264, scratch, Login As] |
+| `RLM_BillingUI` | Billing UI users | Already grants plan and item read and `CollectionPlan.AccountId` [Repo: docs/references/revenue-cloud-permissions.md]; the plan read still failed without the specialist permission [Measured: 2026-11-26, 264, scratch, Login As]. |
 
 Pick by task:
 
@@ -72,8 +70,8 @@ excluding them.
 - A Minimum Access persona still reads `CurrencyType`; with the specialist set and
   `RLM_CollectionsDashboard` it also read `Contact.Name` and `DatedConversionRate` in USER_MODE with
   no extra grant [Measured: 2026-11-26, 264, scratch, Login As].
-- Headless checks: run USER_MODE Apex as the persona, not as the admin [inferred: an admin read
-  proves nothing about a persona's grants].
+- Headless checks: run USER_MODE Apex as the persona, not as the admin an admin read
+  proves nothing about a persona's grants.
 
 ## Where the cards and page are hosted
 

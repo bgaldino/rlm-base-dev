@@ -9,7 +9,7 @@ this page does not repeat it.
 ## The verifier
 
 `cli verify` in the Transaction Data Harness reads records by id and runs the checks
-below. It only runs SOQL queries [Repo: `scripts/txn_data_harness/verify.py`].
+below. It only runs SOQL queries [Repo: scripts/txn_data_harness/verify.py].
 
 ```bash
 # ids from a harness manifest (repeat --manifest for several; --latest reads only the newest)
