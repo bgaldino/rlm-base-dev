@@ -10,30 +10,35 @@ Tag meaning: Measured is a run on an org; Help is a captured article; Open is un
 The in-org reset (`RLM_AccountUtilities`, the Reset Account quick action) is for administrators
 and demos, POCs and testing. A user without Modify All Data and View All Data is refused before
 anything is read, with a message that nothing was changed [Repo: unpackaged/post_utils/classes/RLM_AccountUtilities.cls].
-[Measured: 2026-11-26, 264, scratch, one org] An admin lacking Customize Application completes the
-reset, but the decision-table refresh that follows a reset is not queued for that user.
+An admin lacking Customize Application completes the reset, but the decision-table refresh that
+follows is not queued for that user [Measured: 2026-11-26, 264, scratch, one org]. Run the
+freshness check afterwards (decision-tables skill).
 The sales-rep persona does not carry `RLM_UtilitiesPermset` [Repo: cumulusci.yml]; the permission set is assigned to the running admin [Repo: unpackaged/post_utils/README.md].
 
 ## What blocks a delete
 
-[Measured: 2026-11-26, 264, scratch, one org] Each of these refuses the delete until the blocker is
-removed first:
+Each of these refuses the delete until the blocker is removed first:
 - A `TransactionUsageEntitlement` whose order line is on another account's order blocks deleting
-  that line and order.
+  that line and order [Measured: 2026-11-26, 264, scratch, one org].
 - A `BindingObjectRateCardEntry` whose `SourceAssetId` is an asset blocks that asset's delete, even
-  when the entry is bound to a contract that is kept.
-- A `RecordAlert` on a `TransactionJournal` blocks the journal's delete; delete the alerts first.
+  when the entry is bound to a contract that is kept [Measured: 2026-11-26, 264, scratch, one org].
+- A `RecordAlert` on a `TransactionJournal` blocks the journal's delete; delete the alerts first
+  [Measured: 2026-11-26, 264, scratch, one org].
 - `UsageCmtAssetRelatedObj`, the commitment junction, blocks only the anchor asset's delete.
-  Deleting the commitment asset succeeds and takes the junction with it.
-[Measured: 2026-11-26, 264, scratch, one org] `UsageRatableSumCmtAssetRt` is deleted with its
-`UsageRatableSummary`. `BillingPeriodItem.RelatedUsageBillPeriodItemId` was judged non-blocking from
-the describe only [Open: not measured; no billing period item could be inserted].
-`UsageEntitlementEntry` deletion was not measured, an insert raised an internal platform error
-[Open: not measured].
-A junction is accepted only on commitment products the org has already set up; a junction on assets
-with no product raises an internal error [Measured: 2026-11-26, 264, scratch, one org]. A delete list
-that holds the same Id twice fails both rows with "Duplicate id in list" [Measured: 2026-11-26, 264,
-scratch, one org].
+  Deleting the commitment asset succeeds and takes the junction with it [Measured: 2026-11-26, 264,
+  scratch, one org].
+
+Also:
+- `UsageRatableSumCmtAssetRt` is deleted with its `UsageRatableSummary` [Measured: 2026-11-26, 264,
+  scratch, one org].
+- `BillingPeriodItem.RelatedUsageBillPeriodItemId` was judged non-blocking from the describe only
+  [Open: not measured; no billing period item could be inserted].
+- `UsageEntitlementEntry` deletion was not measured; an insert raised an internal platform error
+  [Open: not measured].
+- A junction is accepted only on commitment products the org has already set up; a junction on
+  assets with no product raises an internal error [Measured: 2026-11-26, 264, scratch, one org].
+- A delete list that holds the same Id twice fails both rows with "Duplicate id in list"
+  [Measured: 2026-11-26, 264, scratch, one org].
 
 ## Reading usage in the UI
 
@@ -55,7 +60,7 @@ credit or a rebill].
 ## Grants on amendment
 
 Quantity change and early cancellation recalculate grants [Help: ind.qocal_amending_rates_and_grants_on_usage_based_products].
-The bill-day gate on the 264 proration, the 266 admin policy for it, and whether pack grants are
-prorated are [Open: the proration article is not in the 264 snapshot; measure on a build]. Per-line grant
+The bill-day gate on proration, any admin policy for it, and whether pack grants are prorated
+are [Open: not in the 264 snapshot; measure on a build]. Per-line grant
 overrides on a quote (the quote line usage resource grant path) are [Open: not measured; the
 validity edit is reported off in the line editor panel].

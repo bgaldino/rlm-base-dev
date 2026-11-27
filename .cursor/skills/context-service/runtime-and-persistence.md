@@ -11,25 +11,24 @@ and persisting them back to the mapped SObjects.
 > query-record / persist / query-tags-leaner request shapes are confirmed against
 > the public **Runtime Context Instance Management** and **Persistence Context
 > Management** REST references and cross-checked against live-org behavior. The
-> runtime REST endpoints are all implemented and resolve, but
-> the create `contextId` is **REQUEST-scoped by default** (`context_session.py` selects SESSION when a later step is requested) and does not survive
-> across separate `sf api request` calls at REQUEST scope, and `query-record`/`query-tags` are
-> **pilot-gated**. On a normal org, drive the whole lifecycle from one Apex
-> transaction or one Flow. Re-verify edge behavior on the target release at merge.
+> runtime REST endpoints are all implemented and resolve. The create `contextId` is
+> **REQUEST-scoped by default** and does not survive across separate `sf api request`
+> calls; SESSION scope does, and may be gated on some orgs (below). Apex or one Flow
+> is the portable path. Re-verify edge behavior on the target release at merge.
 
 ## Start here — which runtime path works on your org
 
-Pick the path by what the org has enabled. **On a normal GA org, use Apex or a
-single Flow — the stateless multi-call REST scripts will not complete the
-lifecycle** (see the roadblock table).
+Pick the path by what the org has enabled. **Apex or one Flow is the portable path.**
+On some orgs SESSION-scoped multi-call REST also works (the 264 result is stated once, below the
+roadblock table).
 
 | Org capability | Working runtime path | Perm needed |
 |----------------|----------------------|-------------|
 | **Normal GA org** (no pilot) | **Apex `Context.IndustriesContext`** (scripted / debugging) **or one Flow** chaining the invocable actions (no-code). Whole lifecycle in **one request/transaction.** | just GA **`IndustriesContext`** |
 | SESSION-scope pilot (`SessionScopeContext` via `ContextServicePilot`) and/or "Runtime Context Instance Reuse" (`ContextReuse`) | The REST scripts / multi-call REST — `contextId` survives across calls | pilot / reuse setting |
 
-**On an org with `ContextServicePilot` enabled (262 / v67.0), the REST path
-completes end-to-end:**
+**With SESSION scope (measured on a `ContextServicePilot` org, 262 / v67.0), the REST path
+completes end-to-end** [Measured: 262 v67.0, date and org not recorded]:
 
 | REST step | Status | Notes |
 |-----------|--------|-------|
@@ -43,13 +42,13 @@ completes end-to-end:**
 
 **CLI flag:** `--context-scope SESSION` on `context_session.py` / `create_context_instance.py`.
 
-**Why REST multi-call is not an option on a normal org** (both gates, not one):
+**Why REST multi-call fails at the default REQUEST scope, and on orgs that gate SESSION:**
 
-| REST step | Status without pilot | Reason |
+| REST step | Status without SESSION (262) | Reason |
 |-----------|----------------------|--------|
 | `POST /contexts` (create) | ✅ works | GA |
-| `query-record` / `query-tags` | ❌ `API_DISABLED_FOR_ORG` | pilot-gated (`ContextServicePilot`) |
-| `persist-records` (and the PATCHes) | ❌ `RECORD_NOT_FOUND` | GA endpoint, but the REQUEST-scoped `contextId` from the create call is already gone by the next `sf api request` — surviving it needs **SESSION scope** (pilot) |
+| `query-record` / `query-tags` | ❌ `API_DISABLED_FOR_ORG` | gated on that org (`ContextServicePilot`) [Measured: 262 v67.0, date and org not recorded] |
+| `persist-records` (and the PATCHes) | ❌ `RECORD_NOT_FOUND` | GA endpoint, but the REQUEST-scoped `contextId` from the create call is already gone by the next `sf api request` — surviving it needs **SESSION scope** |
 
 **264 re-measure.** On a 264 org where no permission set carried `SessionScopeContext`,
 `context_session.py --context-scope SESSION --query` created, queried and evicted an instance
@@ -57,14 +56,14 @@ with no pilot error, and `query_context_instance.py` read a `--keep`-ed SESSION 
 separate CLI call [Measured: 2026-11-27, 264, scratch build, one org]. The same run with the
 default REQUEST scope failed `query-record` with `RECORD_NOT_FOUND` ("Context with id ...
 doesn't exist or expired"), not `API_DISABLED_FOR_ORG`: the instance was gone before the next
-call. So on 264 the `--query` failure was the REQUEST default, not the pilot gate;
-`context_session.py` now selects SESSION whenever `--query`, `--persist`, `--update-attr` or
-`--write-tag` is given (pass `--context-scope REQUEST` to force the old behavior). The
+call. So on that 264 org the `--query` failure was the REQUEST default, not a gate;
+`context_session.py` selects SESSION whenever `--query`, `--persist`, `--update-attr`,
+`--write-tag` or `--keep` is given (pass `--context-scope REQUEST` to force the old behavior). The
 `API_DISABLED_FOR_ORG` rows above were measured on 262; whether a given 264 org still gates
 SESSION is [Open: only one 264 org measured, persist not re-run].
 
-So without SESSION scope **and** `ContextServicePilot`, **Apex (or a single Flow)
-is the only working path** — and it needs no pilot permission, only GA
+Where SESSION is gated and Instance Reuse is off, **Apex (or a single Flow)
+is the working path** — it needs no pilot permission, only GA
 `IndustriesContext`. Both keep create → query → (update) → persist in one request,
 where the `contextId` never expires and the query methods aren't behind the REST
 pilot gate.
@@ -187,12 +186,11 @@ This is governed by **`metadata.contextScope`** on the create body
   observed at ~15 s). It **cannot** be looked up by a later, separate stateless
   HTTP call → `RECORD_NOT_FOUND` "doesn't exist or expired." This is by design.
 - **`SESSION`** — the instance survives across separate calls (subject to
-  `contextTtl`). But SESSION is **pilot-gated**: sending `contextScope:"SESSION"`
-  on a non-pilot org returns `API_DISABLED_FOR_ORG` *"you don't have permission to
-  call Session Scope."* Enabled by the **`SessionScopeContext`** user permission
-  (shipped via the `ContextServicePilot` pilot — not GA). Only REQUEST scope is
-  openly available; SESSION scope is pilot-limited, and REQUEST is the recommended
-  scope for customer use cases.
+  `contextTtl`). SESSION may be gated on some orgs: sending `contextScope:"SESSION"`
+  there returned `API_DISABLED_FOR_ORG` *"you don't have permission to call Session Scope"*
+  [Measured: 262 v67.0, date and org not recorded]. The user permission is
+  **`SessionScopeContext`**, shipped with `ContextServicePilot`; Instance Reuse is a separate
+  setting. REQUEST is the recommended scope for customer use cases.
 
 A `REQUEST`-scope context is never written to the shared cache, so its id resolves only inside
 the request that built it; only `SESSION` contexts are stored. `[Platform behaviour, traced]`
@@ -206,9 +204,9 @@ rule to chain create, query and persist inside one Apex or Flow transaction othe
 
 Consequences:
 
-- On a normal (non-pilot / REQUEST-scope) org a `contextId` from one `sf`/CLI
+- At REQUEST scope a `contextId` from one `sf`/CLI
   invocation is **not** usable by a later, separate invocation. Cross-call REST use
-  needs **SESSION scope** (pilot) and/or the RLM setting **"Runtime Context
+  needs **SESSION scope** and/or the RLM setting **"Runtime Context
   Instance Reuse to Improve Response Times"** (id **`ContextReuse`**, under Revenue
   Lifecycle Management Setup), within `contextTtl`.
 - `context_session.py` is the reuse entry point: it can't keep a REQUEST contextId
@@ -250,8 +248,8 @@ Endpoint map (v67.0, platform-wide — the same on scratch and production/demo):
 - **`POST /connect/contexts` (create) works** and mints a `contextId`. The create
   `metadata` accepts **`contextScope`** (`REQUEST` | `SESSION`) — **this is the
   knob that governs cross-call survival, and it defaults to `REQUEST`.**
-- **`contextScope: SESSION` is pilot-gated** (`API_DISABLED_FOR_ORG`, user
-  permission `SessionScopeContext` via `ContextServicePilot`). SESSION scope is
+- **`contextScope: SESSION` may be gated on some orgs** (`API_DISABLED_FOR_ORG`,
+  user permission `SessionScopeContext` via `ContextServicePilot`) [Measured: 262 v67.0, date and org not recorded]. SESSION scope is
   what lets a `contextId` survive
   across separate HTTP calls; default REQUEST scope is request-local (~15 s
   guardrail TTL), so a REQUEST `contextId` is `RECORD_NOT_FOUND` on any *separate*
@@ -261,10 +259,10 @@ Endpoint map (v67.0, platform-wide — the same on scratch and production/demo):
 - **`GET /connect/contexts/{id}` returns `200` but `isSuccess:false`** for an
   expired REQUEST id (a *soft* not-found that echoes the id back). The mutating
   ops return a *hard* 400 `RECORD_NOT_FOUND`.
-- **`POST /connect/contexts/query-record` and `query-tags[-leaner]` are
-  pilot-gated** — `API_DISABLED_FOR_ORG` *"…call Query Record"*, even on a fresh
+- **`POST /connect/contexts/query-record` and `query-tags[-leaner]` were gated on the
+  262 orgs measured** — `API_DISABLED_FOR_ORG` *"…call Query Record"*, even on a fresh
   in-TTL contextId, on scratch and production alike (`ContextServicePilot`; the
-  write endpoints are GA).
+  write endpoints are GA) [Measured: 262 v67.0, date and org not recorded]. The 264 re-measure above found no such error at SESSION scope.
 - **`PATCH /connect/contexts/attributes`, `PATCH …/write-through-tags`, and
   `POST …/persist-records` all resolve and reach contextId validation** (400
   `RECORD_NOT_FOUND` on a dead REQUEST id) — i.e. they are **implemented and
@@ -273,11 +271,10 @@ Endpoint map (v67.0, platform-wide — the same on scratch and production/demo):
   transaction) they work.
 
 **Net: the REST runtime API is not broken — it is scope-gated** (see *`contextId`
-is request-scoped* above). Two independent gates: the multi-call REST sequence
-needs **SESSION scope** (pilot `SessionScopeContext`) and/or the RLM **"Runtime
+is request-scoped* above). The multi-call REST sequence needs **SESSION scope**
+(`SessionScopeContext`, which may be gated) and/or the RLM **"Runtime
 Context Instance Reuse"** setting (`ContextReuse`) for the `contextId` to survive
-between calls, and `query-record`/`query-tags` need `ContextServicePilot`
-regardless of scope. So on a normal org, drive the whole lifecycle inside **one
+between calls; the 262 orgs measured also gated `query-record`/`query-tags`. So where that gate applies, drive the whole lifecycle inside **one
 request** (Apex/Flow — see *Start here*). This is design intent: platform consumers
 (pricing, expression sets) resolve a context in-process within the same request,
 not by chaining outbound `/connect/contexts/*` calls.

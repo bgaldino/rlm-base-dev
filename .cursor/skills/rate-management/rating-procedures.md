@@ -11,18 +11,18 @@ Labels: `[Help: id]` = `docs/salesforce/264/help/articles/ind.<id>.htm.md`.
 
 | Template | Scenario | Source |
 |----------|----------|--------|
-| Default Rating Procedure | Non-negotiable rates; straightforward base, volume and tier pricing | [Help: `ind.rm_rating_procedures`] |
-| Negotiable Rating Procedure | Rates negotiated per asset or binding target; reads asset-level tables | [Help: `ind.rm_rating_procedures`, `ind.rm_prereqs_to_build_rating_procedures`] |
-| Default Rating Discovery Procedure | Fetch rate cards, entries and adjustments for quoting | [Help: `ind.rm_rating_discovery_procedures`] |
+| Default Rating Procedure | Non-negotiable rates; straightforward base, volume and tier pricing | [Help: ind.rm_rating_procedures] |
+| Negotiable Rating Procedure | Rates negotiated per asset or binding target; reads asset-level tables | [Help: ind.rm_rating_procedures, ind.rm_prereqs_to_build_rating_procedures] |
+| Default Rating Discovery Procedure | Fetch rate cards, entries and adjustments for quoting | [Help: ind.rm_rating_discovery_procedures] |
 
 Clone from App Launcher, Expression Set Templates, open a version, Save As a new
-procedure; Help also allows a custom build [Help: `ind.rm_clone_the_default_rating_procedure`].
+procedure; Help also allows a custom build [Help: ind.rm_clone_the_default_rating_procedure].
 Help's discovery-cloning article warns that the default rating procedure uses the Usage
 Ratable Summary object, which isn't generally available: ask your account executive for
 access or map your own context definition
-[Help: `ind.rm_clone_the_default_rating_discovery_procedure`].
+[Help: ind.rm_clone_the_default_rating_discovery_procedure].
 
-## Prerequisites [Help: `ind.rm_prereqs_to_build_rating_procedures`]
+## Prerequisites [Help: ind.rm_prereqs_to_build_rating_procedures]
 
 1. Rate Management Design Time permission (context definitions, decision tables, procedures).
 2. Lookup tables: the predefined ones, or custom. Non-negotiable: Rate Card Entries 2 and
@@ -34,10 +34,10 @@ access or map your own context definition
    extend or clone the context rather than editing the standard one.
 5. A constant resource for variables with no context tag.
 
-## Element catalog [Help: `ind.rm_rating_elements`]
+## Element catalog [Help: ind.rm_rating_elements]
 
 Lookup tables come from the per-element articles and
-[Help: `ind.rm_prereqs_to_build_rating_procedures`]; a cell those do not name is labeled.
+[Help: ind.rm_prereqs_to_build_rating_procedures]; a cell those do not name is labeled.
 
 | Element | Use | Lookup table / note |
 |---------|-----|---------------------|
@@ -62,7 +62,7 @@ Lookup tables come from the per-element articles and
 
 Tier vs volume: both discount by consumed quantity; volume applies one standard flat
 discount to all units, tier defines a discount per range
-[Help: `ind.rm_element_tier_based_rate_discount`].
+[Help: ind.rm_element_tier_based_rate_discount].
 
 ## Build order
 
@@ -70,26 +70,26 @@ discount to all units, tier defines a discount per range
 2. For negotiated tier or volume: Negotiated Rate Card Entries earlier than the
    adjustment element; the Negotiated Rate Card Entries Rate Card Entry ID output is the
    adjustment's input
-   [Help: `ind.rm_add_negotiated_tierbased_rate_adjustment`,
-   `ind.rm_add_negotiated_volumebased_rate_adjustment_`].
+   [Help: ind.rm_add_negotiated_tierbased_rate_adjustment,
+   ind.rm_add_negotiated_volumebased_rate_adjustment_].
 3. Per element: pick the lookup table, map variables to context tags, set a rank, tick
    Include in Output, save.
 4. Simulate: Simplified (fields) or Advanced (JSON) input; the Waterfall view shows each step. Take
-   IDs for inputs from the record URLs [Help: `ind.rm_simulate_activate_rating_procedure`].
+   IDs for inputs from the record URLs [Help: ind.rm_simulate_activate_rating_procedure].
 5. Activate the version once the simulation matches the hand-computed rate.
 
 Designers need Rate Management Design Time User; runtime callers need Run Time User
-[Help: `ind.rm_simulate_activate_rating_procedure`].
+[Help: ind.rm_simulate_activate_rating_procedure].
 
 ## Rating discovery procedure
 
 Elements: Get Binding Object Rate Adjustment, Get Binding Object Rate Card Entries, Get
 Rate Cards (Pricebook Rate Card Entries table), Get Rate Card Entries, Get Tier-Based Rate
 Adjustments. Input is a Binding Object ID or a Price Book ID
-[Help: `ind.rm_rating_discovery_procedure_elements`]. If a simulation supplies the output of
+[Help: ind.rm_rating_discovery_procedure_elements]. If a simulation supplies the output of
 an element, that element is skipped when fetching, so test with an input that exercises
-each step [Help: `ind.rm_rating_discovery_procedure_elements`]. The procedure's lookup
-tables are listed in [Help: `ind.rm_rating_discovery_procedures`].
+each step [Help: ind.rm_rating_discovery_procedure_elements]. The procedure's lookup
+tables are listed in [Help: ind.rm_rating_discovery_procedures].
 
 ## Real-time data
 
@@ -98,14 +98,14 @@ Get Binding Object Rate Adjustment and Get Binding Object Rate Card Entries (rat
 discovery); Negotiated Rate Card Entries, Negotiated Base Rate, Negotiated Volume-Based Rate
 Adjustment and Commitment Rate Adjustment (negotiable rating). Real-time is accurate but
 slower; tables are faster but need refresh when rates change. Real-time does not support "not
-matches" or "contains" [Help: `ind.rm_implementation_considerations`]. Which this repo uses on
+matches" or "contains" [Help: ind.rm_implementation_considerations]. Which this repo uses on
 264 is not measured; check the org.
 
 ## Waterfall
 
 Enable the rating waterfall for per-step reasons. Without persistence the steps are gone
 once the transaction is final; with persistence, every transaction stores detailed logs at
-a storage cost [Help: `ind.rm_enable_rating_waterfall_persistence`]. Read the persisted
+a storage cost [Help: ind.rm_enable_rating_waterfall_persistence]. Read the persisted
 waterfall through the API in
 [SKILL.md](SKILL.md) (APIs).
 
@@ -117,5 +117,5 @@ Reported behaviour, none measured here:
   editing a tier from adding or deleting one [Open: reported, not measured].
 - The asset usage view evaluates rates as of today, and uses the start date only for ramped lines.
   A future rate is read through asset rate card entries, or through the usage-details API with
-  `effectiveDate` [Open: reported, not measured; the unified dashboard Rates tab shows the winning
-  rate and is described in Help: ind.um_track_usage_with_unified_dashboard].
+  `effectiveDate` [Open: reported, not measured]. The unified dashboard Rates tab shows the
+  winning rate [Help: ind.um_track_usage_with_unified_dashboard].

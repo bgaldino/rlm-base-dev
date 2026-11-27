@@ -46,7 +46,7 @@ the setup path.
 | Script | Org? | Purpose |
 |--------|------|---------|
 | `build_hydration_data.py` | Read-only | Build the nested `data` hydration payload for a definition — fillable **skeleton**, or `--from-record <id>` for a ready-to-run **id-only** payload (parent + children hydrate server-side). |
-| `context_session.py` | **Mutates** | The single-process runtime driver — create → update-attr/write-tag → query → persist → delete. Each step is still a separate REST call; a later step (`--query`, `--persist`, ...) makes the instance SESSION-scoped by default, which some orgs gate behind `ContextServicePilot`, and Apex `Context.IndustriesContext` is the one-request GA runtime path (see caveats below). |
+| `context_session.py` | **Mutates** | The single-process runtime driver — create → update-attr/write-tag → query → persist → delete. Each step is still a separate REST call; a later step (`--query`, `--persist`, `--update-attr`, `--write-tag`, `--keep`) selects SESSION scope by default; SESSION may be gated on some orgs (`SessionScopeContext`, shipped with `ContextServicePilot`; Instance Reuse is a separate setting), and Apex `Context.IndustriesContext` is the one-request GA runtime path (see caveats below). |
 | `create_context_instance.py` | **Mutates** | `POST /connect/contexts` — hydrate an instance; returns the Context Info (`--id-only` for `$(...)` capture). |
 | `query_context_instance.py` | Read-only | `query-record` (flatten + decode compound) / `query-tags[-leaner]` against a live `contextId`. |
 | `persist_context_instance.py` | **Mutates** | `persist-records` — write attribute values back to a target mapping's SObjects (FK caveat). |
@@ -470,9 +470,9 @@ these scripts. What's script-specific:
 
 - **Request-scope → `context_session.py` is the entry point.** A `contextId` is
   request-scoped, so it can't be reused across separate `sf api request` calls
-  unless SESSION scope (and, on some orgs, the *Runtime Context Instance Reuse* setting) is on;
+  unless SESSION scope is on (it may be gated on some orgs, and *Runtime Context Instance Reuse* is a separate setting);
   `context_session.py` does create→use→persist→delete in one process and selects
-  SESSION when `--query/--persist/--update-attr/--write-tag` is given. The
+  SESSION when `--query/--persist/--update-attr/--write-tag/--keep` is given. The
   standalone scripts accept `--context-id` (reuse/debugging) and print a scope
   warning. **On a normal GA org, validate hydration via Apex** (`runtime-and-persistence.md`
   → *Start here*) — the stateless REST scripts can't complete the lifecycle.

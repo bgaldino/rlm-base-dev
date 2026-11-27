@@ -20,22 +20,21 @@ from typing import Any, Dict, Optional, Tuple
 from ._client import eprint
 from ._resolve import fetch_detail, resolve_definition_id, resolve_mapping
 
-# One-line note printed by the standalone (non-session) scripts. A runtime
-# contextId is a request-scoped cache handle. Each of these CLIs is its own `sf`
+# One-line note printed by every runtime CLI (context_session.py prints it too). A
+# runtime contextId is a request-scoped cache handle. Each CLI call is its own `sf`
 # invocation, so a contextId minted by one does NOT reach the next unless the
-# instance was created SESSION-scoped (some orgs gate it) and within
-# contextTtl. ``context_session.py`` shells each lifecycle step through a
-# separate `sf api request`, so it selects SESSION when a later step is requested;
-# the standalone scripts default to REQUEST. The GA one-request path is Apex
+# instance was created SESSION-scoped and within contextTtl. Created without
+# --context-scope, an instance is REQUEST-scoped, except that context_session.py
+# selects SESSION when a later step is requested. The GA one-request path is Apex
 # (``Context.IndustriesContext``) or a single Flow.
 CONTEXT_ID_SCOPE_NOTE = (
     "Note: a runtime contextId is request-scoped and does NOT survive across "
     "separate CLI invocations by default. context_session.py creates a "
     "SESSION-scoped instance whenever a later step (--query, --persist, "
-    "--update-attr, --write-tag) is requested; the other scripts need an "
+    "--update-attr, --write-tag, --keep) is requested; the other scripts need an "
     "instance created with --context-scope SESSION (within contextTtl) or a "
     "reused --context-id. SESSION query-record worked on a 264 org with no pilot "
-    "error; some orgs gate it behind ContextServicePilot. For a GA "
+    "error; SESSION scope may be gated on some orgs (SessionScopeContext, shipped with ContextServicePilot; Instance Reuse is a separate setting). For a GA "
     "single-request lifecycle, drive it from Apex (Context.IndustriesContext) or one Flow."
 )
 

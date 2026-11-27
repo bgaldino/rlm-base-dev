@@ -121,7 +121,7 @@ lines to fill an empty UI panel.
    quantity requirement. Product decomposition scope controls technical-item
    grouping; step `Scope` controls step multiplicity. Don't give a bundle child a scope
    broader than its parent's; from broad to narrow the scopes run Account, Order, Bundle,
-   Order Line Item [Help: `ind.dro_decomposition_scope`]. Whether that warning reaches
+   Order Line Item [Help: ind.dro_decomposition_scope]. Whether that warning reaches
    technical outputs decomposed from a bundle's components is unmeasured.
 3. Create `ProductFulfillmentDecompRule` records using verified source and
    destination SKUs, unique names, and priorities. One source can have two rules
@@ -202,7 +202,7 @@ repeated 2026-11-17 on a second org]:
    nodes, each reset to unselected; set each again (on the repo's extended context, to its
    namesake). Save.
 2. The optional Orchestration Group Key wasn't offered on the extended context and was left
-   blank. It groups orders for cross-plan dependencies [Help: `ind.dro_cross_plan_dependencies`].
+   blank. It groups orders for cross-plan dependencies [Help: ind.dro_cross_plan_dependencies].
 3. Clone the library's latest version onto the new context, deactivate the old version, then
    activate the new one. Check with
    `SELECT Name, Status, ContextDefinitionName FROM RuleLibraryVersion`.

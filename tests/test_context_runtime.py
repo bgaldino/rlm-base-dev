@@ -1108,12 +1108,15 @@ def test_lci_count_interface_tags_recurses():
 def test_session_default_scope():
     from scripts.context_service.instance import context_session as cs
     A = argparse.Namespace
-    base = dict(context_scope=None, query=False, persist=False, update_attr=None, write_tag=None)
+    base = dict(context_scope=None, query=False, persist=False, update_attr=None, write_tag=None, keep=False)
     check("no later step keeps scope unset", cs.effective_scope(A(**base)) is None)
     check("--query defaults to SESSION", cs.effective_scope(A(**{**base, "query": True})) == "SESSION")
     check("--persist defaults to SESSION", cs.effective_scope(A(**{**base, "persist": True})) == "SESSION")
     check("--update-attr defaults to SESSION",
           cs.effective_scope(A(**{**base, "update_attr": [["-", "a", "b"]]})) == "SESSION")
+    check("--write-tag defaults to SESSION",
+          cs.effective_scope(A(**{**base, "write_tag": [["-", "t", "v"]]})) == "SESSION")
+    check("--keep defaults to SESSION", cs.effective_scope(A(**{**base, "keep": True})) == "SESSION")
     check("explicit REQUEST is kept",
           cs.effective_scope(A(**{**base, "query": True, "context_scope": "REQUEST"})) == "REQUEST")
 

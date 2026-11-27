@@ -25,8 +25,8 @@ scope) it does **not** survive across separate ``sf`` invocations. The
 standalone scripts default to REQUEST; ``context_session.py`` shells each step
 through its own ``sf api request`` and selects SESSION when a later step is
 requested. To chain create→use→persist across CLI calls the instance must be
-created with ``--context-scope SESSION`` (some orgs gate it behind the "Runtime Context Instance Reuse to Improve Response Times"
-setting, within ``contextTtl``) or reuse an existing instance by id. The GA
+created with ``--context-scope SESSION`` (it may be gated on some orgs: ``SessionScopeContext``, shipped with ``ContextServicePilot``;
+Instance Reuse is a separate setting; within ``contextTtl``) or reuse an existing instance by id. The GA
 one-request path is Apex (``Context.IndustriesContext``) or a single Flow, where
 the whole hydrate→query→persist runs inside one transaction.
 
@@ -107,9 +107,9 @@ def build_create_metadata(
     - ``REQUEST`` (default when omitted) — request-local, ~15 s TTL,
       cannot be looked up by a later HTTP call.
     - ``SESSION`` — survives across separate calls
-      (subject to ``contextTtl``). **Pilot-gated**: requires the
-      ``SessionScopeContext`` user permission (via ``ContextServicePilot``).
-      Live-verified on 262 / v67.0.
+      (subject to ``contextTtl``). May be gated on some orgs: the
+      ``SessionScopeContext`` user permission, shipped with ``ContextServicePilot``;
+      Instance Reuse is a separate setting. Live-verified on 262 / v67.0.
     """
     metadata: Dict[str, Any] = {
         "contextDefinitionId": context_definition_id,

@@ -84,6 +84,5 @@ rejected [Open: reasoning only].
 
 ## Not in 264
 
-- Submitting only the ready root offerings of an order (partial order submission) is a 266 feature;
-  there is no 264 page [Open: confirm the preference name and behavior on a 266 org after it is
-  available].
+- Submitting only the ready root offerings of an order (partial order submission) has no page in the
+  264 Help snapshot [Open: not in the 264 snapshot].

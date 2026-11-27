@@ -15,9 +15,10 @@ It sequences the lifecycle from one Python process:
 separate ``sf api request``, so a runtime ``contextId`` created with the default
 REQUEST scope will not survive to the query/persist steps. To chain create →
 use → persist across those calls the instance must be SESSION-scoped: this
-script defaults to SESSION whenever --query, --persist, --update-attr or
---write-tag is given (some orgs gate SESSION behind the "Runtime Context Instance
-Reuse" setting, within contextTtl), or reuse an existing instance via ``--context-id``. For a GA
+script defaults to SESSION whenever --query, --persist, --update-attr,
+--write-tag or --keep is given (SESSION scope may be gated on some orgs: the SessionScopeContext
+permission, shipped with ContextServicePilot; Instance Reuse is a separate setting),
+or reuse an existing instance via ``--context-id``. For a GA
 single-request lifecycle, drive it from Apex (``Context.IndustriesContext``) or a
 single Flow instead.
 
@@ -38,20 +39,14 @@ node when no specific record targeting is needed (silently returns success but
 does not mutate the value — node-name paths behave identically).
 
 Usage:
-    # SESSION scope on a pilot org: full multi-call lifecycle
-    python scripts/context_service/instance/context_session.py --target-org rlm-base__beta \
-        --developer-name RLM_SalesTransactionContext --context-scope SESSION \
-        --data-file /tmp/records.json --query --persist \
-        --target-mapping-name QuoteEntitiesMapping
-
     # hydrate from a file, query the result, persist to the same mapping.
-    # SESSION scope is the default whenever query/persist follow create:
+    # SESSION scope is selected whenever a later step follows create:
     # each step is a separate `sf api request`, and a REQUEST-scoped contextId
     # does not survive across CLI calls (see the note above), so
     # the downstream query/persist would fail under it.
     python scripts/context_service/instance/context_session.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext --data-file /tmp/records.json \
-        --context-scope SESSION --query --persist --target-mapping-name QuoteEntitiesMapping
+        --query --persist --target-mapping-name QuoteEntitiesMapping
 
     # operate on an existing (reuse-enabled) instance: set an attr, then query
     python scripts/context_service/instance/context_session.py --target-org rlm-base__beta \
@@ -151,10 +146,10 @@ def _fetch_shared_detail(args):
 def effective_scope(args):
     """Scope for the create body. Later steps run as separate `sf api request` calls, so a
     REQUEST-scoped contextId is gone by then (query-record fails RECORD_NOT_FOUND); default to
-    SESSION whenever a later step is requested and the caller did not choose a scope."""
+    SESSION whenever a later step is requested (or --keep, which is only useful across calls) and the caller did not choose a scope."""
     if args.context_scope:
         return args.context_scope
-    later = args.query or args.persist or args.update_attr or args.write_tag
+    later = args.query or args.persist or args.update_attr or args.write_tag or args.keep
     return "SESSION" if later else None
 
 

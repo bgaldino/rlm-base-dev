@@ -98,8 +98,8 @@ on an active version). Order inside the plan does not matter; the tool resolves 
    procedure or expression set references the attribute **by tag name**, never by
    attribute name, so an attribute without its own tag cannot be used. The expression-set
    deploy otherwise fails "Specify a valid data type for the condition-0-input /
-   section-0-output variable" [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build;
-   first deploy of a procedure that read a new attribute before its tag existed].
+   section-0-output variable" [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]
+   on the first deploy of a procedure that read a new attribute before its tag existed.
 5. **Run** `validate_context_plan.py`, then `apply_context_plan.py --dry-run`, then
    `--verify` (or `manage_context_definition -o plan_file`). `--verify` re-reads the
    attributes, mapping rows and tags; it printed `Verification: OK` for a new `STRING`
@@ -158,7 +158,7 @@ cause is fixed. A `plan_file` that cannot be read, is not a JSON object, or whos
 that the version read already shows as default is not PATCHed again. On a rerun
 (`DUPLICATE_VALUE`) the task re-sends the activation PATCH when `activate` is true, which
 an active definition accepts [Measured: 2026-11-26, 264, scratch:
-`extend_context_definitions` rerun on a built org, no `plan_file`]; a set `plan_file` is
+extend_context_definitions rerun on a built org, no plan_file]; a set `plan_file` is
 applied again on every rerun, and no shipped `extend_context_*` task sets one.
 
 **Edition-optional vs. always-present (`allow_skip_if_unavailable`).** Most

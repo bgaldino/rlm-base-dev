@@ -17,7 +17,7 @@ supported path. This is emitted to stderr on every run.
 
 The ``contextId`` is request-scoped (see the note this prints) — persisting an id
 minted by a separate call only works if that instance was created with
-``--context-scope SESSION`` (pilot-gated) and you are within contextTtl; a default
+``--context-scope SESSION`` (may be gated on some orgs) and you are within contextTtl; a default
 REQUEST-scoped id will not resolve here. For a GA single-request lifecycle, drive
 create→persist from Apex (``Context.IndustriesContext``) or one Flow.
 

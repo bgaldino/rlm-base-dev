@@ -46,8 +46,8 @@ it. `pipefail` and `grep` make a missing line an error rather than an empty answ
 Combine modes as `"strict,json"`; with `pipefail` a strict failure still fails the pipeline.
 
 **Pricing looks wrong and the data looks right.** Run the check first. A Stale verdict
-naming the object you just edited is the answer; refresh, wait for the tables (*Wait for fresh
-tables before pricing*), and re-test before debugging anything else. A skipped discount or a
+naming the object you just edited is the answer; refresh, wait for the tables (SKILL.md → Wait for fresh
+tables before pricing), and re-test before debugging anything else. A skipped discount or a
 missing unit cost with no error is what pricing too soon after a refresh looks like.
 
 **Adding a rate to an existing card.** `RateCardEntry` feeds several tables. After the

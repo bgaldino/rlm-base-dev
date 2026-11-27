@@ -17,7 +17,7 @@ CCI alias.
 
 The ``contextId`` is request-scoped (see the note this prints) — an id minted by a
 separate ``create_context_instance.py`` call is only queryable here if that
-instance was created with ``--context-scope SESSION`` (pilot-gated) and you are
+instance was created with ``--context-scope SESSION`` (may be gated on some orgs) and you are
 within contextTtl; a default REQUEST-scoped id will not resolve here. For a GA
 single-request lifecycle, drive create→query from Apex
 (``Context.IndustriesContext``) or one Flow.

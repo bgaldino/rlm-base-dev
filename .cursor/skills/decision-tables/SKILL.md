@@ -47,7 +47,7 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
 2. **Check freshness headlessly** — `cci task run check_decision_table_freshness --org "your-cci-alias"`.
    Add `-o param1 strict` to fail a build on any stale table, or `-o param1 json` for the
    dependency map as JSON (`examples-and-platform-facts.md`). Without `strict` the task exits 0 even when tables
-   are Stale, so read the counts it prints [Repo: `scripts/apex/checkDecisionTableFreshness.apex`]. On a Trialforce-spun org,
+   are Stale, so read the counts it prints [Repo: scripts/apex/checkDecisionTableFreshness.apex]. On a Trialforce-spun org,
    `cci flow run check_org_readiness --org "your-cci-alias"` also checks that the search
    index was built in this org (`check_search_index_readiness`).
 3. **Freshness is measured against EVERY object a table reads**, not just its source

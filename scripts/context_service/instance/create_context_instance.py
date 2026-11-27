@@ -76,8 +76,8 @@ def main(argv=None) -> int:
     parser.add_argument("--context-scope", choices=["REQUEST", "SESSION"],
                         help="Set metadata.contextScope on create. SESSION lets "
                              "the contextId survive "
-                             "across separate CLI calls (subject to contextTtl). "
-                             "Requires the ContextServicePilot permission. Default "
+                             "across separate CLI calls (subject to contextTtl); some orgs gate it. "
+                             "Default "
                              "(omitted) is REQUEST (request-local, ~15 s).")
     parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
                         help=f"API version (default {DEFAULT_API_VERSION}).")
