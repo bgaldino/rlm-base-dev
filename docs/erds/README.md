@@ -2,7 +2,7 @@
 
 This directory contains the canonical Revenue Cloud ERD dataset and its domain diagrams. The interactive viewer combines that baseline with a separately sourced Contracts CLM extension.
 
-**Current baseline:** Release 264 (Winter '27, API v68.0) — **265 objects, 4,292 platform fields, 680 relationships** across 9 domains.
+**Current baseline:** Release 264 (Winter '27, API v68.0) — **265 objects, 4,292 platform fields, 818 relationships** across 9 domains.
 
 The release/apiVersion values here and in `erd-data.json` are *provenance*: they
 record which orgs the schema was extracted from, not a version the file is pinned
@@ -111,7 +111,7 @@ object count see the Domain Overview table in
   - `scripts/erd/schema_diff/clm-object-list.txt` preserves the explicit selection for future release-aligned extracts
   - Four Developer Guide object pages were absent from the primary org's object inventory and failed direct describe in all four prepared orgs; two included generation status-event objects are marked not SOQL-queryable
 
-- **erd-data.json** — Complete machine-readable schema (265 objects, 4,292 fields, 680 relationships)
+- **erd-data.json** — Complete machine-readable schema (265 objects, 4,292 fields, 818 relationships)
   - Custom fields excluded by design (project-deployed `RLM_*__c` and managed-package fields)
   - Fields include type, description, and refersTo metadata
   - Regenerate via `scripts/erd/validate_erd_against_org.py --org <alias> --patch` after schema changes
@@ -163,7 +163,7 @@ Mermaid files can be viewed in several ways:
 
 - **Total Objects:** 265
 - **Total Fields:** 4,292 (canonical platform fields only; custom fields excluded)
-- **Total Relationships:** 680 (unique cross-object lookups)
+- **Total Relationships:** 818 (unique cross-object lookups)
 - **Total Domains:** 9 (PCM, Pricing, Rates, Configurator, Transactions, Approvals, DRO, Usage, Billing)
 - **Last verified:** 2026-08-15 (two 264 orgs cross-validated; 127-entity Core UDD check carried forward from the 262 pass)
 

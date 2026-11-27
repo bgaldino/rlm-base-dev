@@ -12,7 +12,7 @@
   },
   "stats": {
     "totalObjects": 265,
-    "totalRelationships": 680,
+    "totalRelationships": 818,
     "totalFields": 4292,
     "domains": [
       "Advanced Approvals",
@@ -27044,6 +27044,834 @@
       "source": "OrderItem",
       "target": "OrderItemRecipient",
       "field": "OrderItemRecipientId",
+      "type": "lookup"
+    },
+    {
+      "source": "Dispute",
+      "target": "Invoice",
+      "field": "InvoiceId",
+      "type": "lookup"
+    },
+    {
+      "source": "RatingRequestBatchJob",
+      "target": "RatingRequest",
+      "field": "RatingRequestId",
+      "type": "lookup"
+    },
+    {
+      "source": "GeneralLedgerJrnlEntryRule",
+      "target": "GeneralLedgerAcctAsgntRule",
+      "field": "GeneralLedgerAcctAsgntRuleId",
+      "type": "lookup"
+    },
+    {
+      "source": "InvoiceDocument",
+      "target": "Invoice",
+      "field": "InvoiceId",
+      "type": "master-detail"
+    },
+    {
+      "source": "TaxEngineInteractionLog",
+      "target": "TaxEngine",
+      "field": "TaxEngineId",
+      "type": "lookup"
+    },
+    {
+      "source": "AssetRateAdjustment",
+      "target": "AssetRateCardEntry",
+      "field": "AssetRateCardEntryId",
+      "type": "master-detail"
+    },
+    {
+      "source": "InvoiceLineTax",
+      "target": "InvoiceAddressGroup",
+      "field": "BillingAddressId",
+      "type": "lookup"
+    },
+    {
+      "source": "DebitMemoAddress",
+      "target": "DebitMemo",
+      "field": "DebitMemoId",
+      "type": "master-detail"
+    },
+    {
+      "source": "TransactionJournal",
+      "target": "UsageSummary",
+      "field": "UsageSummaryId",
+      "type": "lookup"
+    },
+    {
+      "source": "BillingPeriodItem",
+      "target": "BillingScheduleGroup",
+      "field": "BillingScheduleGroupId",
+      "type": "lookup"
+    },
+    {
+      "source": "BillingPeriodItem",
+      "target": "BillingSchedule",
+      "field": "BillingScheduleId",
+      "type": "master-detail"
+    },
+    {
+      "source": "LegalEntity",
+      "target": "EmailTemplate",
+      "field": "EmailTemplateId",
+      "type": "lookup"
+    },
+    {
+      "source": "UsageCmtAssetRelatedObj",
+      "target": "Asset",
+      "field": "AssetId",
+      "type": "lookup"
+    },
+    {
+      "source": "ContractItemPrice",
+      "target": "Contract",
+      "field": "ContractId",
+      "type": "master-detail"
+    },
+    {
+      "source": "FulfillmentAssetRelationship",
+      "target": "FulfillmentAsset",
+      "field": "MainFulfillmentAssetId",
+      "type": "master-detail"
+    },
+    {
+      "source": "Refund",
+      "target": "LegalEntyAccountingPeriod",
+      "field": "LegalEntityAccountingPeriodId",
+      "type": "lookup"
+    },
+    {
+      "source": "Refund",
+      "target": "LegalEntity",
+      "field": "LegalEntityId",
+      "type": "lookup"
+    },
+    {
+      "source": "OrderDeliveryMethod",
+      "target": "Product2",
+      "field": "ProductId",
+      "type": "lookup"
+    },
+    {
+      "source": "QuoteLineRateCardEntry",
+      "target": "RateCardEntry",
+      "field": "RateCardEntryId",
+      "type": "lookup"
+    },
+    {
+      "source": "QuoteLineRateCardEntry",
+      "target": "UsageResource",
+      "field": "UsageResourceId",
+      "type": "lookup"
+    },
+    {
+      "source": "InvBatchDraftToPostedRun",
+      "target": "InvoiceBatchRun",
+      "field": "InvBatchDraftToPostedRunNumber",
+      "type": "master-detail"
+    },
+    {
+      "source": "InvBatchDraftToPostedRun",
+      "target": "InvoiceBatchRun",
+      "field": "InvoiceBatchRunId",
+      "type": "lookup"
+    },
+    {
+      "source": "ProdtDecompEnrchVarMap",
+      "target": "ProductDecompEnrichmentRule",
+      "field": "ProductDecompEnrichmentRuleId",
+      "type": "lookup"
+    },
+    {
+      "source": "Invoice",
+      "target": "Contact",
+      "field": "BillToContactId",
+      "type": "lookup"
+    },
+    {
+      "source": "Invoice",
+      "target": "BillingArrangement",
+      "field": "BillingArrangementId",
+      "type": "lookup"
+    },
+    {
+      "source": "AttrPicklistExcludedValue",
+      "target": "AttributePicklistValue",
+      "field": "AttributePicklistValueId",
+      "type": "lookup"
+    },
+    {
+      "source": "FulfillmentAssetAttribute",
+      "target": "AttributeDefinition",
+      "field": "AttributeDefinitionId",
+      "type": "lookup"
+    },
+    {
+      "source": "OrderItemUsageRsrcPlcy",
+      "target": "UsageCommitmentPolicy",
+      "field": "UsageCommitmentPolicyId",
+      "type": "lookup"
+    },
+    {
+      "source": "GeneralLdgrAcctPrdSummary",
+      "target": "GeneralLedgerAccount",
+      "field": "GeneralLedgerAccountId",
+      "type": "master-detail"
+    },
+    {
+      "source": "InvoiceBatchRunRecovery",
+      "target": "InvoiceBatchRun",
+      "field": "InvoiceBatchRunId",
+      "type": "master-detail"
+    },
+    {
+      "source": "UsageEntitlementEntry",
+      "target": "UsageEntitlementBucket",
+      "field": "EntitlementBucketId",
+      "type": "master-detail"
+    },
+    {
+      "source": "UsageEntitlementEntry",
+      "target": "UnitOfMeasure",
+      "field": "UomId",
+      "type": "lookup"
+    },
+    {
+      "source": "DebitMemoLine",
+      "target": "DebitMemo",
+      "field": "DebitMemoId",
+      "type": "master-detail"
+    },
+    {
+      "source": "OrderItemGroup",
+      "target": "OrderItemGroup",
+      "field": "ParentOrderItemGroupId",
+      "type": "lookup"
+    },
+    {
+      "source": "CreditMemoLine",
+      "target": "CreditMemoAddressGroup",
+      "field": "BillingAddressId",
+      "type": "lookup"
+    },
+    {
+      "source": "OrderItemAttribute",
+      "target": "AttributeDefinition",
+      "field": "AttributeDefinitionId",
+      "type": "lookup"
+    },
+    {
+      "source": "AssetContractRelationship",
+      "target": "Contract",
+      "field": "ContractId",
+      "type": "lookup"
+    },
+    {
+      "source": "OrderItemRateAdjustment",
+      "target": "OrderItemRateCardEntry",
+      "field": "OrderItemRateCardEntryId",
+      "type": "lookup"
+    },
+    {
+      "source": "CreditMemoAddressGroup",
+      "target": "CreditMemo",
+      "field": "CreditMemoId",
+      "type": "master-detail"
+    },
+    {
+      "source": "FulfillmentStep",
+      "target": "FulfillmentStep",
+      "field": "CompensatedStepId",
+      "type": "lookup"
+    },
+    {
+      "source": "FulfillmentStep",
+      "target": "ExpressionSet",
+      "field": "ExecuteOnRuleId",
+      "type": "lookup"
+    },
+    {
+      "source": "FulfillmentStep",
+      "target": "IntegrationProviderDef",
+      "field": "IntegrationDefinitionNameId",
+      "type": "lookup"
+    },
+    {
+      "source": "FulfillmentStep",
+      "target": "ExpressionSet",
+      "field": "ResumeOnRuleId",
+      "type": "lookup"
+    },
+    {
+      "source": "PaymentSchedule",
+      "target": "Account",
+      "field": "DefaultPaymentAccountId",
+      "type": "lookup"
+    },
+    {
+      "source": "BillingScheduleGroup",
+      "target": "Contact",
+      "field": "BillToContactId",
+      "type": "lookup"
+    },
+    {
+      "source": "BillingScheduleGroup",
+      "target": "Account",
+      "field": "BillingAccountId",
+      "type": "lookup"
+    },
+    {
+      "source": "BillingScheduleGroup",
+      "target": "Asset",
+      "field": "ReferenceRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "AssetRateCardEntry",
+      "target": "Asset",
+      "field": "AssetId",
+      "type": "lookup"
+    },
+    {
+      "source": "QuotLineItmUseRsrcGrant",
+      "target": "UsageResource",
+      "field": "UsageResourceId",
+      "type": "lookup"
+    },
+    {
+      "source": "UsageBillingPeriodItem",
+      "target": "Account",
+      "field": "AccountId",
+      "type": "lookup"
+    },
+    {
+      "source": "ExpressionSetConstraintObj",
+      "target": "ExpressionSet",
+      "field": "ExpressionSetId",
+      "type": "lookup"
+    },
+    {
+      "source": "FulfillmentStepDependency",
+      "target": "FulfillmentStep",
+      "field": "DependentStepId",
+      "type": "lookup"
+    },
+    {
+      "source": "BindingObjectRateAdjustment",
+      "target": "BindingObjectRateCardEntry",
+      "field": "BindingObjectRateCardEntryId",
+      "type": "master-detail"
+    },
+    {
+      "source": "ProductConfigFlowAssignment",
+      "target": "ProductClassification",
+      "field": "ProductClassificationId",
+      "type": "lookup"
+    },
+    {
+      "source": "ProductConfigFlowAssignment",
+      "target": "ProductConfigurationFlow",
+      "field": "ProductConfigurationFlowId",
+      "type": "lookup"
+    },
+    {
+      "source": "AssetDowntimePeriod",
+      "target": "AssetRateCardEntry",
+      "field": "AssetRateCardEntryId",
+      "type": "lookup"
+    },
+    {
+      "source": "PricingAdjBatchJobLog",
+      "target": "PricingAdjBatchJob",
+      "field": "PricingAdjBatchJobId",
+      "type": "lookup"
+    },
+    {
+      "source": "FulfillmentTaskAssignmentRule",
+      "target": "ExpressionSet",
+      "field": "ConditionId",
+      "type": "lookup"
+    },
+    {
+      "source": "ContractItemPriceAdjTier",
+      "target": "ContractItemPrice",
+      "field": "ContractItemPriceId",
+      "type": "lookup"
+    },
+    {
+      "source": "TransactionUsageEntitlement",
+      "target": "Account",
+      "field": "AccountId",
+      "type": "lookup"
+    },
+    {
+      "source": "TransactionUsageEntitlement",
+      "target": "Asset",
+      "field": "AssetId",
+      "type": "lookup"
+    },
+    {
+      "source": "TransactionUsageEntitlement",
+      "target": "PricebookEntry",
+      "field": "PricebookEntryId",
+      "type": "lookup"
+    },
+    {
+      "source": "FulfillmentLineAttribute",
+      "target": "FulfillmentOrderLineItem",
+      "field": "FulfillmentOrderLineItemId",
+      "type": "lookup"
+    },
+    {
+      "source": "CreditMemo",
+      "target": "Contact",
+      "field": "BillToContactId",
+      "type": "lookup"
+    },
+    {
+      "source": "CreditMemo",
+      "target": "Account",
+      "field": "BillingAccountId",
+      "type": "lookup"
+    },
+    {
+      "source": "AssetTokenEvent",
+      "target": "Asset",
+      "field": "AssetId",
+      "type": "lookup"
+    },
+    {
+      "source": "CreditMemoLineTax",
+      "target": "CreditMemoLine",
+      "field": "CreditMemoLineId",
+      "type": "master-detail"
+    },
+    {
+      "source": "CreditMemoLineTax",
+      "target": "TaxTreatment",
+      "field": "TaxTreatmentId",
+      "type": "lookup"
+    },
+    {
+      "source": "ContractItemPriceHistory",
+      "target": "ContractItemPrice",
+      "field": "ContractItemPriceId",
+      "type": "lookup"
+    },
+    {
+      "source": "UsageEntitlementAccount",
+      "target": "Account",
+      "field": "AccountId",
+      "type": "lookup"
+    },
+    {
+      "source": "UsageEntitlementAccount",
+      "target": "PricebookEntry",
+      "field": "PricebookEntryId",
+      "type": "lookup"
+    },
+    {
+      "source": "InvoiceAddressGroup",
+      "target": "Invoice",
+      "field": "InvoiceId",
+      "type": "lookup"
+    },
+    {
+      "source": "SequenceGapReconciliation",
+      "target": "SequencePolicy",
+      "field": "SequencePolicyId",
+      "type": "master-detail"
+    },
+    {
+      "source": "BillingMilestonePlanItem",
+      "target": "BillingMilestonePlan",
+      "field": "BillingMilestonePlanId",
+      "type": "master-detail"
+    },
+    {
+      "source": "InvoiceLineRelationship",
+      "target": "InvoiceLine",
+      "field": "MainInvoiceLineId",
+      "type": "master-detail"
+    },
+    {
+      "source": "InvoiceLineRelationship",
+      "target": "ProductRelationshipType",
+      "field": "ProductRelationshipTypeId",
+      "type": "lookup"
+    },
+    {
+      "source": "BillingArrangementLine",
+      "target": "Account",
+      "field": "AccountId",
+      "type": "lookup"
+    },
+    {
+      "source": "BillingArrangementLine",
+      "target": "BillingAccount",
+      "field": "BillingAccountId",
+      "type": "master-detail"
+    },
+    {
+      "source": "BillingArrangementLine",
+      "target": "BillingArrangement",
+      "field": "BillingArrangementId",
+      "type": "lookup"
+    },
+    {
+      "source": "PaymentLineInvoiceLine",
+      "target": "Account",
+      "field": "AccountId",
+      "type": "lookup"
+    },
+    {
+      "source": "PaymentLineInvoiceLine",
+      "target": "InvoiceLine",
+      "field": "InvoiceLineId",
+      "type": "lookup"
+    },
+    {
+      "source": "CostBookEntry",
+      "target": "CostBook",
+      "field": "CostBookId",
+      "type": "lookup"
+    },
+    {
+      "source": "CostBookEntry",
+      "target": "Product2",
+      "field": "ProductId",
+      "type": "lookup"
+    },
+    {
+      "source": "FulfillmentAsset",
+      "target": "Account",
+      "field": "AccountId",
+      "type": "lookup"
+    },
+    {
+      "source": "AssetStatePeriodAttribute",
+      "target": "AssetStatePeriod",
+      "field": "AssetStatePeriodId",
+      "type": "master-detail"
+    },
+    {
+      "source": "AssetStatePeriodAttribute",
+      "target": "AttributePicklistValue",
+      "field": "AttributePicklistValueId",
+      "type": "lookup"
+    },
+    {
+      "source": "CreditMemoLineInvoiceLine",
+      "target": "InvoiceLine",
+      "field": "InvoiceLineId",
+      "type": "master-detail"
+    },
+    {
+      "source": "OrderItemUsageRsrcGrant",
+      "target": "UsageResource",
+      "field": "UsageResourceId",
+      "type": "lookup"
+    },
+    {
+      "source": "FulfillmentLineRel",
+      "target": "FulfillmentOrderLineItem",
+      "field": "AssociatedFulfillOrderItemId",
+      "type": "lookup"
+    },
+    {
+      "source": "FulfillmentLineRel",
+      "target": "FulfillmentOrder",
+      "field": "FulfillmentOrderId",
+      "type": "lookup"
+    },
+    {
+      "source": "FulfillmentLineRel",
+      "target": "FulfillmentOrderLineItem",
+      "field": "MainFulfillmentOrderItemId",
+      "type": "master-detail"
+    },
+    {
+      "source": "UsageRatableSummary",
+      "target": "Account",
+      "field": "AccountId",
+      "type": "lookup"
+    },
+    {
+      "source": "BillingAccount",
+      "target": "Account",
+      "field": "AccountID",
+      "type": "lookup"
+    },
+    {
+      "source": "BillingAccount",
+      "target": "Contact",
+      "field": "BillToContactId",
+      "type": "lookup"
+    },
+    {
+      "source": "BillingAccount",
+      "target": "EmailTemplate",
+      "field": "EmailTemplateId",
+      "type": "lookup"
+    },
+    {
+      "source": "AssetActionSrcPriceAdjustment",
+      "target": "AssetActionSource",
+      "field": "AssetActionSourceId",
+      "type": "master-detail"
+    },
+    {
+      "source": "RefundLinePayment",
+      "target": "LegalEntyAccountingPeriod",
+      "field": "LegalEntityAccountingPeriodId",
+      "type": "lookup"
+    },
+    {
+      "source": "RefundLinePayment",
+      "target": "LegalEntity",
+      "field": "LegalEntityId",
+      "type": "lookup"
+    },
+    {
+      "source": "Asset",
+      "target": "Account",
+      "field": "AssetProvidedById",
+      "type": "lookup"
+    },
+    {
+      "source": "Asset",
+      "target": "Account",
+      "field": "AssetServicedById",
+      "type": "lookup"
+    },
+    {
+      "source": "FulfillmentLineSourceRel",
+      "target": "FulfillmentOrderLineItem",
+      "field": "FulfilmentOrderLineId",
+      "type": "lookup"
+    },
+    {
+      "source": "Quote",
+      "target": "Account",
+      "field": "PartnerAccountId",
+      "type": "lookup"
+    },
+    {
+      "source": "BillingMilestonePlan",
+      "target": "BillingTreatment",
+      "field": "BillingTreatmentId",
+      "type": "lookup"
+    },
+    {
+      "source": "ProductDecompEnrichmentRule",
+      "target": "ProductFulfillmentDecompRule",
+      "field": "DecompositionRuleId",
+      "type": "parent-child"
+    },
+    {
+      "source": "ProductDecompEnrichmentRule",
+      "target": "AttributeDefinition",
+      "field": "SourceAttributeDefinitionId",
+      "type": "lookup"
+    },
+    {
+      "source": "QuoteLineGroup",
+      "target": "Quote",
+      "field": "QuoteId",
+      "type": "master-detail"
+    },
+    {
+      "source": "PaymentScheduleItem",
+      "target": "Account",
+      "field": "PaymentAccountId",
+      "type": "lookup"
+    },
+    {
+      "source": "PaymentScheduleItem",
+      "target": "PaymentSchedule",
+      "field": "PaymentRunMatchingValue",
+      "type": "master-detail"
+    },
+    {
+      "source": "DisputeItem",
+      "target": "InvoiceLine",
+      "field": "InvoiceLineId",
+      "type": "lookup"
+    },
+    {
+      "source": "PaymentScheduleTreatment",
+      "target": "PaymentSchedulePolicy",
+      "field": "PaymentSchedulePolicyId",
+      "type": "lookup"
+    },
+    {
+      "source": "BsgRelationship",
+      "target": "BillingScheduleGroup",
+      "field": "MainBsgId",
+      "type": "lookup"
+    },
+    {
+      "source": "OrderItemRateCardEntry",
+      "target": "RateCardEntry",
+      "field": "RateCardEntryId",
+      "type": "lookup"
+    },
+    {
+      "source": "OrderItemRateCardEntry",
+      "target": "UsageResource",
+      "field": "UsageResourceId",
+      "type": "lookup"
+    },
+    {
+      "source": "DebitMemo",
+      "target": "Account",
+      "field": "AccountId",
+      "type": "lookup"
+    },
+    {
+      "source": "ProductPriceHistoryLog",
+      "target": "ProductPriceRange",
+      "field": "ProductPriceRangeId",
+      "type": "master-detail"
+    },
+    {
+      "source": "Payment",
+      "target": "LegalEntyAccountingPeriod",
+      "field": "LegalEntityAccountingPeriodId",
+      "type": "lookup"
+    },
+    {
+      "source": "CreditMemoInvApplication",
+      "target": "Invoice",
+      "field": "InvoiceId",
+      "type": "master-detail"
+    },
+    {
+      "source": "UsageSummary",
+      "target": "Account",
+      "field": "AccountId",
+      "type": "lookup"
+    },
+    {
+      "source": "SeqPolicySelectionCondition",
+      "target": "SequencePolicy",
+      "field": "SequencePolicyId",
+      "type": "lookup"
+    },
+    {
+      "source": "BillingSchedule",
+      "target": "Account",
+      "field": "BillingAccountId",
+      "type": "lookup"
+    },
+    {
+      "source": "BillingSchedule",
+      "target": "BillingScheduleGroup",
+      "field": "BillingScheduleGroupId",
+      "type": "master-detail"
+    },
+    {
+      "source": "BillingSchedule",
+      "target": "UnitOfMeasure",
+      "field": "UnitOfMeasureId",
+      "type": "lookup"
+    },
+    {
+      "source": "PricingProcedureResolution",
+      "target": "ExpressionSet",
+      "field": "PricingProcedureId",
+      "type": "lookup"
+    },
+    {
+      "source": "AssetActionSource",
+      "target": "PricebookEntry",
+      "field": "PricebookEntryId",
+      "type": "lookup"
+    },
+    {
+      "source": "AssetActionSource",
+      "target": "ProductSellingModel",
+      "field": "ProductSellingModelId",
+      "type": "lookup"
+    },
+    {
+      "source": "AssetActionSource",
+      "target": "ProrationPolicy",
+      "field": "ProrationPolicyId",
+      "type": "lookup"
+    },
+    {
+      "source": "AssetActionSource",
+      "target": "TaxTreatment",
+      "field": "TaxTreatmentId",
+      "type": "lookup"
+    },
+    {
+      "source": "Contract",
+      "target": "Pricebook2",
+      "field": "Pricebook2Id",
+      "type": "lookup"
+    },
+    {
+      "source": "ContractLineItem",
+      "target": "PricebookEntry",
+      "field": "PricebookEntryId",
+      "type": "lookup"
+    },
+    {
+      "source": "ProductCategoryDisqual",
+      "target": "ProductCategory",
+      "field": "CategoryId",
+      "type": "lookup"
+    },
+    {
+      "source": "ProductCategoryQualification",
+      "target": "ProductCategory",
+      "field": "CategoryId",
+      "type": "lookup"
+    },
+    {
+      "source": "ProductDisqualification",
+      "target": "Product2",
+      "field": "ParentProductId",
+      "type": "lookup"
+    },
+    {
+      "source": "ProductDisqualification",
+      "target": "Product2",
+      "field": "ProductId",
+      "type": "lookup"
+    },
+    {
+      "source": "ProductDisqualification",
+      "target": "Product2",
+      "field": "RootProductId",
+      "type": "lookup"
+    },
+    {
+      "source": "ProductQualification",
+      "target": "Product2",
+      "field": "ParentProductId",
+      "type": "lookup"
+    },
+    {
+      "source": "ProductQualification",
+      "target": "Product2",
+      "field": "ProductId",
+      "type": "lookup"
+    },
+    {
+      "source": "ProductQualification",
+      "target": "Product2",
+      "field": "RootProductId",
+      "type": "lookup"
+    },
+    {
+      "source": "ObjectStateActionDefinition",
+      "target": "OmniProcess",
+      "field": "ReferenceObjectId",
       "type": "lookup"
     }
   ]

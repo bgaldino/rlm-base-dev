@@ -129,7 +129,7 @@ WINDOW = 3
 # citation, row, headline or whole file leaving the audit shows up as a smaller
 # number instead of as "all checks passed" — the failure mode the per-site guards
 # above exist to prevent, and the reason `tests/test_branch_scope.py` pins its own.
-EXPECTED_CHECKS = 116
+EXPECTED_CHECKS = 117
 
 ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "erd-data.json")
 CLM_ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "contracts-erd-data.json")
@@ -387,6 +387,11 @@ def main():
     missing = [(n, f) for n, o in erd["objects"].items() for f, x in o["fields"].items()
                if x.get("refersTo") in ("QuoteLineItemRecipient", "OrderItemRecipient", "ServiceAddress") and (n, x["refersTo"], f) not in rel_keys]
     check("recipient_fields_have_relationship_rows", not missing, f"no edge for {missing}")
+
+    import copy
+    again = copy.deepcopy(erd)
+    check("every_reference_field_has_a_relationship_row_and_relinking_adds_zero",
+          validator.link_new_objects(again) == 0)
 
     real_describe = validator.describe_sobject
     validator.describe_sobject = lambda org, name: {"name": "PricebookEntry", "fields": []}
