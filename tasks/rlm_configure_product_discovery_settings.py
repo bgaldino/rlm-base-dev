@@ -3,12 +3,20 @@
 Sets the Default Catalog to the specified catalog name (default: "QuantumBit Software").
 Must run after QB product catalog data has been loaded so the catalog record exists.
 
+Optionally turns on four toggles that no Settings metadata type exposes (todo 250):
+Partial Search, Price Book Filtering, Product Catalog Management Cache and List Price
+from Cache. Each is off unless its option is true, and the task never turns one off.
+
 Follows the same pattern as rlm_configure_revenue_settings.py.
 """
 
 import subprocess
 import sys
 from pathlib import Path
+
+# Import repo `tasks.*` before cumulusci (see tasks/rlm_configure_search_index.py).
+from tasks.robot_utils import check_urllib3_for_robot
+from tasks.soql_utils import option_flag
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -17,11 +25,16 @@ except ImportError:
     BaseSalesforceTask = object  # type: ignore
     TaskOptionsError = Exception  # type: ignore
 
-from tasks.robot_utils import check_urllib3_for_robot
-
 DEFAULT_SUITE = "robot/rlm-base/tests/setup/configure_product_discovery_settings.robot"
 DEFAULT_OUTPUT_DIR = "robot/rlm-base/results"
 DEFAULT_CATALOG = "QuantumBit Software"
+# Task option -> suite variable for the optional toggles (all off by default).
+OPTIONAL_TOGGLES = {
+    "partial_search": "PARTIAL_SEARCH",
+    "price_book_filtering": "PRICE_BOOK_FILTERING",
+    "pcm_cache": "PCM_CACHE",
+    "list_price_from_cache": "LIST_PRICE_FROM_CACHE",
+}
 
 
 class ConfigureProductDiscoverySettings(BaseSalesforceTask):
@@ -43,6 +56,26 @@ class ConfigureProductDiscoverySettings(BaseSalesforceTask):
         },
         "default_catalog": {
             "description": "Name of the Default Catalog to select in ProductDiscoverySettings.",
+            "required": False,
+        },
+        "partial_search": {
+            "description": "Turn on Partial Search (Index and Search Configuration > Index Settings). "
+            "Applies after a full index rebuild, to Product Code and Product SKU when they are "
+            "searchable. Default false.",
+            "required": False,
+        },
+        "price_book_filtering": {
+            "description": "Turn on Price Book Filtering in Product Discovery Settings. Default false.",
+            "required": False,
+        },
+        "pcm_cache": {
+            "description": "Turn on the Product Catalog Management Cache in Product Discovery Settings "
+            "(needs Data Translation off). Default false.",
+            "required": False,
+        },
+        "list_price_from_cache": {
+            "description": "Turn on List Price from Cache in Product Discovery Settings (needs the "
+            "Product Catalog Management Cache on). Default false.",
             "required": False,
         },
     }
@@ -71,6 +104,10 @@ class ConfigureProductDiscoverySettings(BaseSalesforceTask):
         out_path.mkdir(parents=True, exist_ok=True)
 
         catalog = self.options.get("default_catalog") or DEFAULT_CATALOG
+        toggle_vars = []
+        for option, variable in OPTIONAL_TOGGLES.items():
+            on = option_flag(self.options.get(option), option, TaskOptionsError)
+            toggle_vars += ["--variable", f"{variable}:{'true' if on else 'false'}"]
 
         cmd = [
             sys.executable,
@@ -80,6 +117,7 @@ class ConfigureProductDiscoverySettings(BaseSalesforceTask):
             f"ORG_ALIAS:{org_name}",
             "--variable",
             f"DEFAULT_CATALOG:{catalog}",
+            *toggle_vars,
             "--outputdir",
             str(out_path),
             str(suite_path),
