@@ -1837,7 +1837,8 @@ _Quote Calculation Settled
     ...    retried (NotStarted, ImportQLISuccess), since pricing may not have started yet.
     ...    Under ``require_valid`` it also retries while Quote.ValidationResult is set.
     [Arguments]    ${quote_id}    ${require_priced}    ${require_valid}=${False}
-    ${quote}=    SalesforceAPI.Query Record By Id    Quote    ${quote_id}    fields=CalculationStatus,ValidationResult
+    ${fields}=    Set Variable If    ${require_valid}    CalculationStatus,ValidationResult    CalculationStatus
+    ${quote}=    SalesforceAPI.Query Record By Id    Quote    ${quote_id}    fields=${fields}
     ${status}=    Evaluate    $quote['CalculationStatus'] or 'NotStarted'
     Log    Quote ${quote_id} CalculationStatus: ${status}
     ${failed}=    _Is Failed Calculation Status    ${status}    ${require_priced}

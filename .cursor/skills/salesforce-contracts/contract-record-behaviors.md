@@ -55,6 +55,6 @@ Create Order then refuses the quote ("We couldn't create the order because the p
 All and try again."), and the quote page shows "The prices aren't up to date or the validation isn't complete."
 One Force reprice (Place Sales Transaction, `pricingPref` Force, `configurationMethod` Skip) sets `ValidationResult`
 to null, after which a single order creation from the quote succeeds. Reprice and wait on `ValidationResult`, not
-only `CalculationStatus`, before ordering a quote that has a contract. `ValidationResult` as the order-creation gate:
-[troubleshooting: large-deal-preprocess-reference](../troubleshooting/large-deal-preprocess-reference.md)
-[Measured: 2026-11-28, 264, scratch org built from main].
+only `CalculationStatus`, before ordering a quote that has a contract
+[Measured: 2026-11-28, 264, scratch org built from main]. The same field on Order gates large-deal order activation:
+[troubleshooting: large-deal-preprocess-reference](../troubleshooting/large-deal-preprocess-reference.md).
