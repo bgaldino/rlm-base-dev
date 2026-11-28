@@ -134,13 +134,14 @@ Procedure with Propagation on: a copy of the default procedure with `IsPropagati
 - On a real quote with a group Discount of 10 and two lines, the default procedure priced each line at the list price less 10 percent (list 3899, `NetUnitPrice` 3509.1, line Discount 10). [Measured: 2026-11-28, 264, scratch org built from main]
 - After switching the Revenue Settings pricing procedure to the copy and a Force reprice, the same lines priced at 3509.1 again, and the waterfall contained a `PricingPropagation` step whose output was `propagationId` only; `ignoreChangeSet` was also true there. [Measured: 2026-11-28, 264, scratch org built from main]
 - The table's merged `Discount` column was not mapped to a pricing tag, so net prices were unchanged and nothing follows about whether propagation duplicates the default's group discount. [Measured: 2026-11-28, 264, scratch org built from main]
-- The waterfall gave no evidence of which core path (error or sequential) ran. [Measured: 2026-11-28, 264, scratch org built from main]
-- The Robot setup suite is the way to switch the Revenue Settings pricing procedure. It selects by exact Name label, so override `PRICING_PROCEDURE` with the copy's label. [Repo: robot/rlm-base/tests/setup/configure_revenue_settings.robot]
+- With `ignoreChangeSet` true the error path does not apply. A quote reprice logged a `PricingPropagation` step, and a headless request did not. [Measured: 2026-11-28, 264, scratch org built from main]
+- One way to switch the Revenue Settings pricing procedure is `cci task run configure_revenue_settings -o pricing_procedure "<copy's label>"`; the suite matches the label exactly. [Repo: tasks/rlm_configure_revenue_settings.py] [Repo: robot/rlm-base/tests/setup/configure_revenue_settings.robot]
 
 ## Open questions
 
 - Whether any table makes a propagated group discount change line net prices beyond the default behavior. [Open: reprice a quote under a copy whose propagated column is mapped to a pricing tag, and compare line `NetUnitPrice` with the default]
 - Whether dropping `BreakdownLineMapping` changes breakdown lines on orders. [Open: place an order from a quote priced by the copy and one priced by the default and compare `OrderItemDetail` rows; the copy also has propagation on, so repeat with a copy that only drops `BreakdownLineMapping`]
-- Why a metadata deploy of a new `ExpressionSetDefinition` fails on a fresh scratch org. [Open: deploy an unmodified clone of the default with --dry-run on a second fresh scratch org and read the error]
+- Why only the quote reprice logs the step. [Open: compare a headless request and a quote reprice under the copy to find why only the reprice logs the step]
+- Why the metadata deploy failed on that scratch org, and whether it repeats on another. [Open: deploy an unmodified clone of the default with --dry-run on a second fresh scratch org and read the error]
 - Whether the fixture's tags and nodes (`SalesTransactionGroup`, `GroupSource`, `ParentSalesTransactionItemGroup__std`, the `Group*__std` columns) resolve against this repo's sales transaction context. [Open: describe the repo context definition for those tags and nodes]
 - Whether other placements between the Pricing Setting step and Discount Distribution save and price the same. [Open: create variants with the Propagation step at other positions before Discount Distribution and reprice]
