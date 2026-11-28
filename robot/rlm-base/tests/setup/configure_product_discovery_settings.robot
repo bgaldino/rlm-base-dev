@@ -7,6 +7,13 @@ Documentation     Configure the Product Discovery Settings page: set the Default
 ...               The "Select Default Catalog" field is a Lightning combobox. Selecting a
 ...               value auto-saves and triggers a "Default Catalog Updated" toast — no
 ...               explicit Save button is needed.
+...
+...               It can also turn on four optional toggles that no Settings metadata type
+...               exposes (todo 250): Partial Search (Product Catalog Management > Index and
+...               Search Configuration > Index Settings), and Price Book Filtering, Product
+...               Catalog Management Cache and List Price from Cache (Product Discovery
+...               Settings). Each is off unless its variable is "true", and the suite never
+...               turns one off. Every toggle auto-saves on click.
 Resource          ../../resources/SetupToggles.robot
 Suite Setup       Open Browser For Setup
 Suite Teardown    Close Browser After Setup
@@ -16,6 +23,12 @@ ${ORG_ALIAS}                    ${EMPTY}
 ${PRODUCT_DISCOVERY_URL}        ${EMPTY}
 ${MANUAL_LOGIN_WAIT}            90s
 ${DEFAULT_CATALOG}              QuantumBit Software
+# Optional toggles: "true" turns one on. All are off by default; see the suite Documentation.
+${PARTIAL_SEARCH}               false
+${PRICE_BOOK_FILTERING}         false
+${PCM_CACHE}                    false
+${LIST_PRICE_FROM_CACHE}        false
+${INDEX_SETTINGS_PATH}          /lightning/cmp/runtime_industries_epc__epcRuntimeCatalogWrapper
 # Shared shadow-DOM traversal helper prepended to Execute JavaScript blocks that need findEl.
 ${_JS_FIND_EL}    function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
 
@@ -42,7 +55,117 @@ Configure Product Discovery Default Catalog
     ...    msg=Default Catalog not persisted after page reload: expected "${DEFAULT_CATALOG}", got "${verified}"
     Log    Product Discovery Settings: Default Catalog confirmed as "${DEFAULT_CATALOG}" after reload.
 
+Turn On Optional Product Discovery Toggles
+    [Documentation]    Turns on each optional toggle whose variable is "true", reloads the page
+    ...    and confirms it reads back on. Does nothing when none is requested. List Price
+    ...    from Cache stays disabled until the Product Catalog Management Cache is on, and
+    ...    Help requires Data Translation off for the cache, so a disabled toggle fails
+    ...    with that reason instead of being skipped.
+    @{pd_toggles}=    Create List
+    IF    "${PRICE_BOOK_FILTERING}".lower() == "true"
+        Append To List    ${pd_toggles}    priceBookFilteringToggle
+    END
+    IF    "${PCM_CACHE}".lower() == "true"
+        Append To List    ${pd_toggles}    productDetailsApiCacheToggle
+    END
+    IF    "${LIST_PRICE_FROM_CACHE}".lower() == "true"
+        Append To List    ${pd_toggles}    listPriceFromCacheToggle
+    END
+    ${partial}=    Evaluate    "${PARTIAL_SEARCH}".lower() == "true"
+    IF    not $pd_toggles and not $partial
+        Pass Execution    No optional Product Discovery toggle requested.
+    END
+    IF    $pd_toggles
+        Open Product Discovery Settings Page
+        Sleep    5s    reason=A toggle can render off before its saved value loads
+        FOR    ${data_id}    IN    @{pd_toggles}
+            Wait Until Keyword Succeeds    45s    3s    _Turn On Toggle    ${data_id}
+        END
+        Open Product Discovery Settings Page
+        FOR    ${data_id}    IN    @{pd_toggles}
+            Wait Until Keyword Succeeds    30s    3s    _Toggle Should Be On    ${data_id}
+        END
+    END
+    IF    $partial
+        Open Index Settings Tab
+        Sleep    5s    reason=A toggle can render off before its saved value loads
+        Wait Until Keyword Succeeds    45s    3s    _Turn On Toggle    partialSkuSearchToggle
+        Open Index Settings Tab
+        Wait Until Keyword Succeeds    30s    3s    _Toggle Should Be On    partialSkuSearchToggle
+        Log    Partial Search is on. It applies after a full index rebuild (rebuild_search_index).
+    END
+    Capture Page Screenshot
+
 *** Keywords ***
+Open Index Settings Tab
+    [Documentation]    Opens Product Catalog Management > Index and Search Configuration and
+    ...    selects its Index Settings tab, which holds the Partial Search toggle.
+    IF    """${ORG_ALIAS}""" == ""
+        Fail    msg=Partial Search needs ORG_ALIAS (e.g. -v ORG_ALIAS:my-scratch).
+    END
+    Open Setup Page    ${INDEX_SETTINGS_PATH}
+    Wait Until Keyword Succeeds    60s    3s    _Click Index Settings Tab
+
+_Click Index Settings Tab
+    ${result}=    Execute JavaScript
+    ...    return (function() {
+    ...        function findAll(root, sel, d, acc) {
+    ...            if (d > 6) return;
+    ...            root.querySelectorAll(sel).forEach(function(el){acc.push(el);});
+    ...            root.querySelectorAll('*').forEach(function(el){if(el.shadowRoot)findAll(el.shadowRoot,sel,d+1,acc);});
+    ...        }
+    ...        var tabs = []; findAll(document, '[role="tab"]', 0, tabs);
+    ...        var tab = tabs.filter(function(t){return t.offsetParent !== null && t.textContent.trim() === 'Index Settings';})[0];
+    ...        if (!tab) return 'tab_not_ready';
+    ...        tab.click();
+    ...        return 'clicked';
+    ...    })()
+    Should Be Equal    ${result}    clicked
+    ...    msg=Index Settings tab not yet rendered; retrying...
+
+_Read Toggle
+    [Documentation]    Returns on, off, disabled or not_ready for the lightning-input toggle
+    ...    with the given data-id.
+    [Arguments]    ${data_id}
+    ${state}=    Execute JavaScript
+    ...    ${_JS_FIND_EL}
+    ...    ${_JS_GET_INPUT_FROM_TOGGLE}
+    ...    return (function(id) {
+    ...        var li = findEl(document, 'lightning-input[data-id="' + id + '"]', 0);
+    ...        var inp = li ? getInputFromToggle(li) : null;
+    ...        if (!inp) return 'not_ready';
+    ...        if (inp.disabled) return 'disabled';
+    ...        return inp.checked ? 'on' : 'off';
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${data_id}
+    RETURN    ${state}
+
+_Turn On Toggle
+    [Documentation]    Clicks the toggle once if it reads off. Fails (so the caller retries)
+    ...    while it is not rendered or disabled, and checks the click took.
+    [Arguments]    ${data_id}
+    ${state}=    _Read Toggle    ${data_id}
+    IF    "${state}" == "on"
+        Log    ${data_id} is already on.
+        RETURN
+    END
+    Should Be Equal    ${state}    off
+    ...    msg=${data_id} is ${state}. List Price from Cache needs the Product Catalog Management Cache on, and the cache needs Data Translation off.
+    Execute JavaScript
+    ...    ${_JS_FIND_EL}
+    ...    ${_JS_GET_INPUT_FROM_TOGGLE}
+    ...    (function(id) { getInputFromToggle(findEl(document, 'lightning-input[data-id="' + id + '"]', 0)).click(); })(arguments[0])
+    ...    ARGUMENTS    ${data_id}
+    Sleep    3s    reason=Allow the toggle to auto-save
+    _Toggle Should Be On    ${data_id}
+    Log    Turned on ${data_id}.
+
+_Toggle Should Be On
+    [Arguments]    ${data_id}
+    ${state}=    _Read Toggle    ${data_id}
+    Should Be Equal    ${state}    on
+    ...    msg=${data_id} reads ${state}, expected on.
+
 Open Product Discovery Settings Page
     [Documentation]    Opens the Product Discovery Settings setup page using sf org open
     ...    when ORG_ALIAS is set, or falls back to PRODUCT_DISCOVERY_URL.

@@ -117,6 +117,9 @@ With `ORG_ALIAS`, the suites log in through `sf org open --url-only`, whose fron
 | Variable | Description |
 |----------|-------------|
 | `DEFAULT_CATALOG` | Catalog name to set as the Default Catalog on Product Discovery Settings (default: "QuantumBit Software"). |
+| `PARTIAL_SEARCH`, `PRICE_BOOK_FILTERING`, `PCM_CACHE`, `LIST_PRICE_FROM_CACHE` | `true` turns on Partial Search (PCM Index and Search Configuration > Index Settings), Price Book Filtering, the Product Catalog Management Cache or List Price from Cache (Product Discovery Settings). The task options are `partial_search`, `price_book_filtering`, `pcm_cache` and `list_price_from_cache`. |
+
+The four optional toggles are available but off by default: no Settings metadata type exposes them, and builds leave them off. Partial Search applies only after a full index rebuild and only to Product Code and Product SKU when they are searchable, which the default index configuration doesn't set. Price Book Filtering hides catalog products with no entry in the transaction's price book. The cache needs Data Translation off. List Price from Cache needs the cache on and reads list prices from the cache instead of the pricing procedure. The suite never turns a toggle off.
 
 ## Implementation Notes
 
