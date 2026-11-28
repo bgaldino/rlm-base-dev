@@ -220,6 +220,21 @@ foundations:
         - .cursor/skills/billing-operations/payments-and-credits.md
         - .cursor/skills/billing-operations/accounting.md
         - .cursor/skills/billing-operations/verification.md
+        - .cursor/skills/billing-operations/open-questions.md
+
+    - id: collections
+      path: .cursor/skills/collections/SKILL.md
+      purpose: "Billing collections: plans, promises to pay, dunning, late fees, disputes, write-offs, specialist permissions and personas, repo collections tier, safe reads"
+      consumed_by_pmos: []
+      provenance: 264 Help snapshot plus live measurements on 264 scratch builds (2026-11-26 and 2026-11-27); dunning, late-fee flow and write-off completion not measured
+      sub_skills:
+        - .cursor/skills/collections/object-model.md
+        - .cursor/skills/collections/permissions-and-personas.md
+        - .cursor/skills/collections/setup-and-operate.md
+        - .cursor/skills/collections/repo-collections-tier.md
+        - .cursor/skills/collections/building-collections-uis.md
+        - .cursor/skills/collections/verification.md
+        - .cursor/skills/collections/troubleshooting.md
 
     - id: ramped-quotes
       path: .cursor/skills/ramped-quotes/SKILL.md

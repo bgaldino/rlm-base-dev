@@ -7,73 +7,72 @@ documents and delivery* and *Billing Forecast*.
 ## Where billing schedules come from
 
 - Order to Billing Schedule flow: orders in this org
-  [Help: `ind.billing_schedules_from_orders`]; the repo's route
-  [Repo: `cumulusci.yml` → `prepare_billing`].
+  [Help: ind.billing_schedules_from_orders]; the repo's route
+  [Repo: cumulusci.yml → prepare_billing].
 - Create Billing Schedules for Orders API: the same, called from code
-  [Help: `ind.billing_schedules_from_transactions_create`].
+  [Help: ind.billing_schedules_from_transactions_create].
 - Create Standalone Billing Schedules API: external transactions or any object
-  [Help: `ind.billing_schedules_standalone_api`].
+  [Help: ind.billing_schedules_standalone_api].
 
 The standalone API covers original, amended, canceled, renewed, ramped, bundled and
 usage-based transactions, and from Summer '26 takes minimal intent-based requests for
-changes [Help: `ind.billing_schedules_standalone_api`]. Help
-names `BillingContext` for its request [Help: `ind.billing_schedules_from_order_items`] but
+changes [Help: ind.billing_schedules_standalone_api]. Help
+names `BillingContext` for its request [Help: ind.billing_schedules_from_order_items] but
 `StandaloneBillingContext` as the definition it uses [Help:
-`ind.billing_standard_context_definitions`]; which applies is not measured. Help
+ind.billing_standard_context_definitions]; which applies is not measured. Help
 recommends extending the standard definitions and using the extended copy
-[Help: `ind.billing_standard_context_definitions`].
+[Help: ind.billing_standard_context_definitions].
 
 - A schedule group holds one or more billing schedules for an order product
-  [Help: `ind.billing_schedules_and_schedule_groups`]; billing day of month, next billing
+  [Help: ind.billing_schedules_and_schedule_groups]; billing day of month, next billing
   date override, addresses, tax treatment and payment term on the group can be changed
-  later [Help: `ind.billing_schedule_group_update`].
+  later [Help: ind.billing_schedule_group_update].
 - Billing needs the order's bill-to contact and addresses at activation
-  [Help: `ind.billing_setup_enable`].
+  [Help: ind.billing_setup_enable].
 - Turning Billing off stops schedule creation for newly activated orders and fails queued
-  asynchronous requests and runs [Help: `ind.billing_considerations`].
+  asynchronous requests and runs [Help: ind.billing_considerations].
 - Billing can't be turned on while Subscription Management is enabled, and the Order Bill
   To Contact field-level security must be set by hand before the Billing context definition
-  is cloned [Help: `ind.billing_considerations`].
+  is cloned [Help: ind.billing_considerations].
 
 ## Choose how invoices are produced
 
 - Invoice batch run: regular cycle for many accounts (a scheduler; parallel; processed by
-  the Batch Management Service [Help: `ind.billing_invoice_batch_run`]; the limits article
-  also applies Data Processing Engine limits [Help: `ind.billing_limits`]).
+  the Batch Management Service [Help: ind.billing_invoice_batch_run]; the limits article
+  also applies Data Processing Engine limits [Help: ind.billing_limits]).
 - Generate Invoices on an account or order: a person bills one customer now (quick action)
-  [Help: `ind.billing_invoice_generation_for_accounts_orders`].
+  [Help: ind.billing_invoice_generation_for_accounts_orders].
 - Invoice Creation API or flow action: another system triggers invoicing for an account,
-  order or list of schedules [Help: `ind.billing_invoices_apis_and_actions`].
+  order or list of schedules [Help: ind.billing_invoices_apis_and_actions].
 - Invoice Ingestion API: invoices exist outside Billing, or come from a debit memo; it
-  creates the invoice, lines and tax lines [Help: `ind.billing_invoice_creation`].
+  creates the invoice, lines and tax lines [Help: ind.billing_invoice_creation].
 - Preview Invoices: show a customer the next invoice; never creates an invoice
-  [Help: `ind.billing_preview_invoice`].
+  [Help: ind.billing_preview_invoice].
 
 - **Batch run.** A scheduler (App Launcher: Billing Batch Schedulers, New Invoice
   Scheduler) can run once, daily, weekly or monthly, immediately with Start run now, and
   only while Active. Job types are Invoice, Catch-Up Bill Run and Forecast
-  [Help: `ind.billing_invoice_batch_run`]; scheduling [Help: `ind.billing_automate_invoice_run_schedules`];
+  [Help: ind.billing_invoice_batch_run]; scheduling [Help: ind.billing_automate_invoice_run_schedules];
   forecast runs: *Billing Forecast* below.
   Limit: 30 active billing batch schedulers, and 2,000 invoice lines per invoice
-  [Help: `ind.billing_limits`].
+  [Help: ind.billing_limits].
 - **On demand.** The Generate Invoices quick action takes a target date and invoices the
   related schedules with status Ready for Invoicing; it is on the Account layout by default
-  and added by hand to Order [Help: `ind.billing_invoice_generation_for_accounts_orders`].
+  and added by hand to Order [Help: ind.billing_invoice_generation_for_accounts_orders].
   That article says next billing date *before* the target date; the scheduler article says
-  *on or before* (see *Dates* below) [Open: whether a schedule due on the target date is
-  invoiced on demand; check it on the first run].
+  *on or before* (see *Dates* below) [Open: is a schedule due on the target date
+  invoiced on demand? Run an on-demand invoice with the target date equal to the due date].
 - **Ingestion.** A posted debit memo can be turned into a draft invoice; ingested lines
   with tax status Pending or Estimated get estimated tax
-  [Help: `ind.billing_invoice_creation`].
+  [Help: ind.billing_invoice_creation].
 - **Preview.** Up to two billing periods and up to 200 schedules, for an order, account or
   schedule group; quotes need a procedure plan, then the Preview Invoices button or the
   Invoice Preview API; a PDF needs
-  document generation [Help: `ind.billing_preview_invoice`,
-  `ind.billing_invoice_preview_create`].
+  document generation [Help: ind.billing_preview_invoice] [Help: ind.billing_invoice_preview_create].
 
 ## Dates: invoice date, target date, billing period count
 
-Three controls on a scheduler [Help: `ind.billing_understand_target_date_and_billing_period_count`]:
+Three controls on a scheduler [Help: ind.billing_understand_target_date_and_billing_period_count]:
 
 - **Invoice date**: stamped on the invoice and used for tax. For recurring runs it is the
   target date or run date plus an offset (negative allowed).
@@ -87,12 +86,12 @@ Three controls on a scheduler [Help: `ind.billing_understand_target_date_and_bil
 
 Decision: a fixed target date is simplest but bills schedules with earlier next billing
 dates for extra periods; a period count bills the same number of periods per schedule
-instead. Ask which the customer's contracts need [inferred from Help].
+instead. Ask which the customer's contracts need [inferred].
 
 Milestone and usage schedules differ. For milestones the target date picks which
 accomplished milestones invoice (the run date when none is set); usage schedules with
 liable summaries Ready for Invoicing are always invoiced
-[Help: `ind.billing_understand_target_date_and_billing_period_count`]. Both need the
+[Help: ind.billing_understand_target_date_and_billing_period_count]. Both need the
 Revenue Cloud Billing license.
 
 ## Draft, posted and what a run does
@@ -100,14 +99,14 @@ Revenue Cloud Billing license.
 Stages of a run: select schedules and assign grouping keys; process keys in parallel
 (finished invoices are usable before the run ends); calculate tax (estimated on draft,
 actual on posted); update schedules and groups for the next cycle; write the run summary
-[Help: `ind.billing_invoice_batch_run`]. Run status is Completed or Failed; add the status
-subtype field to the layout to see the stage [Help: `ind.billing_invoice_batch_run`].
+[Help: ind.billing_invoice_batch_run]. Run status is Completed or Failed; add the status
+subtype field to the layout to see the stage [Help: ind.billing_invoice_batch_run].
 Posting later: Invoice Draft to Posted Status API, the Post Draft Invoice action, or the
-batch version for a credit application [Help: `ind.billing_invoices_apis_and_actions`].
+batch version for a credit application [Help: ind.billing_invoices_apis_and_actions].
 
 Before the first run, find active record-triggered flows and Apex triggers on billing
 objects and make them asynchronous; recovery of stranded invoices is in the same article
-[Help: `ind.billing_invoice_run_sync_process`].
+[Help: ind.billing_invoice_run_sync_process].
 
 ## Grouping and splitting
 
@@ -116,38 +115,35 @@ objects and make them asynchronous; recovery of stranded invoices is in the same
   method), Billing Schedule (its own invoice), or Custom with a key (such as contract
   number, purchase order number, account, legal entity or your own value;
   case-insensitive). The default group is applied first, then the key
-  [Help: `ind.billing_schedule_invoice_grouping`].
+  [Help: ind.billing_schedule_invoice_grouping].
 - **Billing arrangements** bill one transaction to several accounts by percentage; each
   arrangement line makes a separate invoice. Review the Split Invoices tab before posting,
-  voiding or deleting [Help: `ind.billing_billing_arrangements`,
-  `ind.billing_review_split_invoices`]. Repo UI: `Order.RLM_Billing_Arrangement__c`
-  [Repo: `cumulusci.yml` → `deploy_post_billing_ui`].
+  voiding or deleting [Help: ind.billing_billing_arrangements] [Help: ind.billing_review_split_invoices]. Repo UI: `Order.RLM_Billing_Arrangement__c`
+  [Repo: cumulusci.yml → deploy_post_billing_ui].
 
 ## Suspend, resume and catch-up
 
 - **Suspend** from an Account or schedule group. Charges are deferred, not waived; a run
   with a target date on or after the resumption date bills the deferred periods. The
   suspension is judged as of the target date, not the run date
-  [Help: `ind.billing_suspend_and_resume_overview`,
-  `ind.billing_understand_billing_suspensions_and_target_date`].
+  [Help: ind.billing_suspend_and_resume_overview] [Help: ind.billing_understand_billing_suspensions_and_target_date].
 - **Catch-up bill run** advances next billing date, billed and pending amounts for
   transactions a legacy system already billed. It runs with the Once frequency and needs a
   target date; it creates no invoices, tax, memos, payments or documents
-  [Help: `ind.billing_catch_up_bill_runs`].
+  [Help: ind.billing_catch_up_bill_runs].
 
 ## Invoice documents and delivery
 
 - Turn on server-side and batch document generation in Document Generation Settings, then
   Document Generation in Billing Settings; batch is required for PDFs from a run
-  [Help: `ind.billing_setup_document_generation`]. The repo lets Billing default the preview
+  [Help: ind.billing_setup_document_generation]. The repo lets Billing default the preview
   and document templates and selects only the email template
-  [Repo: `cumulusci.yml` → `deploy_billing_template_id_settings` description].
+  [Repo: cumulusci.yml → deploy_billing_template_id_settings description].
 - Generate for a batch, a single invoice, or per billing profile template
-  [Help: `ind.billing_invoice_document_generation_batch_and_single`].
+  [Help: ind.billing_invoice_document_generation_batch_and_single].
 - Email goes after posting and before the due date; preferences resolve billing account,
   then legal entity, then org setting
-  [Help: `ind.billing_invoice_pdf_document_delivery_through_email`,
-  `ind.billing_invoices_email_prerequisites`].
+  [Help: ind.billing_invoice_pdf_document_delivery_through_email] [Help: ind.billing_invoices_email_prerequisites].
 - Template authoring: `document-generation`.
 - **Fetching an invoice PDF through the API.** [Measured: 2026-10-15, 264, harness build, API 68.0]
   [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0]
@@ -168,49 +164,48 @@ objects and make them asynchronous; recovery of stranded invoices is in the same
 
 Void a posted invoice from the record; it creates a credit memo that mirrors the invoice,
 tax is voided or adjusted at the engine and the credit memo status follows the engine
-response ([tax.md](tax.md)) [Help: `ind.billing_invoices_void`]. Limits: void in reverse
+response ([tax.md](tax.md)) [Help: ind.billing_invoices_void]. Limits: void in reverse
 chronological order, starting with the most recent invoice; an invoice partly or fully
 settled by credit memos, payments or write-offs can't be voided, so correct a settled
 invoice with a credit memo or write-off ([payments-and-credits.md](payments-and-credits.md))
-[Help: `ind.billing_invoices_void`]. Delete is for Draft or Canceled invoices with Billing
+[Help: ind.billing_invoices_void]. Delete is for Draft or Canceled invoices with Billing
 Operations User; other statuses need a cloned Billing Admin set with the Delete Invoice and
 Invoice Lines permission, and Help warns of data integrity issues
-[Help: `ind.billing_invoice_delete`].
+[Help: ind.billing_invoice_delete].
 Gapless numbering for invoices and credit memos is a sequence policy
-[Help: `ind.billing_sequential_numbering_for_invoices_configure`]; the repo creates them
-[Repo: `tasks/rlm_billing.py`].
+[Help: ind.billing_sequential_numbering_for_invoices_configure]; the repo creates them
+[Repo: tasks/rlm_billing.py].
 
 ## Billing Forecast: generate and read back
 
 Billing Forecast estimates upcoming invoice charges before invoices exist, before tax and
 before credit or debit memos; milestone and usage schedules are excluded
-[Help: `ind.billing_forecast_schedule`]. The Billing Forecast Console (Tableau Next, Data 360)
-is out of scope here [Help: `ind.billing_forecast_console`].
+[Help: ind.billing_forecast_schedule]. The Billing Forecast Console (Tableau Next, Data 360)
+is out of scope here [Help: ind.billing_forecast_console].
 
-- **Switch.** Setup: Billing Settings, Turn on Billing Forecast [Help: `ind.billing_forecast_enable`];
+- **Switch.** Setup: Billing Settings, Turn on Billing Forecast [Help: ind.billing_forecast_enable];
   the metadata field is `BillingSettings.enableBillingForecast`, which the repo sets
-  [Repo: `unpackaged/post_billing/settings/Billing.settings-meta.xml`]. Confirm with a
+  [Repo: unpackaged/post_billing/settings/Billing.settings-meta.xml]. Confirm with a
   Settings retrieve of `Billing`.
 - **Trigger.** A forecast is a scheduler with job type Forecast. In the UI: Billing Batch
   Schedulers, New Billing Forecast Scheduler, Start run now, a target date (up to 5 years),
-  optional Recalculate All Forecast Lines (Once frequency) [Help: `ind.billing_forecast_schedule`].
+  optional Recalculate All Forecast Lines (Once frequency) [Help: ind.billing_forecast_schedule].
   Headless: the invoice-scheduler Connect resource with `jobType` Forecast, which needs the
   Billing Operations User and Data Pipelines Base User permission sets
-  [Dev guide: `connect_resources_create_an_invoice_scheduler`].
+  [Dev guide: connect_resources_create_an_invoice_scheduler].
   `BillingBatchScheduler` itself has no `create()`
-  [Dev guide: `sforce_api_objects_billingbatchscheduler`].
+  [Dev guide: sforce_api_objects_billingbatchscheduler].
 - **Read back.** `BillingForecast` rows (one per schedule and billing period
   [inferred]; see the measured block below),
   `InvoiceBatchRun` (JobType Forecast, `TotalForecastLines`, `TotalForecastedAmount`) and
   `BillingSchedule.ForecastStatus` (`PendingForecast`, `Processing`, `Forecasted`, `Error`)
-  [Dev guide: `sforce_api_objects_billingforecast`, `sforce_api_objects_invoicebatchrun`,
-  `sforce_api_objects_billingschedule`]. `TotalForecastedAmount` is blank when a run
-  processes several currencies [Dev guide: `sforce_api_objects_invoicebatchrun`]. Reading
+  [Dev guide: sforce_api_objects_billingforecast] [Dev guide: sforce_api_objects_invoicebatchrun] [Dev guide: sforce_api_objects_billingschedule]. `TotalForecastedAmount` is blank when a run
+  processes several currencies [Dev guide: sforce_api_objects_invoicebatchrun]. Reading
   `BillingForecast` needs the Billing license and Billing Admin
-  [Dev guide: `sforce_api_objects_billingforecast`].
+  [Dev guide: sforce_api_objects_billingforecast].
 - **Do not overlap** a forecast run with an invoice run, another forecast run or a catch-up
   run: overlapping runs can give inaccurate forecast data. Generating invoices while a
-  forecast run is in progress is allowed [Help: `ind.billing_forecast_schedule`]. The same
+  forecast run is in progress is allowed [Help: ind.billing_forecast_schedule]. The same
   paragraph also says not to run an invoice batch run meanwhile, so read "generate" as
   on-demand generation [inferred].
 
@@ -218,7 +213,7 @@ is out of scope here [Help: `ind.billing_forecast_console`].
 # shouldRecalculateAllForecastLn true overwrites existing forecast rows (full refresh);
 # false is the faster incremental run over PendingForecast schedules (unchecked by default
 # in the UI [Help: ind.billing_forecast_schedule]; the API default was not found in the
-# dev guide [inferred from its silence], so set it explicitly).
+# dev guide [inferred], so set it explicitly).
 cat > forecast.json <<'JSON'
 {"schedulerName":"<unique name>","jobType":"Forecast","status":"Active",
  "frequencyCadence":"Once","frequencyCadenceOptions":{"shouldStartRunImmediately":true},
@@ -248,7 +243,7 @@ org, including milestone and usage ones that Help excludes from forecasting. The
 object and field names come from the dev-guide object pages cited above; the data-model
 skill does not cover them yet.
 
-[Measured: 2026-11-25, 264, fresh `ent-sb0` build, API 68.0, default flags]. One observation:
+[Measured: 2026-11-25, 264, fresh ent-sb0 build, API 68.0, default flags]. One observation:
 
 - The setting read back `true` in a Settings retrieve of `Billing`.
 - The org held three billing schedules (Type LineItemCharge, Category Original, Year term,
@@ -256,7 +251,7 @@ skill does not cover them yet.
   `ForecastStatus = PendingForecast`, and no `BillingForecast` rows.
 - The POST above (target date 2027-12-31; no `startDate`, `preferredTime`, `invoiceStatus` or `invoiceDate`,
   which the dev guide marks Required but its forecast example
-  [Dev guide: `connect_requests_batch_invoice_scheduler_input`] also omits) returned `{"billingBatchScheduler":{"id":...}}`
+  [Dev guide: connect_requests_batch_invoice_scheduler_input] also omits) returned `{"billingBatchScheduler":{"id":...}}`
   and nothing else. Within one minute the scheduler was `Inactive` (a Once run is spent [inferred]), and
   one `InvoiceBatchRun` (JobType Forecast, Status `Completed`) had `TotalForecastLines` 3 and
   `TotalForecastedAmount` 20900.
@@ -266,13 +261,13 @@ skill does not cover them yet.
   `LastForecastRunTargetDate` 2027-12-31.
 - A second run with `shouldRecalculateAllForecastLn` false completed with 0 lines and
   0 amount, and no rows were added: it skipped schedules already `Forecasted` [inferred], consistent with Help's
-  incremental behaviour [Help: `ind.billing_forecast_schedule`]. Not measured: a
+  incremental behaviour [Help: ind.billing_forecast_schedule]. Not measured: a
   non-recalculate run over `PendingForecast` schedules, and a recalculate run over
   schedules already `Forecasted` (the first run used recalculate, over `PendingForecast`).
 - A later read-only query of the same org also returned two schedules created after the run
   (BS-000000004 and -005) still `PendingForecast` with null `LastForecastRunTargetDate`, and
   `ForecastBatchRunId` null even on the three `Forecasted` schedules, which differs from
-  the dev guide's description of that field as the forecast run reference.
+  the dev guide's description of that field as the forecast run reference [Dev guide: sforce_api_objects_billingschedule].
 - Not measured: multi-period or ramped schedules, amended or canceled schedules, run
   duration beyond "under a minute", the UI path, the Console, and a non-admin user.
 

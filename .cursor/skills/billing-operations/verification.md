@@ -9,7 +9,7 @@ this page does not repeat it.
 ## The verifier
 
 `cli verify` in the Transaction Data Harness reads records by id and runs the checks
-below. It only runs SOQL queries [Repo: `scripts/txn_data_harness/verify.py`].
+below. It only runs SOQL queries [Repo: scripts/txn_data_harness/verify.py].
 
 ```bash
 # ids from a harness manifest (repeat --manifest for several; --latest reads only the newest)
@@ -111,7 +111,11 @@ level itself is not read: `BillingSettings` is not queryable through the Tooling
 posting and two credit memos applied to one line:
 
 - `Invoice.SettlementLevel` was `InvoiceLine` on invoices with an application and null
-  on invoices without one.
+  on invoices without one. It is also null on an invoice whose every
+  application was unapplied (the original rows stay Applied with `UnappliedStatus` Yes, so
+  do not read an Applied row alone as in force)
+  [Measured: 2026-11-27, 264, fresh scratch build, API 68.0, Line Level]
+  (*Measured: unapply* in [payments-and-credits.md](payments-and-credits.md)).
 - The invoice total to use is `TotalAmountWithTax`. `TotalChargeAmountWithTax` held the
   charge without tax, and `InvoiceLine.ChargeAmountWithTax` equalled `ChargeAmount`
   with `ChargeTaxAmount` 0, although the line carried `TaxAmount`.

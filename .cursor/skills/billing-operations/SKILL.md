@@ -5,10 +5,10 @@ description: >-
   order activation, invoice generation (scheduled batch runs, on-demand, preview, catch-up, billing forecast,
   draft vs posted), invoice documents, tax (tax policies and treatments, tax engines,
   estimated vs actual tax), payments and payment application, refunds, credit and debit
-  memos, write-offs, collections and dunning, legal entities, accounting periods and the
+  memos, write-offs, legal entities, accounting periods and the
   general ledger. Use when planning or reviewing the operate side of a billing build,
   choosing between billing options with a customer, or reading back invoices, tax,
-  payments, credits or journals from an org. Billing frequency, policies, treatments,
+  payments, credits or journals from an org. Collections and dunning: collections. Billing frequency, policies, treatments,
   milestones and payment terms: billing-setup. Billing schema: revenue-cloud-data-model.
 ---
 
@@ -19,7 +19,7 @@ you must decide, run or check what happens next: schedules, invoices, tax, cash,
 the ledger. Every product claim comes from the 264 Help snapshot or the dev guide and is
 tagged `[Help: <article_id>]` (id without `.htm.md`), `[Dev guide: <page>]`,
 `[Repo: <path>]` or `[inferred]`. **This skill is a read of Help, plus a few facts measured
-live**, each tagged `[Measured: <date>, <release>, <org shape>]` (Line Level application and
+live**, each tagged `[Measured: <date>, <release>, <org shape>]` (Line Level application, unapply, rule-based application and
 automatic payment schedules in [payments-and-credits.md](payments-and-credits.md), the invoice PDF recipe and the
 Billing Forecast run in [invoicing.md](invoicing.md)); an unsettled point carries `[Open: <the check that would settle it>]`. A measured fact is an observation on the build(s) its tags name: re-measure it on
 the release patch in hand before relying on it or repeating it. Where billing-setup holds a
@@ -31,39 +31,36 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
 1. **Billing starts at order activation.** One active order-to-billing-schedule flow (or the
    Create Billing Schedules for Orders API) turns an activated order into billing schedules
    and a schedule group. Context definition and mapping come from Billing Settings or a
-   custom procedure plan [Help: `ind.billing_schedules_from_orders`,
-   `ind.billing_schedules_from_transactions_create`]. Setup and the duplicate-flow trap are
+   custom procedure plan [Help: ind.billing_schedules_from_orders] [Help: ind.billing_schedules_from_transactions_create]. Setup and the duplicate-flow trap are
    in billing-setup. Orders need a bill-to contact, billing address and shipping address, or
-   activation fails [Help: `ind.billing_setup_enable`].
+   activation fails [Help: ind.billing_setup_enable].
 2. **Invoices come from schedules, not orders.** A run picks schedules whose next billing
    date is on or before the target date and that match the scheduler's filter criteria; the
    invoice date is stamped on the invoice and drives tax
-   [Help: `ind.billing_understand_target_date_and_billing_period_count`]. Choose scheduled
+   [Help: ind.billing_understand_target_date_and_billing_period_count]. Choose scheduled
    batch run, on-demand, or preview by [invoicing.md](invoicing.md).
 3. **Draft vs posted is a switch on the run.** Without Post invoices a run leaves invoices
    in Draft; estimated tax is calculated on drafts and actual tax on posted invoices [Help:
-   `ind.billing_automate_invoice_run_schedules`, `ind.billing_tax_calculation_results`].
+   ind.billing_automate_invoice_run_schedules, ind.billing_tax_calculation_results].
    Help warns that deleting a posted invoice (possible only with a cloned Billing Admin
    permission set) risks data integrity; void it instead, which creates a credit memo [Help:
-   `ind.billing_invoice_delete`, `ind.billing_invoices_void`]. Voids run in reverse
+   ind.billing_invoice_delete, ind.billing_invoices_void]. Voids run in reverse
    chronological order, most recent first, and an invoice partly or fully settled by credit
    memos, payments or write-offs can't be voided; use a credit memo or write-off for those
-   [Help: `ind.billing_invoices_void`].
+   [Help: ind.billing_invoices_void].
 4. **Convert synchronous automation before the first run.** Record-triggered flows and Apex
    triggers on billing objects can stop a run or strand invoices in Draft In Progress,
-   Posting In Progress or Error [Help: `ind.billing_invoice_run_sync_process`].
+   Posting In Progress or Error [Help: ind.billing_invoice_run_sync_process].
 5. **Tax is a per-product choice of engine.** A tax policy on the product, its treatment, and
    the treatment's tax engine decide how a line is taxed; engines can be mixed
-   [Help: `ind.billing_tax_policies_and_treatments_create`,
-   `ind.billing_tax_configuration_engine`]. Pick the engine with [tax.md](tax.md).
+   [Help: ind.billing_tax_policies_and_treatments_create] [Help: ind.billing_tax_configuration_engine]. Pick the engine with [tax.md](tax.md).
 6. **Cash and credits settle by an application level and a rule order.** Header or line
    level, payments first or credits first, and the match rules are Billing Settings, and
-   they change what a balance means [Help: `ind.billing_setup_payments_configure`,
-   `ind.billing_setup_credit_memos_payments_application_rules`]
+   they change what a balance means [Help: ind.billing_setup_payments_configure] [Help: ind.billing_setup_credit_memos_payments_application_rules]
    ([payments-and-credits.md](payments-and-credits.md)).
 7. **Legal entity is the accounting key.** It is required for financial accounting, it
    selects tax treatments when a tax policy says Legal Entity, and every journal and
-   accounting period hangs on it [Help: `ind.billing_legal_entity_default`]
+   accounting period hangs on it [Help: ind.billing_legal_entity_default]
    ([accounting.md](accounting.md)). Billing treatment selection by legal entity is in
    [billing-setup](../billing-setup/SKILL.md#billing-policies-and-treatments).
 8. **Read back each stage before the next.** Schedules, then invoices, tax, payments,
@@ -72,12 +69,12 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
 ## DO NOT
 
 - **DO NOT** start an invoice batch run while a catch-up bill run is in progress; parallel
-  invoicing can leave schedules and invoices inconsistent [Help: `ind.billing_catch_up_bill_runs`].
+  invoicing can leave schedules and invoices inconsistent [Help: ind.billing_catch_up_bill_runs].
 - **DO NOT** run a catch-up for schedules that already have a draft or posted invoice; they
-  are not included [Help: `ind.billing_catch_up_bill_runs`].
+  are not included [Help: ind.billing_catch_up_bill_runs].
 - **DO NOT** use the Create Standalone Billing Schedules API for a billing schedule group
   linked to an asset; amend, renew and cancel from the order or asset and use the
-  order-to-schedule flow or the orders API [Help: `ind.billing_schedules_standalone_api`].
+  order-to-schedule flow or the orders API [Help: ind.billing_schedules_standalone_api].
 - **DO NOT** expect `BillingType__std` or `BillingTypePicklistTiming__std` to set Advance or
   Arrears in a Create Standalone Billing Schedules payload: the action rejects both
   (`Invalid tag attribute name key`) [Measured: 2026-11-26, 264, scratch]. Timing comes only
@@ -96,10 +93,10 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
   account's own account, else its oldest link (create refuses when it has neither).
   Shipping city: that account's shipping city, else the billing city the caller submitted,
   which the modal reads from that same account [Repo:
-  `unpackaged/post_billing_ui/classes/RLM_BillingScheduleGroupService.cls`].
+  unpackaged/post_billing_ui/classes/RLM_BillingScheduleGroupService.cls].
 - **DO NOT** treat the Revenue Standard Tax Engine as a compliance engine: Help says it
   is designed for simple calculations and may not suit tax compliance needs; it calculates,
-  and might round, at line level [Help: `ind.billing_standard_tax_rate`].
+  and might round, at line level [Help: ind.billing_standard_tax_rate].
 - **DO NOT** write off, void or delete as a shortcut for a wrong amount. Each has its own
   effect on credits, tax and journals ([payments-and-credits.md](payments-and-credits.md)).
 - **DO NOT** state a number, amount, count or elapsed time for any stage as fact unless a
@@ -107,7 +104,7 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
   measured".
 - **DO NOT** promise revenue recognition. The 264 Help area for Billing documents accounting
   periods, ledger accounts and transaction journals, and no revenue recognition schedules
-  [inferred from Help's silence; see [accounting.md](accounting.md)].
+  [inferred] Help is silent on it; see [accounting.md](accounting.md).
 
 ## Entry Conditions
 
@@ -116,8 +113,10 @@ Read the sub-file for the stage; for anything else, go to the neighbor:
 - Schedules, invoices, preview, documents, posting, batch runs, Billing Forecast:
   [invoicing.md](invoicing.md).
 - Tax engine choice, policies, treatments, estimated vs actual, header tax: [tax.md](tax.md).
-- Payments, retries, refunds, credit and debit memos, write-offs, collections:
-  [payments-and-credits.md](payments-and-credits.md).
+- Payments, retries, refunds, credit and debit memos, unapply, rule-based application, write-off
+  effects: [payments-and-credits.md](payments-and-credits.md).
+- Collection plans, promises to pay, dunning, late fees, disputes, collections permissions and
+  dashboards: `collections` (Billing collections; Collections and Recovery is a different product).
 - Legal entities, accounting periods, ledger accounts, journals: [accounting.md](accounting.md).
 - Billing frequency, policies, treatments, milestones, payment terms: `billing-setup`.
 - Billing objects, fields, relationships: `revenue-cloud-data-model` → `domains/billing.md`.
@@ -137,8 +136,10 @@ Read the sub-file for the stage; for anything else, go to the neighbor:
   explaining estimated vs actual tax, or importing external tax.
 - [payments-and-credits.md](payments-and-credits.md): read when configuring payment
   collection, retries and application rules, issuing refunds, creating credit or debit
-  memos, writing off, or running collections, applying a payment or credit through the
-  API at Line Level, or checking the automatic payment schedule after posting.
+  memos, writing off, applying a payment or credit through the API at Line Level, unapplying
+  one, running rule-based application, or checking the automatic payment schedule after posting.
+- [open-questions.md](open-questions.md): read before promising a behavior raised in field work
+  that has no measurement here (on-demand limits, suspend and resume, tax-only credits, GL rules).
 - [accounting.md](accounting.md): read when setting up legal entities, accounting periods,
   ledger accounts and journal rules, or closing a period.
 - [verification.md](verification.md): read when checking, read-only, that invoice, line
@@ -166,11 +167,12 @@ A snapshot; the files are the source [Repo]:
 
 Whether any of these has been run end to end for a given stage here: not measured, except the
 quote-to-cash chain (quote through an applied credit and payment, Line Level, 2026-11-26), the
-Line Level application, the automatic payment schedule on posting, the Billing Forecast run and the
+Line Level application, line-level unapply, rule-based application (how an unmatched payment is
+placed is still open), the automatic payment schedule on posting, the Billing Forecast run and the
 invoice PDF fetch
 (the quote-to-cash run in `docs/guides/quote-to-cash-runbook.md`; *Measured: Line Level
-application* and *Billing Settings that change behavior* in
-[payments-and-credits.md](payments-and-credits.md); *Fetching an invoice PDF through the API* and
+application*, *Measured: unapply*, *Measured: rule-based application* and *Billing Settings that
+change behavior* in [payments-and-credits.md](payments-and-credits.md); *Fetching an invoice PDF through the API* and
 *Billing Forecast: generate and read back* in [invoicing.md](invoicing.md)).
 
 ## Discovery
@@ -221,7 +223,7 @@ Whether this works on the repo's build is not measured.
 
 **"Customer already billed the first year elsewhere."** Import accounts, orders, schedules
 and groups, run a catch-up bill run with the target date set to the last date billed, then
-start normal invoice runs [Help: `ind.billing_catch_up_bill_runs`]. Not measured here.
+start normal invoice runs [Help: ind.billing_catch_up_bill_runs]. Not measured here.
 
 **"Simple sales tax in one country, a vendor in another."** Two tax engines: the Revenue
 Standard Tax Engine on the simple legal entity's treatments and a partner or custom engine on

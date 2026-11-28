@@ -58,6 +58,7 @@ Private artifacts and PMOS are optional; neither is needed to use this catalog.
 | Model and verify **amend, swap, cancel and renew** on sold assets: change policies, where prices and attributes land, credits, end-to-end tests | Asset Lifecycle Changes | [asset-lifecycle-changes/SKILL.md](asset-lifecycle-changes/SKILL.md) |
 | Set up **billing**: billing frequency vs selling model, advance or arrears treatments, milestone billing for services, payment terms and the approval, what the repo's billing build ships | Billing Setup | [billing-setup/SKILL.md](billing-setup/SKILL.md) |
 | Run and verify **billing after setup**: schedules, invoice runs and previews, tax engines and treatments, payments, refunds, credit and debit memos, legal entities, accounting periods and the ledger | Billing Operations | [billing-operations/SKILL.md](billing-operations/SKILL.md) |
+| Run **collections** on Billing: collection plans and items, promises to pay, dunning, late fees, disputes, write-offs, the specialist permission model and personas, the repo's collections tier and dashboard, reading collections data safely | Collections | [collections/SKILL.md](collections/SKILL.md) |
 | Build / verify a multi-year group **ramp** quote + per-segment (compound) uplift | Ramped Quotes | [ramped-quotes/SKILL.md](ramped-quotes/SKILL.md) |
 | Create renewal-ready assets across the 4 expiry windows + layer lifecycle event history | Renewal Asset Creation | [renewal-asset-creation/SKILL.md](renewal-asset-creation/SKILL.md) |
 | Build, rate, and verify metered consumption demos; set up usage resources and policies | Usage & Consumption | [usage-consumption/SKILL.md](usage-consumption/SKILL.md) |
@@ -126,13 +127,13 @@ Route by the prefix of a 264 Help article id (`docs/salesforce/264/help/articles
 | `ind.product_` | [product-catalog-modeling]; configurator rules: [constraint-models] |
 | `ind.qocal_` | [transaction-line-editor], [quote-negotiation-rounds], [asset-lifecycle-changes], [ramped-quotes] as the topic fits; API calls: [rlm-business-apis] |
 | `ind.billing_` setup (policies, treatments, milestones, terms) | [billing-setup] |
-| `ind.billing_` runtime (invoicing, tax, payments, memos) | [billing-operations] |
+| `ind.billing_` runtime (invoicing, tax, payments, memos) | [billing-operations]; `ind.billing_collections_*`, dunning, disputes: [collections] |
 | `ind.rm_` (rate management) | [rate-management] |
 | `ind.um_` (usage management) | [usage-consumption] (setup: `usage-setup.md`; demos: `SKILL.md`) |
 | `ind.dro_` | [dro-plans] |
 | `ind.approvals_` | [advanced-approvals] |
 | `ind.sf_contracts_` | [salesforce-contracts] |
-| `ind.collections_` (Collections and Recovery; not Billing's `ind.billing_collections_*`, which belongs to [billing-operations]) | No owner yet; see revenue-cloud-docs |
+| `ind.collections_` (Collections and Recovery, FSC and Automotive; not Billing's `ind.billing_collections_*`, which belongs to [collections]) | No owner yet; see revenue-cloud-docs |
 | `ind.rev_agent_` (Agentforce for Revenue Cloud) | No owner yet; see revenue-cloud-docs |
 | Configurator customization (beyond CML rules) | No owner yet; see revenue-cloud-docs |
 
@@ -159,6 +160,7 @@ Cross-cutting topics:
 [rlm-business-apis]: rlm-business-apis/SKILL.md
 [billing-setup]: billing-setup/SKILL.md
 [billing-operations]: billing-operations/SKILL.md
+[collections]: collections/SKILL.md
 [usage-consumption]: usage-consumption/SKILL.md
 [rate-management]: rate-management/SKILL.md
 [dro-plans]: dro-plans/SKILL.md
