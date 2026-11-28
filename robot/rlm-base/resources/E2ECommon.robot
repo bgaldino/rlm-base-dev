@@ -1805,17 +1805,23 @@ Wait For Quote Calculation
     ...    already repriced in every one of ~500 probe calls (2026-10-13), so the status read right
     ...    after it is the new one. ``reprice=${False}`` turns the recovery off, for callers that
     ...    just repriced.
-    [Arguments]    ${quote_id}    ${require_priced}=${False}    ${timeout}=180s    ${reprice}=${True}
+    ...
+    ...    ``require_valid`` also waits for Quote.ValidationResult to be empty. Create Contract From
+    ...    Quote re-modifies the quote and its lines and leaves ValidationResult at
+    ...    TransactionIncomplete while CalculationStatus stays CompletedWithPricing, and Create
+    ...    Order then refuses the quote ("the prices aren't updated"). A Force reprice clears it.
+    ...    [Measured: 2026-11-28, 264, scratch org built from main]
+    [Arguments]    ${quote_id}    ${require_priced}=${False}    ${timeout}=180s    ${reprice}=${True}    ${require_valid}=${False}
     SalesforceAPI.Validate Salesforce Id    ${quote_id}
     ${status}=    Wait Until Keyword Succeeds    ${timeout}    5s
-    ...    _Quote Calculation Settled    ${quote_id}    ${require_priced}
+    ...    _Quote Calculation Settled    ${quote_id}    ${require_priced}    ${require_valid}
     ${failed}=    _Is Failed Calculation Status    ${status}    ${require_priced}
     IF    ${failed} and ${reprice}
         Log    Quote ${quote_id} calculation ended ${status}; repricing once.    WARN
         Capture Step Screenshot    quote_calculation_failed_repricing
         SalesforceAPI.Reprice Quote Via API    ${quote_id}
         ${status}=    Wait Until Keyword Succeeds    ${timeout}    5s
-        ...    _Quote Calculation Settled    ${quote_id}    ${require_priced}
+        ...    _Quote Calculation Settled    ${quote_id}    ${require_priced}    ${require_valid}
         ${failed}=    _Is Failed Calculation Status    ${status}    ${require_priced}
     END
     IF    ${failed}
@@ -1829,8 +1835,10 @@ _Quote Calculation Settled
     ...    fails, so the caller retries, while it's queued or in progress. Under ``require_priced``
     ...    a settled but unpriced status is returned as failed (CompletedWithoutPricing) or
     ...    retried (NotStarted, ImportQLISuccess), since pricing may not have started yet.
-    [Arguments]    ${quote_id}    ${require_priced}
-    ${quote}=    SalesforceAPI.Query Record By Id    Quote    ${quote_id}    fields=CalculationStatus
+    ...    Under ``require_valid`` it also retries while Quote.ValidationResult is set.
+    [Arguments]    ${quote_id}    ${require_priced}    ${require_valid}=${False}
+    ${fields}=    Set Variable If    ${require_valid}    CalculationStatus,ValidationResult    CalculationStatus
+    ${quote}=    SalesforceAPI.Query Record By Id    Quote    ${quote_id}    fields=${fields}
     ${status}=    Evaluate    $quote['CalculationStatus'] or 'NotStarted'
     Log    Quote ${quote_id} CalculationStatus: ${status}
     ${failed}=    _Is Failed Calculation Status    ${status}    ${require_priced}
@@ -1843,6 +1851,9 @@ _Quote Calculation Settled
     END
     IF    ${require_priced} and $status not in $QUOTE_CALC_PRICED
         Fail    msg=Quote ${quote_id} isn't priced yet (${status}) (will retry).
+    END
+    IF    ${require_valid} and $quote['ValidationResult']
+        Fail    msg=Quote ${quote_id} isn't valid yet: CalculationStatus=${status}, ValidationResult=${quote}[ValidationResult] (will retry).
     END
     RETURN    ${status}
 

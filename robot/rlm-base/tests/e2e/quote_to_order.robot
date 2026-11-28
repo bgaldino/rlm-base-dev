@@ -105,6 +105,10 @@ Run Quote To Order Flow
         ${contract_id}=    Create Contract From Quote    ${QUOTE_ID}
         ...    contract_price_option=${CONTRACT_PRICE_OPTION}
         Set Suite Variable    ${CONTRACT_ID}    ${contract_id}
+        # Creating the Contract leaves the quote ValidationResult=TransactionIncomplete, which
+        # blocks Create Order. Reprice, then wait until it is priced and valid.
+        SalesforceAPI.Reprice Quote Via API    ${QUOTE_ID}
+        Wait For Quote Calculation    ${QUOTE_ID}    require_priced=${True}    require_valid=${True}    reprice=${False}
     END
 
     # Create Order
