@@ -17,12 +17,12 @@ Full guidance lives in the **context-service skill**:
 |-----------------|-----------------|---------------|
 | **Author / apply / deploy** a definition | CCI tasks (`manage_context_definition`, `extend_context_*`) | `apply_context_plan.py`, `mutate_context.py`, `delete_context.py` — live-proven, for one-off exploration & updates outside the build |
 | **Inspect / validate / diff / export** a definition | — | the read-only design-time scripts below (safe anytime) |
-| **Run** a context *instance* (hydrate → query → persist) | — (no build task; runtime is not part of org setup) | the runtime scripts below — verify-live (pilot caveats), for debugging & validating hydration |
+| **Run** a context *instance* (hydrate → query → persist) | — (no build task; runtime is not part of org setup) | the runtime scripts below — verify-live (gate caveats), for debugging & validating hydration |
 
 So: the CCI tasks own the build; the **read-only** scripts are always safe; the
 design-time **mutators** (`apply`/`mutate`/`delete`) are live-proven for one-off
 exploration and updates outside the build; the **runtime** scripts are
-verify-live (pilot caveats — see below), for exploration/validation rather than
+verify-live (gate caveats — see below), for exploration/validation rather than
 the setup path.
 
 **Design-time (Context Definitions):**
@@ -40,13 +40,13 @@ the setup path.
 | `delete_context.py` | **Destructive** | Deactivate (default) or hard-delete a definition / custom artifacts — `--confirm-delete` required for a hard delete. |
 | `mutate_context.py` | **Mutates** | One granular in-place edit (`--set-transient` / `--set-default-mapping` / `--add-tag` / `--add-mapping` / `--remove-tag`) — `--confirm` required. |
 
-**Runtime (context instances — verify-live, pilot caveats; see
+**Runtime (context instances — verify-live, gate caveats; see
 `runtime-and-persistence.md`):**
 
 | Script | Org? | Purpose |
 |--------|------|---------|
 | `build_hydration_data.py` | Read-only | Build the nested `data` hydration payload for a definition — fillable **skeleton**, or `--from-record <id>` for a ready-to-run **id-only** payload (parent + children hydrate server-side). |
-| `context_session.py` | **Mutates** | The single-process runtime driver — create → update-attr/write-tag → query → persist → delete. Each step is still a separate REST call; on a GA org `--query`/`--persist` need `ContextServicePilot`, and Apex `Context.IndustriesContext` is the one-request GA runtime path (see caveats below). |
+| `context_session.py` | **Mutates** | The single-process runtime driver — create → update-attr/write-tag → query → persist → delete. Each step is still a separate REST call; a later step (`--query`, `--persist`, `--update-attr`, `--write-tag`, `--keep`) selects SESSION scope by default; SESSION may be gated on some orgs (see runtime-and-persistence.md), and Apex `Context.IndustriesContext` is the one-request GA runtime path (see caveats below). |
 | `create_context_instance.py` | **Mutates** | `POST /connect/contexts` — hydrate an instance; returns the Context Info (`--id-only` for `$(...)` capture). |
 | `query_context_instance.py` | Read-only | `query-record` (flatten + decode compound) / `query-tags[-leaner]` against a live `contextId`. |
 | `persist_context_instance.py` | **Mutates** | `persist-records` — write attribute values back to a target mapping's SObjects (FK caveat). |
@@ -437,7 +437,7 @@ Two op-specific guards, both **live-verified** on v67.0:
   with `--reactivate` to restore active state after). No-op edits (a binding or
   value that already holds) are detected and skipped.
 
-## Runtime instance scripts (verify-live, pilot caveats)
+## Runtime instance scripts (verify-live, gate caveats)
 
 > **The runtime half of Context Service.** Where the scripts above operate on a
 > Context **Definition** (design-time schema), these operate on a runtime context
@@ -451,7 +451,7 @@ Two op-specific guards, both **live-verified** on v67.0:
 > consuming engines (pricing, DocGen, BRE, the configurator) hydrate their own
 > contexts; you reach for these to reproduce and verify what those engines see.
 >
-> All are **verify-live (262 / v67.0, pilot caveats below)** and not wired into
+> All are **verify-live (262 / v67.0, gate caveats below)** and not wired into
 > any CCI flow. Endpoint paths and the create/query-record/persist/query-tags-leaner body
 > shapes are confirmed against the public REST references; the two PATCH bodies
 > (`attributes`, `write-through-tags`) are best-effort — re-verify
@@ -460,20 +460,21 @@ Two op-specific guards, both **live-verified** on v67.0:
 >
 > `examples/contextServiceLifecycle.apex` is a standalone, fill-in-the-placeholders
 > Apex script exercising the same lifecycle via `Context.IndustriesContext` — the
-> GA runtime path on orgs without `ContextServicePilot`. Run by hand with
+> portable runtime path where SESSION is gated (measured on 262). Run by hand with
 > `sf apex run --file`; not wired into any CCI task/flow.
 
-The mechanism (request-scope, the pilot gates, the Apex/Flow path, the dirty-persist
+The mechanism (request-scope, the gates, the Apex/Flow path, the dirty-persist
 `errorNodes` limit) is documented once in
 `.cursor/skills/context-service/runtime-and-persistence.md` — read it before using
 these scripts. What's script-specific:
 
 - **Request-scope → `context_session.py` is the entry point.** A `contextId` is
   request-scoped, so it can't be reused across separate `sf api request` calls
-  unless SESSION scope / the *Runtime Context Instance Reuse* setting is on;
-  `context_session.py` does create→use→persist→delete in one process. The
+  unless SESSION scope is on (it may be gated on some orgs, and *Runtime Context Instance Reuse* is a separate setting);
+  `context_session.py` does create→use→persist→delete in one process and selects
+  SESSION when `--query/--persist/--update-attr/--write-tag/--keep` is given. The
   standalone scripts accept `--context-id` (reuse/debugging) and print a scope
-  warning. **On a normal GA org, validate hydration via Apex** (`runtime-and-persistence.md`
+  warning. **Where SESSION is gated (measured on 262), validate hydration via Apex** (`runtime-and-persistence.md`
   → *Start here*) — the stateless REST scripts can't complete the lifecycle.
 - **Dry-run contract.** Under `--dry-run`, mutations (create, `persist-records`,
   the two PATCHes, both DELETEs) only **log**; read-shaped POSTs (`query-record`,
@@ -584,7 +585,7 @@ hard-deletes a Context Definition.
 ### `list_context_interfaces.py` — definition interfaces (read-only)
 
 A **design-time** read (it lives in `definition/`, and unlike the runtime scripts
-above it is a plain Connect GET — **not** pilot-gated). It is documented here only
+above it is a plain Connect GET — **not** gated). It is documented here only
 because it is interface-level rather than definition-level:
 `GET /connect/context-definition-interfaces` (or `--interface NAME` for one).
 Interfaces are not tied to a specific definition, so no `--developer-name` is

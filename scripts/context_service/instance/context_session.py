@@ -11,12 +11,14 @@ It sequences the lifecycle from one Python process:
       → persist-records    (--persist)
       → delete/evict        (unless --keep or reusing --context-id)
 
-⚠️  This does **not** work around contextId scoping. Each step above is a
+⚠️  Scoping: each step above is a
 separate ``sf api request``, so a runtime ``contextId`` created with the default
 REQUEST scope will not survive to the query/persist steps. To chain create →
-use → persist across those calls you must pass ``--context-scope SESSION``
-(pilot-gated; needs the org's "Runtime Context Instance Reuse" setting, within
-contextTtl) or reuse an existing instance via ``--context-id``. For a GA
+use → persist across those calls the instance must be SESSION-scoped: this
+script defaults to SESSION whenever --query, --persist, --update-attr,
+--write-tag or --keep is given (SESSION scope may be gated on some orgs: the SessionScopeContext
+permission, shipped with ContextServicePilot; Instance Reuse is a separate setting),
+or reuse an existing instance via ``--context-id``. For a GA
 single-request lifecycle, drive it from Apex (``Context.IndustriesContext``) or a
 single Flow instead.
 
@@ -37,20 +39,14 @@ node when no specific record targeting is needed (silently returns success but
 does not mutate the value — node-name paths behave identically).
 
 Usage:
-    # SESSION scope on a pilot org: full multi-call lifecycle
-    python scripts/context_service/instance/context_session.py --target-org rlm-base__beta \
-        --developer-name RLM_SalesTransactionContext --context-scope SESSION \
-        --data-file /tmp/records.json --query --persist \
-        --target-mapping-name QuoteEntitiesMapping
-
     # hydrate from a file, query the result, persist to the same mapping.
-    # --context-scope SESSION is REQUIRED whenever query/persist follow create:
+    # SESSION scope is selected whenever a later step follows create:
     # each step is a separate `sf api request`, and a REQUEST-scoped contextId
-    # (the default) does not survive across CLI calls (see the note above), so
-    # the downstream query/persist would fail without it.
+    # does not survive across CLI calls (see the note above), so
+    # the downstream query/persist would fail under it.
     python scripts/context_service/instance/context_session.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext --data-file /tmp/records.json \
-        --context-scope SESSION --query --persist --target-mapping-name QuoteEntitiesMapping
+        --query --persist --target-mapping-name QuoteEntitiesMapping
 
     # operate on an existing (reuse-enabled) instance: set an attr, then query
     python scripts/context_service/instance/context_session.py --target-org rlm-base__beta \
@@ -147,6 +143,25 @@ def _fetch_shared_detail(args):
     return detail
 
 
+# Flags that need the contextId to survive across separate calls (single source for the
+# default-scope rule and the --context-scope help text).
+SESSION_TRIGGER_FLAGS = ("query", "persist", "update_attr", "write_tag", "keep")
+
+
+def _flag_name(dest):
+    return "--" + dest.replace("_", "-")
+
+
+def effective_scope(args):
+    """Scope for the create body. Later steps run as separate `sf api request` calls, so a
+    REQUEST-scoped contextId is gone by then (query-record fails RECORD_NOT_FOUND); default to
+    SESSION whenever a later step is requested (or --keep, which is only useful across calls) and the caller did not choose a scope."""
+    if args.context_scope:
+        return args.context_scope
+    later = any(getattr(args, d) for d in SESSION_TRIGGER_FLAGS)
+    return "SESSION" if later else None
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         description="Run a full runtime Context Service lifecycle in one process "
@@ -163,8 +178,10 @@ def main(argv=None) -> int:
                         help="Set metadata.contextScope on create. SESSION lets "
                              "the contextId survive "
                              "across separate CLI calls (subject to contextTtl). "
-                             "Requires the ContextServicePilot permission. Default "
-                             "(omitted) is REQUEST (request-local, ~15 s).")
+                             "Defaults to SESSION when any of "
+                             + ", ".join(_flag_name(d) for d in SESSION_TRIGGER_FLAGS)
+                             + " is given, else REQUEST "
+                             "(request-local, ~15 s). Pass REQUEST to force it.")
     parser.add_argument("--context-id",
                         help="Operate on an existing instance (skip create; also skips "
                              "the auto-delete at the end).")
@@ -270,7 +287,7 @@ def main(argv=None) -> int:
             "mapping_id": mapping_id,
             "data": records,
             "tagged_data": tagged_data,
-            "context_scope": args.context_scope,
+            "context_scope": effective_scope(args),
         }
 
     # Resolve the persist target mapping up front (so a bad name fails before create).

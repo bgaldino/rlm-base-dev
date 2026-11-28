@@ -151,7 +151,7 @@ Measured on a fresh 264 build, 40 tables:
   [Measured: 2026-11-19, 264, scratch, one org]. A screen flow with no run mode runs in the user's
   context and its subflow inherits that (inferred), so a non-admin's reset is expected to refresh
   nothing; the subflow still finished because the bulk flow's fault path counts the error instead
-  of raising it [Repo: `RLM_Refresh_Decision_Tables_Bulk`]. [Open: run the reset itself as a
+  of raising it [Repo: unpackaged/post_utils/flows/RLM_Refresh_Decision_Tables_Bulk.flow-meta.xml]. [Open: run the reset itself as a
   non-admin and check whether its screen reports it, and the stamps]
   Activating a contract or an order as that sales rep refreshed every table its activation flow
   names [Measured: 2026-11-18 (order) and 2026-11-19 (contract), 264, scratch, one org;
@@ -190,6 +190,22 @@ There is deliberately no automatic refresh for these:
 - A record-triggered refresh on rate objects would spend up to 11 refreshes per saved row in a
   bulk edit.
 
+**Scheduled refresh, the Help pattern.** For tables you do want refreshed on a cadence, the 264 Help
+describes a schedule-triggered flow with one Refresh Decision Table action per table, run off-peak,
+deactivated during bulk loads (a refresh mid-import captures a partial state), with a fault path
+or flow error emails because a failed action alerts nobody by default, and checked afterwards by
+the table's last refreshed time [Help: ind.pricing_automate_pricing_data_sync.htm]. It lists
+Assetize Order for a complete sync. The flow's running user needs the refresh permissions in
+`refresh-permissions.md`; a schedule-triggered flow ran as the admin who scheduled it and its
+refresh queued [Measured: 2026-11-18, 264, scratch, one org].
+
+**Qualification tables.** The Help's qualification example points to Sync Pricing Data, but the
+2 qualification tables are in the 14 that nothing refreshes (above), so after editing qualification
+rules refresh them from the Manager. A record-triggered refresh on the qualification rule object
+would follow the timing rule in SKILL.md (fire when the row reaches the state the table's source
+criteria need, and keep a fault from rolling back the save) [Open: recipe not built or run; no
+org here carried qualification rules].
+
 ### Release 264 chooses the refresh type (`AutoSelectRefreshDT`)
 
 ⭐ **In 264 the request does not fix the type that runs.** Read from the
@@ -208,7 +224,7 @@ describe it) and confirmed on a fresh 264 build, 2026-10-27:
   are under `IncrementalRefreshThreshold` (an org value, default 20%) of the table's rows
   **and** within an incremental row limit, and full above either. Any error in this
   decision falls back to full. `[Platform behaviour, traced]`
-- Measured: a full request on all 40 tables of a fresh build, 2 hours after the first
+- Measured: a request without incremental (`isDecisionTableIncremental` false) on all 40 tables of a fresh build, 2 hours after the first
   refresh, ran as **incremental on 12** — `LastIncrementalSyncDate` moved and
   `LastSyncDate` did not. An explicit incremental request on a table with no
   incremental history (`LastIncrementalSyncDate` null) stamped **both** fields at the
@@ -367,7 +383,7 @@ Salesforce documents `outputValues.Status` as `Queued` or `Failed`. So both task
 - report "not queued", not "failed to refresh": neither task observes a refresh completing.
   "Not queued" covers a rejected request and one accepted with another Status.
 
-`queued_guidance()` gives one rule for both modes, because Release 264 may run a full request as
+`queued_guidance()` gives one rule for both modes, because Release 264 may run a request that did not ask for incremental as
 incremental (*Release 264 chooses the refresh type*). It exists in both files, and
 `tests/test_decision_table_tasks.py` holds the two copies together.
 
@@ -405,14 +421,14 @@ must use `self._sf`.
 - **Booleans:** CCI passes CLI options as strings, so `-o is_incremental false` (or
   `-o isIncremental false`) arrives as the truthy `"false"`. Unparsed, `manage_decision_tables`
   selected an incremental refresh while logging "full", and `refresh_dt_*` sent a string into a
-  Boolean REST field. Both tasks parse with `process_bool_arg`. YAML callers pass real booleans.
+  Boolean REST field. Both tasks read booleans through `option_flag` in `tasks/soql_utils.py`, which follows CumulusCI's `process_bool_arg` vocabulary. YAML callers pass real booleans.
 - **Name lists:** `-o developer_names "A,B"` (or `-o developerNames "A,B"`) arrives as one string.
   Both tasks split on commas. Before 2026-07-27, `manage_decision_tables` operated on one table
   named `A,B` while reporting "1 decision table(s)", and `refresh_dt_*` skipped it as missing,
   passing while the real tables never refreshed.
 - **Every option, one rule:** both tasks read options through `option_text` and `requested_names`
-  in `tasks/soql_utils.py`. Blank or whitespace is not set (a blank `isIncremental` is a full
-  refresh); `0` and `False` are values; a list for a scalar option such as `isIncremental` is
+  in `tasks/soql_utils.py`. Blank or whitespace is not set (a blank `isIncremental` requests no incremental, so the
+  platform chooses the type, *Release 264 chooses the refresh type*); `0` and `False` are values; a list for a scalar option such as `isIncremental` is
   refused. `refresh_dt_*` needs at least one name, so `developerNames` that is unset, blank or an
   empty list is refused with `TaskOptionsError: developerNames is required`, before any data or action request.
   An unparseable `isIncremental` (e.g. `maybe`) is a `TaskOptionsError` naming the option.
@@ -440,12 +456,11 @@ Resending is harmless: at worst a table is queued twice.
 Both modules guard their CumulusCI imports, as `tasks/rlm_apex_file.py` does and
 `cci-orchestration/custom-task-authoring.md` prescribes, so `tests/test_decision_table_tasks.py`
 runs without CumulusCI installed. `rlm_refresh_decision_table.py` once lacked the guard, and the
-suite died on its import before a single check ran. The offline `process_bool_arg` uses the same
-vocabulary and raises the same `TypeError` as CCI's. It is not identical: CCI also emits two
-DeprecationWarnings for `None`, but that path is unreachable: `manage_decision_tables` reads booleans
-through `_option_flag`, which never passes `None`, and `refresh_dt_*` does the same.
-An earlier fallback returned `bool(arg)` for anything unrecognised, so "maybe" was True offline
-and raised under CCI, and tests using it proved the wrong thing.
+suite died on its import before a single check ran. There is no offline copy of
+`process_bool_arg`: `option_flag` is plain Python in `tasks/soql_utils.py`, so the tasks and
+tests read booleans the same way with or without CumulusCI. An earlier offline fallback returned
+`bool(arg)` for anything unrecognised ("maybe" was True offline and raised under CCI), and tests
+using it proved the wrong thing; PR 940 removed it.
 
 ---
 

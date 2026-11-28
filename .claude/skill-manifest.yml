@@ -80,6 +80,7 @@ foundations:
         - .cursor/skills/dro-plans/csv-and-sfdmu.md
         - .cursor/skills/dro-plans/updates-and-runtime.md
         - .cursor/skills/dro-plans/examples-and-grounding.md
+        - .cursor/skills/dro-plans/fulfillment-operations.md
 
     - id: revenue-cloud-data-model
       path: .cursor/skills/revenue-cloud-data-model/SKILL.md
@@ -96,6 +97,7 @@ foundations:
         - .cursor/skills/usage-consumption/building-usage-assets.md
         - .cursor/skills/usage-consumption/verification.md
         - .cursor/skills/usage-consumption/usage-setup.md
+        - .cursor/skills/usage-consumption/usage-operations.md
       tooling:
         - scripts/qb_usage.py
         - scripts/build_quote_to_asset.py
@@ -343,6 +345,9 @@ foundations:
       sub_skills:
         - .cursor/skills/decision-tables/authoring-and-data-model.md
         - .cursor/skills/decision-tables/lifecycle-and-refresh.md
+        - .cursor/skills/decision-tables/discovery.md
+        - .cursor/skills/decision-tables/refresh-permissions.md
+        - .cursor/skills/decision-tables/examples-and-platform-facts.md
         - docs/references/decision-table-api-reference.md
       tooling:
         # Read-only inspectors using sf CLI transport.

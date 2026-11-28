@@ -134,9 +134,9 @@ introduce a blanket extra approval for ordinary configuration updates.
 - **PONR:** Help sets the Point of No Return state when a step marked PONR goes In
   Progress, and spreads it within the bundle: a commercial parent to its children, a
   commercial child to its parent, and a technical item to the commercial items associated
-  with it [Help: `ind.dro_point_of_no_return_state_propagation`]. Items in the same order
+  with it [Help: ind.dro_point_of_no_return_state_propagation]. Items in the same order
   but outside the bundle stay changeable [Help:
-  `ind.dro_considerations_for_changing_in_flight_orders`], which matches the measured
+  ind.dro_considerations_for_changing_in_flight_orders], which matches the measured
   freeze scope below. So the flag applies when the flagged step starts. A source rule "no
   changes once step X is done" is met by flagging the step after X, which reaches In
   Progress only when X is complete [inferred from Help]. A build instead flagged each step
@@ -147,7 +147,7 @@ introduce a blanket extra approval for ordinary configuration updates.
   choice as a decision.
   The submission action documents an override, but it is never an automatic
   workaround for an invalid change. Help says an order past PONR can't be cancelled or
-  amended [Help: `ind.dro_point_of_no_return_state_propagation`], but a later amendment of the
+  amended [Help: ind.dro_point_of_no_return_state_propagation], but a later amendment of the
   asset through the plain amend route was accepted with the flag set (below), so a source rule
   that must also stop asset amendments or cancellations needs its own validation [inferred].
   Where activation creates assets and billing schedules, the supplemental route refused the
@@ -198,7 +198,7 @@ scratch orgs with time-awareness off.
 Time-awareness wasn't recorded for the 2026-11-13 runs: no time-awareness setting appeared in the
 org's retrieved DRO settings metadata [Measured: 2026-11-13, 264, scratch, one org;
 retrieved settings metadata]. Help says it is off by default and can't be turned off once
-on [Help: `ind.dro_time_aware_fulfillment_enable`], so a plan that turns it on is outside
+on [Help: ind.dro_time_aware_fulfillment_enable], so a plan that turns it on is outside
 these conditions; rerun the amendment and cancel checks there.
 
 - **Future-dated steps (setting on).** A step delayed from the previous step's execution
@@ -216,7 +216,7 @@ these conditions; rerun the amendment and cancel checks there.
   on the commercial line (next item).
 - **Custom Date ("not before") steps.** A step can run from a custom date: a date or datetime
   tag in the context definition, mapped to a field, with a positive delay
-  [Help: `ind.dro_configure_steps_for_future_execution`]. Each point below is
+  [Help: ind.dro_configure_steps_for_future_execution]. Each point below is
   [Measured: 2026-11-16, 264, scratch, one org] unless tagged otherwise.
   - `CustomBaseExecutionDate` accepts only a tag of the context DRO has selected. Other tags
     are refused at insert with `INVALID_INPUT: Custom Date field contains an invalid
@@ -255,7 +255,7 @@ these conditions; rerun the amendment and cancel checks there.
   not a delta, and a changed quantity was a full replace. One fulfillment asset's quantity
   after the amendment did not match its line's end quantity; unexplained.
   Help lists a No Change action for lines whose attributes and quantity don't change
-  [Help: `ind.dro_fulfillment_order_line_item_actions`],
+  [Help: ind.dro_fulfillment_order_line_item_actions],
   but on a bundle amendment two of the unchanged lines came through as an add of 1 (fulfillment
   asset 0 to 1) and a cancel of -1 (asset 1 to 0), while another line of the same order was No
   Change [Measured: 2026-11-13, 264, scratch, one org]. So excluding No Change from a scenario
@@ -273,9 +273,9 @@ these conditions; rerun the amendment and cancel checks there.
   asset; a non-assetizable Account-scope item got Add with no asset. The source
   relationship's `Action` read Add for all three, so read `FulfillmentOrderLineItem.Action`,
   not the relationship. Help sets the line to Amend whenever it differs from its fulfillment
-  asset, whatever the order line's action [Help: `ind.dro_fulfillment_order_line_item_actions`].
+  asset, whatever the order line's action [Help: ind.dro_fulfillment_order_line_item_actions].
   Help defines Account scope as one instance across the account's orders and Order scope as
-  one per order, which can't be assetized [Help: `ind.dro_decomposition_scope`]. So work
+  one per order, which can't be assetized [Help: ind.dro_decomposition_scope]. So work
   that must act on an item an earlier order created needs a scope that spans orders, on an
   assetizable technical product; a custom scope wasn't measured. An Order-scope item recurs on
   every order (measured below, under **Lifecycle orders**). With one Account-scope instance, every line of
@@ -288,7 +288,7 @@ these conditions; rerun the amendment and cancel checks there.
   again unless their conditions skip those actions [inferred from the measured actions]; "no
   new instance" doesn't mean "no line". When a step is skipped by its condition and Skip
   Branch is on, Help skips the branch that depends solely on it
-  [Help: `ind.dro_define_conditions_for_a_fulfillment_step_to_run`]; decide that per edge.
+  [Help: ind.dro_define_conditions_for_a_fulfillment_step_to_run]; decide that per edge.
   Check the line actions on the first later order.
 - **Lifecycle orders (amendments and renewals).** One contract on one org ran a new sale, four
   amendments, a renewal and a price-only amendment [Measured: 2026-11-17, 264, scratch, one org;
@@ -332,7 +332,7 @@ these conditions; rerun the amendment and cancel checks there.
   definition, flow definition and error code; this is from the rule objects' describe,
   not a run. They act through two decision tables, `FulfillmentFalloutRules` and
   `Fulfillment_Step_Jeopardy_Rule_Decision_Table`. Help says turning the features on creates
-  them [Help: `ind.dro_turn_on_features_to_manage_fallout_and_service_level_agreements`].
+  them [Help: ind.dro_turn_on_features_to_manage_fallout_and_service_level_agreements].
   - The settings metadata this repo deploys turns both features on but created neither table;
     an off/on toggle through that metadata didn't either [Measured: 2026-11-16, 264, scratch, one org].
   - Switching each feature off and on in Setup created both tables, Active [Measured:
@@ -355,14 +355,14 @@ these conditions; rerun the amendment and cancel checks there.
     `FalloutQueueId` set to the rule's queue. Its `OwnerId` didn't change.
   - So "in the queue" means `FalloutQueueId`. Help's Fatally Failed Fulfillment Steps list view
     filters it by the Queue column, and the queue needs Fulfillment Step as a supported object
-    [Help: `ind.dro_fallout_design_and_management`].
+    [Help: ind.dro_fallout_design_and_management].
   - The auto task's flow must return `isSuccess` false and `fulfillmentStepErrorCode` on its
     fault path. That contract is in Help's Auto Task article `ind.dro_auto_task`, read live; the
     snapshot lacks it. With no matching rule, DRO sets the step Fatally Failed without retrying
-    [Help: `ind.dro_fallout_design_and_management`].
+    [Help: ind.dro_fallout_design_and_management].
   - Help says DRO retries only errors a flow returns through an Auto Task Fault Path and
     does not retry unhandled Apex exceptions
-    [Help: `ind.dro_fallout_design_and_management`]. How DRO treats an autolaunched flow
+    [Help: ind.dro_fallout_design_and_management]. How DRO treats an autolaunched flow
     that ends normally having done nothing is not documented in the snapshot: it reads as a
     success [inferred; live check pending]. A decision with no connector on its Default
     Outcome ends the interview normally, with no error [Flow behavior, not run here].
@@ -450,30 +450,30 @@ these conditions; rerun the amendment and cancel checks there.
 
   For planning: a jeopardy rule targets callouts through an integration
   definition and manual or auto tasks through a flow definition, and a blank field applies
-  it to every step of that kind [Help: `ind.dro_configure_fulfillment_step_jeopardy_rules`,
-  `ind.dro_sla_jeopardy_administration`]; fallout rules cover callouts and auto tasks, with
-  retries and a queue for fatally failed steps [Help: `ind.dro_configure_fallout_rules`].
+  it to every step of that kind [Help: ind.dro_configure_fulfillment_step_jeopardy_rules,
+  ind.dro_sla_jeopardy_administration]; fallout rules cover callouts and auto tasks, with
+  retries and a queue for fatally failed steps [Help: ind.dro_configure_fallout_rules].
   A step definition carries a `FlowDefinitionName` field whatever its type, empty on every
   manual task in the measured org [Measured: 2026-11-13, 264, scratch, one org; describe and
   query]; a jeopardy rule does match a manual task through it (above). Help names no rule
   for Milestone steps, and a Milestone rule wasn't tested. A separate window or queue per
   step needs its own flow or integration definition per step [inferred]. You set the estimated duration and
   threshold on the jeopardy rule, and the threshold counts back from the duration [Help:
-  `ind.dro_configure_fulfillment_step_jeopardy_rules`]. A rule with a blank flow
+  ind.dro_configure_fulfillment_step_jeopardy_rules]. A rule with a blank flow
   definition applies to every manual and auto task, so two manual steps with different windows
   need a flow definition each, or share a window [inferred]. Where a blank-flow rule and a
   per-flow rule both matched, the per-flow rule applied (above). Help describes a
   jeopardy status and notification, names no setting for who is notified, and has no
   reassignment of a late step [inferred from Help's silence]. After editing a fallout or
-  jeopardy rule, refresh its decision table [Help: `ind.dro_configure_fallout_rules`,
-  `ind.dro_configure_fulfillment_step_jeopardy_rules`]; the steps are in
+  jeopardy rule, refresh its decision table [Help: ind.dro_configure_fallout_rules,
+  ind.dro_configure_fulfillment_step_jeopardy_rules]; the steps are in
   [authoring-and-deployment.md](authoring-and-deployment.md).
 - **Cancel of a non-assetizable technical line.** Cancelling the bundle's root asset decomposed the copy
   product's line as an Add of quantity 0, not a Cancel, and its Add steps were still created and started; no
   fulfillment asset was created or changed for it, while the assetizable lines decomposed as
   Cancel [Measured: 2026-11-13, 264, scratch, one org]. Design Add steps to tolerate a zero
   quantity [inferred from one run]. Order-scope items can't be assetized [Help:
-  `ind.dro_decomposition_scope`], and they composed as Add at quantity 0 on lifecycle orders
+  ind.dro_decomposition_scope], and they composed as Add at quantity 0 on lifecycle orders
   whose source lines were unchanged [Measured: 2026-11-17, 264, scratch, one org]. A step
   that must run when the item is cancelled needs an assetizable item with a Cancel action, or a
   condition on quantity 0 [inferred].
@@ -546,14 +546,13 @@ response code 500. A `post_quantumbit` redeploy resets the attribute to `false`.
 **Credential access for callout steps.** Every named credential in `unpackaged/post_quantumbit/namedCredentials/`
 (`BillingSystemNC`, `LogisticsSystemNC`, `OrderFulfillmentSystemNC`, `OrderFulfillmentSystemNCcanned` and
 `RLM_MockTax`) uses one external credential, `BillingSystemExtCredentials` [Repo:
-`unpackaged/post_quantumbit/namedCredentials/`], so any callout through `BillingSystemNC`, `LogisticsSystemNC`,
+unpackaged/post_quantumbit/namedCredentials/], so any callout through `BillingSystemNC`, `LogisticsSystemNC`,
 `OrderFulfillmentSystemNC` or `OrderFulfillmentSystemNCcanned` sends through it. Without principal access to it, a
 callout step on the mock provider (`DFOApexMockService`, which sends to `BillingSystemNC`) failed with
 `SF_DRO_STEP_API_00124` [Measured: 2026-11-25, 264, scratch, one org]; a callout through the other three would likely
-fail the same way [inferred: same external credential], though no shipped provider or Apex uses them [Repo:
-`force-app/`, `unpackaged/`, `datasets/`; only their own metadata names them]. `RLM_MockTax` is used only as the tax
-engine's merchant credential [Repo: `datasets/sfdmu/qb/en-US/qb-tax/TaxEngine.csv`], and the mock tax engine does not
-send through it: `RLM_MockTaxAdapter` makes no HTTP callout [Repo: `unpackaged/pre/4_tax/RLM_MockTaxAdapter.cls`]. The
+fail the same way [inferred: same external credential], though no shipped provider or Apex uses them (only their own metadata names them). `RLM_MockTax` is used only as the tax
+engine's merchant credential [Repo: datasets/sfdmu/qb/en-US/qb-tax/TaxEngine.csv], and the mock tax engine does not
+send through it: `RLM_MockTaxAdapter` makes no HTTP callout [Repo: unpackaged/pre/4_tax/RLM_MockTaxAdapter.cls]. The
 `DRO_Integrations` permission set (`unpackaged/post_quantumbit/`, deployed with the credential) grants that one
 principal and nothing else. `prepare_quantumbit` step 15 assigns it to the running user when `quantumbit` and `dro`
 are on, so a default build (tso off) needs no manual assignment. On a tso build `deploy_post_tso` overwrites
@@ -571,18 +570,20 @@ assigned to them.
   `ExternalCredentialParameter`; on a non-tso build `DRO_Integrations` was the only grantor [Measured: 2026-11-26, 264,
   scratch, one org].
 - The grant cannot live in the base `RLM_QuantumBit` under `force-app`: that deploys before `deploy_quantumbit`
-  creates the credential, and builds without quantumbit never have it [Repo: `cumulusci.yml` step order].
+  creates the credential, and builds without quantumbit never have it [Repo: cumulusci.yml].
 - `SalesforceContractsExtCredentials` (an `AwsSv4` credential for service `texttract`, Help's spelling) matches Help's
-  Contracts AI extraction credential [Help: `ind.sf_contracts_create_an_external_credential_and_named_credential`;
-  inferred from its shape]; no named credential, Apex, flow or DRO step in the repo calls through it [Repo:
-  `force-app/`, `unpackaged/`, `datasets/`; only its own metadata and the tso `RLM_QuantumBit` name it].
+  Contracts AI extraction credential [Help: ind.sf_contracts_create_an_external_credential_and_named_credential;
+  inferred from its shape]; no named credential, Apex, flow or DRO step in the repo calls through it (only its own metadata and the tso RLM_QuantumBit name it).
   `DRO_Integrations` does not grant its principal.
+  Its `AwsAccountId` is a committed placeholder: `deploy_quantumbit` sets it in the deploy zip from the
+  sensitive `aws_account_id` option or `RLM_AWS_ACCOUNT_ID`, and leaves the parameter out when neither is
+  set [Repo: tasks/rlm_external_credentials.py].
 - Of the shipped plans only `mfg-dro` (not wired into the build) has callout steps through these credentials (eight
-  `DFOApexMockService` steps) [Repo: `datasets/sfdmu/mfg/en-US/mfg-dro/FulfillmentStepDefinition.csv`;
-  `force-app/main/default/classes/DFOApexMockService.cls`]. `qb-dro`'s one callout step, the tenant step, uses the
-  `RLM` credential [Repo: `datasets/sfdmu/qb/en-US/qb-dro/FulfillmentStepDefinition.csv`;
-  `force-app/main/default/classes/RLM_DFOTenantProvisioningCallout.cls`] and is dropped on a build without it [Repo:
-  `datasets/sfdmu/qb/en-US/qb-dro/conditional_steps.json`], so verifying qb means adding a temporary `Callout` step
+  `DFOApexMockService` steps) [Repo: datasets/sfdmu/mfg/en-US/mfg-dro/FulfillmentStepDefinition.csv;
+  force-app/main/default/classes/DFOApexMockService.cls]. `qb-dro`'s one callout step, the tenant step, uses the
+  `RLM` credential [Repo: datasets/sfdmu/qb/en-US/qb-dro/FulfillmentStepDefinition.csv;
+  force-app/main/default/classes/RLM_DFOTenantProvisioningCallout.cls] and is dropped on a build without it [Repo:
+  datasets/sfdmu/qb/en-US/qb-dro/conditional_steps.json], so verifying qb means adding a temporary `Callout` step
   definition on `DFOApexMockService`. One in group `Platform`, on a `QB-API-MGMT` order, reached `Completed` with the
   grant assigned by the build flow and no manual assignment [Measured: 2026-11-26, 264, scratch, one org].
 

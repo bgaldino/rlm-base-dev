@@ -85,18 +85,19 @@ expression-set steps that consume it. This skill is consumable by any AI agent
    The runtime helper scripts exist **to debug/validate runtime behavior**, not as
    a production runtime (engines like pricing/DocGen/BRE hydrate their own
    contexts). `context_session.py` sequences create→use→persist→delete from one
-   Python process with a `data` payload from `build_hydration_data.py`, but it is
-   **not** a scope workaround — each step is a separate `sf api request`, so
-   chaining create→query→persist across them still needs `--context-scope SESSION`
-   (pilot) or a reused `--context-id` (see rule 10). Full lifecycle, scoping, and
+   Python process with a `data` payload from `build_hydration_data.py`. Each step is
+   still a separate `sf api request`, so it selects SESSION scope when
+   `--query`/`--persist`/`--update-attr`/`--write-tag`/`--keep` is given (REQUEST would expire
+   between steps); SESSION scope may be gated on some orgs (rule 10). Full lifecycle, scoping, and
    TTL in `runtime-and-persistence.md`.
-10. **On a normal GA org, Apex (or one Flow) is the only working runtime path.**
-   Multi-call REST can't complete the lifecycle — `query-record`/`query-tags` are
-   pilot-gated and a REQUEST-scoped `contextId` doesn't survive between separate
-   calls. Keep hydrate → query → (update) → persist in **one request** via Apex
+10. **Apex or one Flow is the portable runtime path; on some orgs SESSION REST also works.**
+   Multi-call REST at REQUEST scope can't complete the lifecycle (the `contextId`
+   doesn't survive between separate calls), and some orgs gate SESSION and
+   `query-record`/`query-tags` (262 measurement; the 264 re-measure is in
+   `runtime-and-persistence.md`). Keep hydrate → query → (update) → persist in **one request** via Apex
    `Context.IndustriesContext` or one Flow (GA `IndustriesContext` perm only). See
    `runtime-and-persistence.md` → *Start here* for the copy-paste snippet + the
-   pilot-gate detail.
+   gate detail.
 11. **Runtime hydration gotcha + tag namespace.** In the `data` payload,
     `businessObjectType` must be the **mapped SObject name** (e.g. `Quote`),
     **not** the context-node name (`SalesTransaction`) — a node-name value
@@ -140,10 +141,10 @@ expression-set steps that consume it. This skill is consumable by any AI agent
   `docs/references/context-definitions/`. They are reference-only, pre-264 snapshots, and because a
   definition deploys as one atomic unit, a deploy would delete attributes 264 added. Use plans + tasks.
 - **DO NOT** assume a runtime `contextId` survives across separate `sf`/CLI
-  invocations — it is request-scoped (rule 9), and `context_session.py` does not
-  change that (its steps are separate `sf api request`s too). If a standalone
+  invocations — it is request-scoped (rule 9). The standalone scripts default to REQUEST;
+  `context_session.py` selects SESSION when a later step is requested. If a standalone
   `query`/`persist`/`delete` fails not-found, the REQUEST-scoped instance expired;
-  re-create with `--context-scope SESSION` (pilot) / enable the org's
+  re-create with `--context-scope SESSION` (may be gated on some orgs) / enable the org's
   Instance-Reuse setting, or run the whole lifecycle from Apex/one Flow (rule 10).
   And **DO NOT** confuse `delete_context_instance.py` (evicts a runtime instance
   / clears the runtime schema cache) with `delete_context.py` (deactivates /
@@ -154,6 +155,7 @@ expression-set steps that consume it. This skill is consumable by any AI agent
 | I need to... | Do this |
 |--------------|---------|
 | Extend a standard context (add a custom layer) | `extend_context_*` task (or `extend_standard_context` with `name`/`baseReference`); see `authoring-and-lifecycle.md` → extend-vs-clone |
+| Add a new custom attribute a procedure will read (field, attribute, Quote and Order rows, tag) | `authoring-and-lifecycle.md` → *Procedure: add a new custom attribute* |
 | Apply an additive attribute/tag/mapping plan | `apply_context_*` task, or `manage_context_definition -o plan_file <manifest>`; preflight first (Quick Rule 6) |
 | Create a brand-new custom definition | Plan with `"create": true` + `developerName`/`label` (e.g. DocGen); `manage_context_definition` |
 | Understand an org's mapping / hydration | `python scripts/context_service/definition/describe_context.py --target-org <sf_alias> --developer-name <name>` |
@@ -168,7 +170,7 @@ expression-set steps that consume it. This skill is consumable by any AI agent
 | Make one granular in-place edit to an existing definition (flip `isTransient`, re-point the default mapping, add/remove a tag, bind an attribute to a field) | `python scripts/context_service/definition/mutate_context.py --target-org <sf_alias> --developer-name <name> --set-transient <Node.Attr> <bool> \| --set-default-mapping <name> \| --add-tag <Node.Attr> <tag__c> \| --add-mapping <Node.Attr> <mapping> <sObjectField> \| --remove-tag <tag>` — previews unless `--confirm`; modifies/deletes need `--deactivate-first --reactivate` (the pure inserts `--add-tag` / `--add-mapping` run on an active version). `--add-mapping` is the sibling-safe way to bind one attribute — the only clean way to add a **root**-node binding (whole-body PATCH can't express it) |
 | Upgrade after a release (Sync) | `authoring-and-lifecycle.md` → upgrade/Sync (`upgradeMode` Sync/Preview/Override) |
 | Build the runtime **hydration payload** (the `data` object) for a definition | `python scripts/context_service/instance/build_hydration_data.py --target-org <sf_alias> --developer-name <name> [--mapping-name NAME] [--node NAME] --out records.json` — read-only skeleton; fill in ids (values optional, id-only hydrates from the org). Add `--from-record <id> [--node NAME]` for a ready-to-run **id-only** payload (parent + children hydrate server-side). `businessObjectType` is the **mapped SObject** name, resolved from the chosen mapping (default mapping unless `--mapping-name`) |
-| Run the full **runtime** lifecycle (hydrate → query → persist) end-to-end | `python scripts/context_service/instance/context_session.py --target-org <sf_alias> --developer-name <name> --data-file records.json --context-scope SESSION --query [--persist --target-mapping-name <m>]` — the script sequences the steps but each is a separate `sf api request`, so `--context-scope SESSION` (pilot) or a reused `--context-id` is required to chain query/persist after create; on a GA org `--query`/`--persist` need `ContextServicePilot` (else use Apex, rule 10). See `runtime-and-persistence.md` |
+| Run the full **runtime** lifecycle (hydrate → query → persist) end-to-end | `python scripts/context_service/instance/context_session.py --target-org <sf_alias> --developer-name <name> --data-file records.json --query [--persist --target-mapping-name <m>]` — the script sequences the steps, each a separate `sf api request`, and selects SESSION scope when any of `--query`, `--persist`, `--update-attr`, `--write-tag`, `--keep` is given (a reused `--context-id` also works). SESSION is gated by `SessionScopeContext`, shipped with `ContextServicePilot`, on some orgs; where it is gated, use Apex (rule 10). See `runtime-and-persistence.md` |
 | Create / query / persist / delete a runtime instance **individually** (reuse-on org or debugging) | `create_context_instance.py` (`--id-only`) → `query_context_instance.py --context-id <id>` → `persist_context_instance.py --context-id <id> --target-mapping-id <11j…>` → `delete_context_instance.py --context-id <id>` |
 | Read hydrated attribute values by **tag** at runtime | `python scripts/context_service/instance/query_context_instance.py --target-org <sf_alias> --context-id <id> --tags <TAG …> [--leaner]` |
 | Clear a definition's cached **runtime schema** (force re-read after a mapping change) | `python scripts/context_service/instance/delete_context_instance.py --target-org <sf_alias> --clear-schema-cache --developer-name <name>` |
@@ -193,7 +195,7 @@ generated list; all in group *Revenue Lifecycle Management*):
 Helper scripts (`scripts/context_service/`, split into `definition/` design-time and
 `instance/` runtime subpackages — the first block below is offline/read-only, the
 second **mutates/destroys** (live-proven, for one-off exploration & updates), and
-the third is the **runtime instance** lifecycle (verify-live, pilot caveats); see
+the third is the **runtime instance** lifecycle (verify-live, gate caveats); see
 the directory `README.md` and `runtime-and-persistence.md`):
 
 | Script | Org? | Purpose |
@@ -209,19 +211,19 @@ the directory `README.md` and `runtime-and-persistence.md`):
 | `delete_context.py` | **Destructive** | Deactivate (default) or hard-delete a definition / custom artifacts. Hard delete is opt-in (`--confirm-delete`); three pre-flight guards (inheritance / active-state / dependents) refuse a bad delete. Orchestration in `_delete.py`. No production delete task exists |
 | `mutate_context.py` | **Mutates** | One granular in-place edit to an existing definition: `--set-transient` / `--set-default-mapping` / `--add-tag` / `--add-mapping` / `--remove-tag`. Previews unless `--confirm`; op-specific inheritance + active-state guards (the pure inserts `--add-tag` / `--add-mapping` run on an active version). `--add-mapping` binds one attribute→field via SObject-REST POST (sibling-safe; the only clean root-node binding). Orchestration in `_mutate.py`. Prefer a plan via `manage_context_definition` for build work |
 
-Runtime instance scripts (`scripts/context_service/instance/` — verify-live, pilot
+Runtime instance scripts (`scripts/context_service/instance/` — verify-live, gate
 caveats; `context_session.py` sequences the lifecycle from one Python process, but
-a runtime `contextId` is request-scoped so chaining create→query→persist across its
-steps still needs `--context-scope SESSION` (pilot) or a reused `--context-id`, and
-on a GA org `query`/`persist` need `ContextServicePilot` (else use Apex, rule 10).
+a runtime `contextId` is request-scoped; its steps are separate calls, so it selects SESSION
+scope when a later step is requested (the standalone scripts need `--context-scope SESSION` or a reused `--context-id`), and
+SESSION scope may be gated on some orgs; where it is gated, use Apex (rule 10).
 Shared logic in `_runtime.py` / `_resolve.py` / `_runtime_cli.py`):
 
 | Script | Org? | Purpose |
 |--------|------|---------|
 | `build_hydration_data.py` | Read-only | Build the nested `data` hydration payload (node-name keys + `businessObjectType` = **mapped SObject** name). Default: fillable **skeleton** (child arrays + typed placeholders); `--mapping-name` picks the mapping, `--node` restricts to a subtree. `--from-record <id> [--node NAME]`: ready-to-run **id-only** payload (parent + children hydrate server-side). Feed to create/session |
-| `context_session.py` | **Mutates** | Single-process runtime driver — create (or `--context-id` reuse) → `--update-attr` → `--write-tag` → `--query` → `--persist` → auto-delete (unless `--keep`). Each step is still a separate REST call; on a GA org `--query`/`--persist` need `ContextServicePilot` and REQUEST-scoped ids do not survive, so Apex/Flow is the one-request GA path (rule 10). Honors the dry-run contract |
+| `context_session.py` | **Mutates** | Single-process runtime driver — create (or `--context-id` reuse) → `--update-attr` → `--write-tag` → `--query` → `--persist` → auto-delete (unless `--keep`). Each step is still a separate REST call, so it selects SESSION when a later step is requested (SESSION scope may be gated on some orgs); REQUEST-scoped ids do not survive, and Apex/Flow is the one-request GA path (rule 10). Honors the dry-run contract |
 | `create_context_instance.py` | **Mutates** | `POST /connect/contexts` — hydrate an instance from a mapping + records; output modes `default` / `--json` / `--id-only` |
-| `query_context_instance.py` | Read-only | `query-record` (flattens the tree with `depth`, decodes stringified compound values) or `--tags … [--leaner]` → `query-tags[-leaner]`. Pilot-gated on a GA org (`API_DISABLED_FOR_ORG`) |
+| `query_context_instance.py` | Read-only | `query-record` (flattens the tree with `depth`, decodes stringified compound values) or `--tags … [--leaner]` → `query-tags[-leaner]`. Gated on some orgs (`API_DISABLED_FOR_ORG`, [Measured: date not recorded, 262, org kind not recorded]) |
 | `persist_context_instance.py` | **Mutates** | `persist-records` — write attribute values back to a **target** mapping's SObjects; prints `referenceId`, emits the FK caveat |
 | `delete_context_instance.py` | **Mutates** | Evict one instance (`--context-id`) XOR `--clear-schema-cache --developer-name <name>` (runtime cache — NOT the definition; that is `delete_context.py`) |
 | `list_context_interfaces.py` | Read-only | List context definition interfaces (or `--interface NAME` for one) |
@@ -274,7 +276,7 @@ python scripts/context_service/definition/list_contexts.py --target-org rlm-base
 python scripts/context_service/definition/describe_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext
 
-# Runtime round trip (verify-live; GA orgs need ContextServicePilot for query/persist — see rule 10):
+# Runtime round trip (verify-live; SESSION scope may be gated on some orgs — see rule 10):
 # build the data payload, then hydrate → query → persist
 # id-only payload for a real record — ready to hydrate as-is (parent + children, server-side)
 python scripts/context_service/instance/build_hydration_data.py --target-org rlm-base__beta \

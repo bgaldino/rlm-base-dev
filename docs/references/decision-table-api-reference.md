@@ -267,7 +267,7 @@ code. Casing tolerance does **not** extend to using a wrong *name* —
 
 Full refresh completion is reflected by `Metadata.refreshStatus` and
 `Metadata.lastSyncDate`. Incremental refresh completion advances
-`Metadata.lastIncrementalSyncDate`. ⚠ In Release 264 a full request can run as
+`Metadata.lastIncrementalSyncDate`. ⚠ In Release 264 a request that did not ask for incremental can run as
 incremental (the platform picks the type unless incremental is requested), so judge
 completion by the later of the two. Full-refresh hourly pools are 40 Standard
 and 60 Advanced; CSV-backed tables use the Advanced pool.

@@ -81,6 +81,39 @@ one nearly every additive plan in this repo targets:
   procedure that depends on its value prices differently there; add an `OrderItem`
   field and map it if that matters.
 
+### Procedure: add a new custom attribute that a procedure or Flow will read
+
+One plan applies all four pieces in place on an active definition (inserts are allowed
+on an active version). Order inside the plan does not matter; the tool resolves ids.
+
+1. **Field first.** Create the custom field on `QuoteLineItem` and `OrderItem` (or the
+   other mapped SObjects). A mapping row may omit `sObjectField` (attribute resolvable,
+   empty), but a value that must persist needs the field.
+2. **Attribute** in `contextAttributesByName`: `nodeName`, `name` (ends `__c`),
+   `dataType`, `fieldType` (`INPUTOUTPUT` for a value a procedure writes and persists).
+3. **Mapping rows** in `mappingRules`: one on `QuoteEntitiesMapping` and one on
+   `OrderEntitiesMapping` (see the Order-lens rule above; the lint refuses a Quote-only
+   `__c` attribute).
+4. **Tag** in `contextTagsByName`: `{"nodeName", "attributeName", "name"}`. A pricing
+   procedure or expression set references the attribute **by tag name**, never by
+   attribute name, so an attribute without its own tag cannot be used. The expression-set
+   deploy otherwise fails "Specify a valid data type for the condition-0-input /
+   section-0-output variable" [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]
+   on the first deploy of a procedure that read a new attribute before its tag existed.
+5. **Run** `validate_context_plan.py`, then `apply_context_plan.py --dry-run`, then
+   `--verify` (or `manage_context_definition -o plan_file`). `--verify` re-reads the
+   attributes, mapping rows and tags; it printed `Verification: OK` for a new `STRING`
+   `INPUTOUTPUT` attribute with its tag and both lens rows added to the active Sales
+   Transaction definition, which stayed active [Measured: 2026-11-27, 264, scratch build, one org].
+6. Expression-set side: see [expression-sets](../expression-sets/SKILL.md) and
+   [pricing-wiring](../pricing-wiring/SKILL.md). Changing or removing the attribute or tag
+   later needs a deactivate first.
+
+**Promotions eligibility nodes.** The promotions engine finds eligibility data through a
+top-level node whose name and tags match the promotions standard context, or through a
+mapped top-level tag; `CampaignMember` hydration needs the Campaign license
+[Open: desk research against the 264 snapshot, not measured on an org].
+
 ### Combinations — what yields *working* functionality
 
 The blocks are independent, so a partial combo is the usual reason a change
@@ -125,7 +158,7 @@ cause is fixed. A `plan_file` that cannot be read, is not a JSON object, or whos
 that the version read already shows as default is not PATCHed again. On a rerun
 (`DUPLICATE_VALUE`) the task re-sends the activation PATCH when `activate` is true, which
 an active definition accepts [Measured: 2026-11-26, 264, scratch:
-`extend_context_definitions` rerun on a built org, no `plan_file`]; a set `plan_file` is
+extend_context_definitions rerun on a built org, no plan_file]; a set `plan_file` is
 applied again on every rerun, and no shipped `extend_context_*` task sets one.
 
 **Edition-optional vs. always-present (`allow_skip_if_unavailable`).** Most
