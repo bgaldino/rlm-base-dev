@@ -425,7 +425,7 @@ The following table shows the sequence of all permission-related steps across th
 | 25.3 | `prepare_guidedselling` > `assign_permission_sets` | `RLM_Guided_Selling` | `guidedselling` |
 | 28.3 | `prepare_large_stx` > `assign_permission_sets` | `RLM_LargeSalesTransaction` (running user) | `large_stx` |
 | 29.5 | `prepare_personas` > `assign_personas_sales_rep_psg` | `RLM_Sales_Representative` PSG (salesrep user) | `personas` |
-| 29.6 | `prepare_personas` > `assign_permission_sets` | `RLM_QuantumBit_Sales_Representative` (salesrep user) | `personas` |
+| 29.6 | `prepare_personas` > `assign_permission_sets` | `RLM_QuantumBit_Sales_Representative` (salesrep user). Among its grants: edit on Contract `BillingAddress`, `ContractTerm` and `ShippingAddress` and read on `EndDate`, which the quote's New Contract flow (`RLM_CreateContractFromQuote`, user context) writes or reads after the platform creates the contract; without them the contract rolls back (todo 518) | `personas` |
 | 29.7 | `prepare_personas` > `assign_permission_sets` | `RLM_LargeSalesTransaction` (salesrep user) | `personas` + `large_stx` |
 | 29.9 | `prepare_personas` > `assign_permission_sets` | **`RLM_DecisionTableManager` (salesrep user)** — the Manager sits on the shared Home page that persona sees, so without this it renders a section that errors on class access. Narrow: class access only, deletes nothing | `personas` + (`quantumbit` \| `tso`) |
 | 29.10 | `prepare_personas` > `assign_permission_sets` | `RLM_QuantumBitDemoSetup` (salesrep user) | `personas` + `quantumbit` |
