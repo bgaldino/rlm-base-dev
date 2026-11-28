@@ -102,8 +102,9 @@ Read quote values before activation for cancellations as well as renewals.
   with a later end date got its own.
 - **Matching rule** [Inferred from the flow, not measured with a closed or renamed Opportunity]: price book and close
   date, among the account's open Opportunities with the order's contract and currency and the renewal name prefix.
-  The same rule decides whether to create and which Opportunity a line joins, so a renamed one still matches; a
-  closed one is never reused. When several match, the oldest takes every line. Orders with no contract matched an
+  The same rule decides whether to create and which Opportunity a line joins, so one renamed but still starting with
+  `<Account> - Renewal - ` still matches, while renaming it otherwise, or renaming the account, makes the next
+  activation create a new one; a closed one is never reused. When several match, the oldest takes every line. Orders with no contract matched an
   Opportunity with none [Measured].
 - **Bulk activation** [Inferred from the flow, which has no locking]: orders delivered in the same platform-event
   batch can still each create an Opportunity.
