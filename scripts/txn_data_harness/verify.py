@@ -1,7 +1,9 @@
-"""Read-only billing verifier: invoice, line and payment balances against their applications.
+"""Read-only billing verifier: invoice, line, payment and credit memo balances against
+their applications.
 
 ``cli verify`` reads invoice and payment ids from harness manifests (or from
-``--invoice-ids`` / ``--payment-ids``), runs SOQL reads only, and checks the billing
+``--invoice-ids`` / ``--payment-ids`` / ``--credit-memo-ids``), runs SOQL reads only,
+and checks the billing
 records against each other. It never writes. Exit 0 when every check passes or is
 skipped, 1 when any check fails, 2 on bad input or a refused request.
 
@@ -16,10 +18,12 @@ Checks (formulas are documented in
     invoice with neither application rows nor a ``SettlementLevel``, however the
     level was chosen.
 ``invoice_balance``
-    ``Balance = TotalAmountWithTax - NetCreditsApplied - NetPaymentsApplied``, and
-    each rollup equals the net of the invoice's line-level application rows.
+    ``Balance = TotalAmountWithTax - NetCreditsApplied - NetPaymentsApplied +
+    TotalConvertedNegAmount``, and each rollup equals the net of the invoice's
+    line-level application rows.
 ``invoice_line_balance``
-    ``Balance = LineAmount - NetCreditsApplied - NetPaymentsApplied`` per line, and
+    ``Balance = LineAmount - NetCreditsApplied - NetPaymentsApplied +
+    ConvertedNegAmount`` per line, and
     each rollup equals the net of the line's application rows. Also needs the
     invoice's own evidence to be line level (line rows or ``SettlementLevel``
     InvoiceLine); an invoice with no evidence is skipped. An invoice with no lines
@@ -27,6 +31,9 @@ Checks (formulas are documented in
 ``payment_balance``
     ``Balance = Amount - NetApplied``, and ``NetApplied`` equals the net of the
     payment's application rows on any invoice.
+``credit_memo_balance``
+    ``Balance = TotalAmountWithTax - NetCreditsApplied``, and ``NetCreditsApplied``
+    equals the net of the memo's application rows on any invoice (todo 520).
 
 The balance checks run only on what was measured (Line Level, 264), defined once as
 an allow-list in ``_unmeasured_causes``:
@@ -37,14 +44,18 @@ an allow-list in ``_unmeasured_causes``:
   (its own flag NA) whose ``Related...InvcLineId`` names it, on the same invoice line and payment or
   credit memo line, with the same ``Amount`` (both read).
   Rows net as Applied minus Unapplied, so a pair nets to zero;
-- invoice line: ``Type`` Charge, and no converted-negative or adjustment amount;
+- invoice line: ``Type`` Charge, no adjustment amount, and nothing converted or a
+  negative line converted whole with no tax part (``ConvertedNegAmount`` =
+  ``ChargeConvertedNegAmount`` = ``-LineAmount``);
 - invoice: ``Status`` Posted; no header evidence (header rows or ``SettlementLevel``
-  Invoice); no ``WriteOffStatus`` and every write-off, converted-negative, adjustment
-  and header-tax total null or zero; every line and application row measured;
+  Invoice); no ``WriteOffStatus`` and every write-off, adjustment and header-tax total
+  null or zero; ``TotalConvertedNegAmount`` equal to its lines' ``ConvertedNegAmount``;
+  every line and application row measured;
 - payment: ``Status`` Processed with application rows, or Canceled with none; no
   header-level rows; ``NetRefundApplied`` and ``NetPaymentCreditApplied`` null or
   zero; every application row measured;
-- credit memo: ``Status`` Posted.
+- credit memo: ``Status`` Posted, or Draft with no application rows; no header-level
+  rows; ``NetRefundsApplied`` null or zero; every application row measured.
 
 An invoice and a payment or credit memo joined by an application row are measured only
 together: one unmeasured side makes the other unmeasured too, to a fixpoint, so a memo
@@ -56,7 +67,8 @@ payments outside the set are not read and do not propagate.
 The report counts the balance-check results that ran (``checked``) and were skipped
 (``skipped``): one per invoice for ``invoice_balance``, one per line when
 ``invoice_line_balance`` runs and one per invoice when it skips (or fails because no
-lines could be read, counted as checked), and one per payment for ``payment_balance``. Exit 0 means nothing failed, which includes a run where every
+lines could be read, counted as checked), one per payment for ``payment_balance``, and
+one per credit memo for ``credit_memo_balance``. Exit 0 means nothing failed, which includes a run where every
 balance check skipped. Amounts compare exactly as Decimals; ids may be 15
 or 18 characters and are normalized to 18 before querying; an 18-character id's
 case is restored from its suffix, as Salesforce does.
@@ -85,6 +97,7 @@ CHECK_NAMES = (
     "invoice_balance",
     "invoice_line_balance",
     "payment_balance",
+    "credit_memo_balance",
 )
 
 LEVELS = ("line", "header")
@@ -102,24 +115,30 @@ _IN_CHUNK = 200
 # Fields that may settle or change a balance outside the four application objects.
 # Their effect has not been measured: a non-zero value makes the record unmeasured.
 _UNMEASURED_INVOICE_FIELDS = (
-    "TotalConvertedNegAmount", "WriteOffTotalChargeAmount", "WriteOffTotalTaxAmount",
+    "WriteOffTotalChargeAmount", "WriteOffTotalTaxAmount",
     "TotalAdjustmentAmount", "TotalTaxesCapturedAtHeader",
 )
-_UNMEASURED_LINE_FIELDS = ("ConvertedNegAmount", "ChargeConvertedNegAmount", "AdjustmentAmount")
+_UNMEASURED_LINE_FIELDS = ("AdjustmentAmount",)
+# Negative-line conversion (todo 520): measured for a negative line converted whole
+# with no tax part; it adds the converted amount back to Balance.
+_CONVERTED_INVOICE_FIELDS = ("TotalConvertedNegAmount",)
+_CONVERTED_LINE_FIELDS = ("ConvertedNegAmount", "ChargeConvertedNegAmount")
 
 INVOICE_FIELDS = (
     "Id", "Status", "SettlementLevel", "TotalAmountWithTax",
     "NetCreditsApplied", "NetPaymentsApplied", "Balance", "WriteOffStatus",
-) + _UNMEASURED_INVOICE_FIELDS
+) + _CONVERTED_INVOICE_FIELDS + _UNMEASURED_INVOICE_FIELDS
 INVOICE_LINE_FIELDS = (
     "Id", "InvoiceId", "Type", "LineAmount", "NetCreditsApplied", "NetPaymentsApplied",
     "Balance",
-) + _UNMEASURED_LINE_FIELDS
+) + _CONVERTED_LINE_FIELDS + _UNMEASURED_LINE_FIELDS
 PAYMENT_FIELDS = ("Id", "Status", "Amount", "NetApplied", "Balance", "NetRefundApplied",
                   "NetPaymentCreditApplied")
 CREDIT_MEMO_LINE_FIELDS = ("Id", "CreditMemoId")
-CREDIT_MEMO_FIELDS = ("Id", "Status")
-BALANCE_CHECKS = ("invoice_balance", "invoice_line_balance", "payment_balance")
+CREDIT_MEMO_FIELDS = ("Id", "Status", "TotalAmountWithTax", "NetCreditsApplied", "Balance",
+                      "NetRefundsApplied")
+BALANCE_CHECKS = ("invoice_balance", "invoice_line_balance", "payment_balance",
+                  "credit_memo_balance")
 # Payment fields whose effect on Balance has not been measured.
 _UNMEASURED_PAYMENT_FIELDS = ("NetRefundApplied", "NetPaymentCreditApplied")
 
@@ -164,6 +183,9 @@ _RELATED_FIELDS = tuple(o.related_field for o in APP_OBJECTS if o.related_field)
 _CHECKED_PAYMENT_STATUS = "Processed"   # with application rows
 _CANCELED_PAYMENT_STATUS = "Canceled"   # with none
 _CHECKED_MEMO_STATUS = "Posted"
+_DRAFT_MEMO_STATUS = "Draft"     # with no application rows
+# Credit memo fields whose effect on Balance has not been measured.
+_UNMEASURED_MEMO_FIELDS = ("NetRefundsApplied",)
 
 
 class VerifyError(ValueError):
@@ -299,20 +321,23 @@ def _merge(rows: list[dict], more: list[dict]) -> list[dict]:
 
 
 def fetch_records(client, invoice_ids: list[str],
-                  payment_ids: Optional[list[str]] = None) -> dict[str, list[dict]]:
+                  payment_ids: Optional[list[str]] = None,
+                  credit_memo_ids: Optional[list[str]] = None) -> dict[str, list[dict]]:
     """Read everything the checks need, by id. SOQL reads only.
 
     Returns ``{object name: rows}`` for Invoice, InvoiceLine, Payment, CreditMemoLine,
     CreditMemo and the four application objects. Payments are the ones asked for plus
     every payment that has an application row on these invoices; for each payment, all
     of its payment application rows are read too, so ``NetApplied`` can be checked
-    against rows on invoices outside the set. Credit memos are the ones applied to
-    these invoices (their status is part of the allow-list).
+    against rows on invoices outside the set. Credit memos likewise: the ones asked
+    for plus every memo applied to these invoices, with all of their lines and
+    application rows, so ``NetCreditsApplied`` can be checked.
     """
     invoice_ids = _check_ids(invoice_ids, "invoice id")
     payment_ids = _check_ids(payment_ids or [], "payment id")
-    if not invoice_ids and not payment_ids:
-        raise VerifyError("no invoice or payment ids to verify")
+    asked_memos = _check_ids(credit_memo_ids or [], "credit memo id")
+    if not invoice_ids and not payment_ids and not asked_memos:
+        raise VerifyError("no invoice, payment or credit memo ids to verify")
 
     records: dict[str, list[dict]] = {}
     invoices = _query_in(client, "Invoice", INVOICE_FIELDS, "Id", invoice_ids)
@@ -344,12 +369,26 @@ def fetch_records(client, invoice_ids: list[str],
         raise VerifyError(f"credit memo line ids not found or not readable: {', '.join(missing)}")
     records["CreditMemoLine"] = memo_lines
     memo_ids = _unique([r.get("CreditMemoId") for r in memo_lines]
-                       + [r.get("CreditMemoId") for r in records["CreditMemoInvApplication"]])
+                       + [r.get("CreditMemoId") for r in records["CreditMemoInvApplication"]]
+                       + asked_memos)
     memos = _query_in(client, "CreditMemo", CREDIT_MEMO_FIELDS, "Id", memo_ids) if memo_ids else []
     missing = sorted(set(memo_ids) - {r["Id"] for r in memos})
     if missing:
         raise VerifyError(f"credit memo ids not found or not readable: {', '.join(missing)}")
     records["CreditMemo"] = memos
+    if memo_ids:
+        # Every line and application row of each memo, on any invoice.
+        memo_lines = _merge(memo_lines, _query_in(client, "CreditMemoLine",
+                                                  CREDIT_MEMO_LINE_FIELDS, "CreditMemoId",
+                                                  memo_ids))
+        records["CreditMemoLine"] = memo_lines
+        for obj in APP_OBJECTS:
+            if obj.kind != "credit":
+                continue
+            sources = [r["Id"] for r in memo_lines] if obj.level == "line" else memo_ids
+            if sources:
+                more = _query_in(client, obj.name, obj.fields, obj.source_field, sources)
+                records[obj.name] = _merge(records[obj.name], more)
 
     payments = _query_in(client, "Payment", PAYMENT_FIELDS, "Id", payment_ids) if payment_ids else []
     missing = sorted(set(payment_ids) - {r["Id"] for r in payments})
@@ -384,6 +423,13 @@ def _fmt(value: Optional[Decimal]) -> str:
     return "null" if value is None else format(value, "f")
 
 
+def _plus(value: Decimal, name: str = "") -> str:
+    """`` + [name] value`` for a converted negative amount; nothing when it is zero."""
+    if not value:
+        return ""
+    return f" + {name + ' ' if name else ''}{_fmt(value)}"
+
+
 def _net(rows: Iterable[dict]) -> Decimal:
     """Applied minus Unapplied amounts; a check runs only when every row is measured.
 
@@ -415,6 +461,8 @@ class _Index:
     rows_by_id: dict[str, dict] = field(default_factory=dict)
     reversals: dict[str, list[dict]] = field(default_factory=dict)  # reversed row id -> Unapplied rows
     header_rows_by_payment: dict[str, int] = field(default_factory=dict)  # payment id -> count
+    rows_by_memo: dict[str, list[dict]] = field(default_factory=dict)  # credit memo id -> rows
+    header_rows_by_memo: dict[str, int] = field(default_factory=dict)  # credit memo id -> count
 
 
 def _index(records: dict[str, list[dict]]) -> _Index:
@@ -424,6 +472,8 @@ def _index(records: dict[str, list[dict]]) -> _Index:
     for kind in ("payment", "credit"):
         idx.line_rows[kind] = {}
         idx.header_rows[kind] = {}
+    memo_of_line = {line["Id"]: line["CreditMemoId"]
+                    for line in records.get("CreditMemoLine", [])}
     for obj in APP_OBJECTS:
         for row in records.get(obj.name, []):
             # Rows a payment has on invoices outside the set are indexed too; lookups go
@@ -438,6 +488,12 @@ def _index(records: dict[str, list[dict]]) -> _Index:
                 if obj.level == "header":
                     pid = row.get(obj.source_field)
                     idx.header_rows_by_payment[pid] = idx.header_rows_by_payment.get(pid, 0) + 1
+            else:
+                source = row.get(obj.source_field)
+                mid = memo_of_line.get(source) if obj.level == "line" else source
+                idx.rows_by_memo.setdefault(mid, []).append(row)
+                if obj.level == "header":
+                    idx.header_rows_by_memo[mid] = idx.header_rows_by_memo.get(mid, 0) + 1
     return idx
 
 
@@ -572,13 +628,27 @@ def _row_cause(idx: _Index, row: dict) -> Optional[str]:
 
 
 def _line_cause(line: dict) -> Optional[str]:
-    """Why an invoice line is unmeasured, or None (Type Charge, no unmeasured amount)."""
+    """Why an invoice line is unmeasured, or None.
+
+    Measured: Type Charge with no adjustment, and either nothing converted or a
+    negative line converted whole with no tax part (``ConvertedNegAmount`` and
+    ``ChargeConvertedNegAmount`` both equal to ``-LineAmount``; todo 520).
+    """
     if line.get("Type") != _CHECKED_LINE_TYPE:
         return (f"line {line['Id']} has Type {line.get('Type') or 'null'}; only "
                 f"{_CHECKED_LINE_TYPE} lines are measured")
     field_value = _nonzero(line, _UNMEASURED_LINE_FIELDS)
     if field_value:
         return f"line {line['Id']} {field_value}: the effect on Balance is not measured"
+    converted = _zero(line.get("ConvertedNegAmount"))
+    charge = _zero(line.get("ChargeConvertedNegAmount"))
+    if converted or charge:
+        amount = _dec(line.get("LineAmount"))
+        if not (amount is not None and amount < 0 and converted == -amount
+                and charge == converted):
+            return (f"line {line['Id']} ConvertedNegAmount {_fmt(converted)}, "
+                    f"ChargeConvertedNegAmount {_fmt(charge)}, LineAmount {_fmt(amount)}: "
+                    "only a negative line converted whole with no tax part is measured")
     return None
 
 
@@ -598,6 +668,11 @@ def _invoice_cause(idx: _Index, invoice: dict) -> Optional[str]:
     field_value = _nonzero(invoice, _UNMEASURED_INVOICE_FIELDS)
     if field_value:
         return f"{field_value}: the effect on Balance is not measured"
+    lines_converted = sum((_zero(line.get("ConvertedNegAmount"))
+                           for line in idx.lines_by_invoice.get(iid, [])), Decimal("0"))
+    if _zero(invoice.get("TotalConvertedNegAmount")) != lines_converted:
+        return (f"TotalConvertedNegAmount {_fmt(_dec(invoice.get('TotalConvertedNegAmount')))} "
+                f"is not the lines' ConvertedNegAmount total {_fmt(lines_converted)}")
     for line in idx.lines_by_invoice.get(iid, []):
         cause = _line_cause(line)
         if cause:
@@ -633,16 +708,31 @@ def _payment_cause(idx: _Index, payment: dict) -> Optional[str]:
     return None
 
 
-def _memo_cause(memo: dict) -> Optional[str]:
-    """Why a credit memo is unmeasured, or None (Status Posted).
+def _memo_cause(idx: _Index, memo: dict) -> Optional[str]:
+    """Why a credit memo is unmeasured, or None.
 
-    Its rows need no check here: only rows on invoices in the set are read, and an
-    unmeasured row already makes that invoice unmeasured, which propagates to the memo.
+    Measured: Posted, or Draft with no application rows; no header-level rows;
+    ``NetRefundsApplied`` null or zero; every application row measured.
     """
-    status = memo.get("Status")
-    if status != _CHECKED_MEMO_STATUS:
-        return (f"Status {status or 'null'}; only {_CHECKED_MEMO_STATUS} credit memos are "
-                "measured")
+    mid = memo["Id"]
+    status = memo.get("Status") or "null"
+    rows = idx.rows_by_memo.get(mid, [])
+    header_n = idx.header_rows_by_memo.get(mid, 0)
+    if header_n:
+        return (f"Status {status}; {header_n} header-level application row(s); balances "
+                "at Header Level are not measured")
+    if not (status == _CHECKED_MEMO_STATUS
+            or (status == _DRAFT_MEMO_STATUS and not rows)):
+        return (f"Status {status} with {len(rows)} application row(s); only "
+                f"{_CHECKED_MEMO_STATUS} credit memos and {_DRAFT_MEMO_STATUS} ones with "
+                "no applications are measured")
+    field_value = _nonzero(memo, _UNMEASURED_MEMO_FIELDS)
+    if field_value:
+        return f"Status {status}; {field_value}: the effect on Balance is not measured"
+    for row in rows:
+        cause = _row_cause(idx, row)
+        if cause:
+            return cause
     return None
 
 
@@ -689,7 +779,7 @@ def _unmeasured_causes(records: dict[str, list[dict]], idx: _Index) -> dict[str,
     for payment in records.get("Payment", []):
         own(payment["Id"], "payment", _payment_cause(idx, payment))
     for memo in records.get("CreditMemo", []):
-        own(memo["Id"], "credit memo", _memo_cause(memo))
+        own(memo["Id"], "credit memo", _memo_cause(idx, memo))
     pairs = sorted({(source, iid) for source, _, iid, _ in links
                     if source in kinds and kinds.get(iid) == "invoice"})
     changed = True
@@ -714,16 +804,18 @@ def _check_invoice_balance(idx: _Index, causes: dict[str, str]) -> list[dict]:
         total = _dec(invoice.get("TotalAmountWithTax"))
         credits = _zero(invoice.get("NetCreditsApplied"))
         payments = _zero(invoice.get("NetPaymentsApplied"))
+        converted = _zero(invoice.get("TotalConvertedNegAmount"))
         balance = _dec(invoice.get("Balance"))
         # A measured invoice has no header evidence, so only line-level rows exist.
         rec_pay = _net(_invoice_rows(idx, iid, "payment", "line"))
         rec_cred = _net(_invoice_rows(idx, iid, "credit", "line"))
-        expected = None if total is None else total - credits - payments
+        expected = None if total is None else total - credits - payments + converted
         problems = []
         if not _eq(balance, expected):
             problems.append(f"Balance {_fmt(balance)} != TotalAmountWithTax {_fmt(total)} "
                             f"- NetCreditsApplied {_fmt(credits)} - NetPaymentsApplied "
-                            f"{_fmt(payments)} = {_fmt(expected)}")
+                            f"{_fmt(payments)}{_plus(converted, 'TotalConvertedNegAmount')} "
+                            f"= {_fmt(expected)}")
         if not _eq(payments, rec_pay):
             problems.append(f"NetPaymentsApplied {_fmt(payments)} != payment rows {_fmt(rec_pay)}")
         if not _eq(credits, rec_cred):
@@ -732,7 +824,8 @@ def _check_invoice_balance(idx: _Index, causes: dict[str, str]) -> list[dict]:
             out.append(_result("invoice_balance", iid, "fail", "; ".join(problems)))
         else:
             out.append(_result("invoice_balance", iid, "pass",
-                               f"{_fmt(balance)} = {_fmt(total)} - {_fmt(credits)} - {_fmt(payments)}"))
+                               f"{_fmt(balance)} = {_fmt(total)} - {_fmt(credits)} - "
+                               f"{_fmt(payments)}{_plus(converted)}"))
     return out
 
 
@@ -765,15 +858,17 @@ def _check_line_balance(idx: _Index, causes: dict[str, str]) -> list[dict]:
             amount = _dec(line.get("LineAmount"))
             credits = _zero(line.get("NetCreditsApplied"))
             payments = _zero(line.get("NetPaymentsApplied"))
+            converted = _zero(line.get("ConvertedNegAmount"))
             balance = _dec(line.get("Balance"))
             rec_pay = _net(idx.line_rows["payment"].get(lid, []))
             rec_cred = _net(idx.line_rows["credit"].get(lid, []))
-            expected = None if amount is None else amount - credits - payments
+            expected = None if amount is None else amount - credits - payments + converted
             problems = []
             if not _eq(balance, expected):
                 problems.append(f"Balance {_fmt(balance)} != LineAmount {_fmt(amount)} "
                                 f"- NetCreditsApplied {_fmt(credits)} - NetPaymentsApplied "
-                                f"{_fmt(payments)} = {_fmt(expected)}")
+                                f"{_fmt(payments)}{_plus(converted, 'ConvertedNegAmount')} "
+                                f"= {_fmt(expected)}")
             if not _eq(payments, rec_pay):
                 problems.append(f"NetPaymentsApplied {_fmt(payments)} != "
                                 f"PaymentLineInvoiceLine rows {_fmt(rec_pay)}")
@@ -785,7 +880,7 @@ def _check_line_balance(idx: _Index, causes: dict[str, str]) -> list[dict]:
             else:
                 out.append(_result("invoice_line_balance", subject, "pass",
                                    f"{_fmt(balance)} = {_fmt(amount)} - {_fmt(credits)} - "
-                                   f"{_fmt(payments)}"))
+                                   f"{_fmt(payments)}{_plus(converted)}"))
     return out
 
 
@@ -819,6 +914,35 @@ def _check_payment_balance(records: dict[str, list[dict]], idx: _Index,
     return out
 
 
+def _check_memo_balance(records: dict[str, list[dict]], idx: _Index,
+                        causes: dict[str, str]) -> list[dict]:
+    out = []
+    for memo in records.get("CreditMemo", []):
+        mid = memo["Id"]
+        status = memo.get("Status") or "null"
+        if mid in causes:
+            out.append(_result("credit_memo_balance", mid, "skip", causes[mid]))
+            continue
+        total = _dec(memo.get("TotalAmountWithTax"))
+        applied = _zero(memo.get("NetCreditsApplied"))
+        balance = _dec(memo.get("Balance"))
+        rec = _net(idx.rows_by_memo.get(mid, []))
+        expected = None if total is None else total - applied
+        problems = []
+        if not _eq(balance, expected):
+            problems.append(f"Balance {_fmt(balance)} != TotalAmountWithTax {_fmt(total)} - "
+                            f"NetCreditsApplied {_fmt(applied)} = {_fmt(expected)}")
+        if not _eq(applied, rec):
+            problems.append(f"NetCreditsApplied {_fmt(applied)} != application rows {_fmt(rec)}")
+        if problems:
+            out.append(_result("credit_memo_balance", mid, "fail",
+                               f"Status {status}; " + "; ".join(problems)))
+        else:
+            out.append(_result("credit_memo_balance", mid, "pass",
+                               f"Status {status}; {_fmt(balance)} = {_fmt(total)} - {_fmt(applied)}"))
+    return out
+
+
 def run_checks(records: dict[str, list[dict]], expect_level: str = "auto") -> dict:
     """Run every check on fetched (or recorded) rows. Pure: no org access."""
     if expect_level not in ("auto",) + LEVELS:
@@ -834,6 +958,7 @@ def run_checks(records: dict[str, list[dict]], expect_level: str = "auto") -> di
         + _check_invoice_balance(idx, causes)
         + _check_line_balance(idx, causes)
         + _check_payment_balance(records, idx, causes)
+        + _check_memo_balance(records, idx, causes)
     )
     failed = sorted({r["check"] for r in results if r["status"] == "fail"},
                     key=CHECK_NAMES.index)
@@ -846,6 +971,7 @@ def run_checks(records: dict[str, list[dict]], expect_level: str = "auto") -> di
         "level_source": source,
         "invoice_ids": [r["Id"] for r in records.get("Invoice", [])],
         "payment_ids": [r["Id"] for r in records.get("Payment", [])],
+        "credit_memo_ids": [r["Id"] for r in records.get("CreditMemo", [])],
         "failed_checks": failed,
         "checks": results,
     }

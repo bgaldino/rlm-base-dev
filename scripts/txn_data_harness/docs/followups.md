@@ -383,6 +383,22 @@ Line Level is live-verified on 264; everything below is not.
   fixed once recorded (whole, so a run that stopped at `credit_applied`
   continues to `payment_applied` with the payment it was configured with),
   and refused options cannot be corrected on the same invoice.
+- `[gap]` **Standalone credit memo beyond one line.** `cli credit-memo`
+  (todo 520) was measured on a one-line invoice at Line Level
+  ([contract](contracts-billing-settlement.md#standalone-credit-memo)).
+  - `[probe]` Apply a memo by invoice id to a three-line invoice whose first
+    line's balance is smaller than the amount: which lines take it, in what
+    order (Help: descending).
+  - `[probe]` Post an invoice on the account while a standalone memo is open:
+    does posting absorb it, as it does a freed memo?
+- `[gap]` **Negative lines beyond the measured shape.** Conversion was measured
+  on untaxed −50.00 lines, automatic and by the action
+  ([contract](contracts-billing-settlement.md#negative-invoice-lines)).
+  - `[probe]` A taxed negative line: do `ConvertedNegAmount` and
+    `ChargeConvertedNegAmount` split charge and tax, and does the balance
+    formula still add back `ConvertedNegAmount`?
+  - `[probe]` A negative line larger than the invoice's positive lines: where
+    does the converted memo's rest go?
 - `[gap]` **Settlement cleanup.** No delete, payment cancel or credit memo
   void was probed (unapply is measured: see above); settlement records are
   treated as leftovers like Posted invoices.

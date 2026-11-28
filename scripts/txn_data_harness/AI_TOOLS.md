@@ -182,6 +182,32 @@ payments and credit memos before calling again after a 2. To free a run's
 balances first, `unapply` it. Measurements:
 `docs/contracts-billing-settlement.md` → *Rule-based application*.
 
+### Credit an invoice with a standalone credit memo (writes records)
+
+```bash
+python -m scripts.txn_data_harness.cli credit-memo --org <sf-alias> --invoice <invoiceId> --amount 25
+python -m scripts.txn_data_harness.cli credit-memo --org <sf-alias> --invoice <invoiceId> --amount 25 --product <product2Id>
+```
+
+Generates a standalone credit memo (not from an order or an invoice credit)
+in Draft for the invoice's account and currency, one charge line with tax
+ignored, posts it, applies the whole amount to the invoice by its id, and runs
+the `verify` checks on the invoice and the memo. Prints `GENERATED:`,
+`DRAFT:`, `POSTED:` and `APPLIED:` lines with the ids. Refused before any write
+when the invoice is not Posted or the amount is not above 0 and up to its
+balance. Exit 0 when every step passed and a balance was checked with none
+failing, 1 when a step after the generate failed (the memo is named and keeps
+its balance; `apply-rules` can place it) or a check failed or nothing was
+checked, 2 when nothing was written, the generate call failed (a lost answer
+may still have made the memo: look for the printed description first) or the
+verify could not report. It writes no manifest. Measurements: `docs/contracts-billing-settlement.md` →
+*Standalone credit memo*.
+
+Negative invoice lines: run `scenarios/invoice_ingestion/18-negative-line.yaml`
+and `verify --latest`. With the build's Billing Settings, posting converts the
+negative line to a posted credit memo applied to the invoice; the harness does
+not wrap the convert action (*Negative invoice lines* in the same file).
+
 ### Verify billing (read-only)
 
 ```bash
@@ -189,15 +215,17 @@ python -m scripts.txn_data_harness.cli verify --org <sf-alias> --latest --json
 python -m scripts.txn_data_harness.cli verify --org <sf-alias> --manifest <run_id>
 python -m scripts.txn_data_harness.cli verify --org <sf-alias> \
   --invoice-ids <invoiceId>,<invoiceId> --payment-ids <paymentId>
+python -m scripts.txn_data_harness.cli verify --org <sf-alias> --credit-memo-ids <creditMemoId>
 ```
 
-Checks, by id and with SOQL only, that each invoice, invoice line and payment
-balance agrees with its payment and credit applications, and that the
+Checks, by id and with SOQL only, that each invoice, invoice line, payment
+and credit memo balance agrees with its payment and credit applications, and that the
 applications are at one level (line or header). Exit 0 when nothing fails,
 skips included, so read the counts (`RESULT: pass (N checked, M skipped)`, or
 `no balances checked`; `checked` and `skipped` in `--json`, counting one result
 per invoice, per checked line or skipped invoice (an invoice whose lines
-cannot be read is one failed result, counted as checked), and per payment); 1 on any
+cannot be read is one failed result, counted as checked), per payment and per
+credit memo); 1 on any
 failed check, 2 with an `ERROR:` line for bad input (unknown or malformed
 id, missing or malformed manifest, refused query, failed connection, no `sf`
 on `PATH`, any unexpected error); with `--json` an error also prints
@@ -208,14 +236,18 @@ usage on stderr and, when the command line contains `--json`, one
 are refused. Ids may be 15 or 18
 characters. A manifest's payment ids are read when it has them (the
 `payment_applied` stage writes `payment_ids`); other payments are found
-through the invoices' application rows, or passed with `--payment-ids`.
+through the invoices' application rows, or passed with `--payment-ids`;
+credit memos likewise, or with `--credit-memo-ids` (each memo's rows on any
+invoice are read for its check).
 `--latest` checks only the newest manifest: after a batch of several
 scenarios, pass each manifest (`--manifest` repeats) or the ids. Balance checks run only on records
 inside one allow-list of measured cases (Line Level: Posted invoices, taxed
 ones included, without write-off or other unmeasured totals, separate Tax lines
-or header-captured tax; Charge lines; Applied rows, and a line-level
+or header-captured tax; Charge lines, a negative one converted whole with no
+tax part included; Applied rows, and a line-level
 Applied/Unapplied pair from an unapply; Processed
-payments with applications or Canceled ones without; Posted credit memos), and
+payments with applications or Canceled ones without; Posted credit memos, or
+Draft ones without applications, with no refunds applied), and
 an invoice and a payment or credit memo joined by a row are measured only
 together; anything else skips naming its first cause and origin.
 `--expect-level line|header` forces the level (default: detect from the
