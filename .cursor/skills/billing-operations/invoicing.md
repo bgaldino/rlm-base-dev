@@ -68,8 +68,7 @@ recommends extending the standard definitions and using the extended copy
 - **Preview.** Up to two billing periods and up to 200 schedules, for an order, account or
   schedule group; quotes need a procedure plan, then the Preview Invoices button or the
   Invoice Preview API; a PDF needs
-  document generation [Help: ind.billing_preview_invoice,
-  ind.billing_invoice_preview_create].
+  document generation [Help: ind.billing_preview_invoice] [Help: ind.billing_invoice_preview_create].
 
 ## Dates: invoice date, target date, billing period count
 
@@ -119,8 +118,7 @@ objects and make them asynchronous; recovery of stranded invoices is in the same
   [Help: ind.billing_schedule_invoice_grouping].
 - **Billing arrangements** bill one transaction to several accounts by percentage; each
   arrangement line makes a separate invoice. Review the Split Invoices tab before posting,
-  voiding or deleting [Help: ind.billing_billing_arrangements,
-  ind.billing_review_split_invoices]. Repo UI: `Order.RLM_Billing_Arrangement__c`
+  voiding or deleting [Help: ind.billing_billing_arrangements] [Help: ind.billing_review_split_invoices]. Repo UI: `Order.RLM_Billing_Arrangement__c`
   [Repo: cumulusci.yml → deploy_post_billing_ui].
 
 ## Suspend, resume and catch-up
@@ -128,8 +126,7 @@ objects and make them asynchronous; recovery of stranded invoices is in the same
 - **Suspend** from an Account or schedule group. Charges are deferred, not waived; a run
   with a target date on or after the resumption date bills the deferred periods. The
   suspension is judged as of the target date, not the run date
-  [Help: ind.billing_suspend_and_resume_overview,
-  ind.billing_understand_billing_suspensions_and_target_date].
+  [Help: ind.billing_suspend_and_resume_overview] [Help: ind.billing_understand_billing_suspensions_and_target_date].
 - **Catch-up bill run** advances next billing date, billed and pending amounts for
   transactions a legacy system already billed. It runs with the Once frequency and needs a
   target date; it creates no invoices, tax, memos, payments or documents
@@ -146,8 +143,7 @@ objects and make them asynchronous; recovery of stranded invoices is in the same
   [Help: ind.billing_invoice_document_generation_batch_and_single].
 - Email goes after posting and before the due date; preferences resolve billing account,
   then legal entity, then org setting
-  [Help: ind.billing_invoice_pdf_document_delivery_through_email,
-  ind.billing_invoices_email_prerequisites].
+  [Help: ind.billing_invoice_pdf_document_delivery_through_email] [Help: ind.billing_invoices_email_prerequisites].
 - Template authoring: `document-generation`.
 - **Fetching an invoice PDF through the API.** [Measured: 2026-10-15, 264, harness build, API 68.0]
   [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0]
@@ -203,8 +199,7 @@ is out of scope here [Help: ind.billing_forecast_console].
   [inferred]; see the measured block below),
   `InvoiceBatchRun` (JobType Forecast, `TotalForecastLines`, `TotalForecastedAmount`) and
   `BillingSchedule.ForecastStatus` (`PendingForecast`, `Processing`, `Forecasted`, `Error`)
-  [Dev guide: sforce_api_objects_billingforecast, sforce_api_objects_invoicebatchrun,
-  sforce_api_objects_billingschedule]. `TotalForecastedAmount` is blank when a run
+  [Dev guide: sforce_api_objects_billingforecast] [Dev guide: sforce_api_objects_invoicebatchrun] [Dev guide: sforce_api_objects_billingschedule]. `TotalForecastedAmount` is blank when a run
   processes several currencies [Dev guide: sforce_api_objects_invoicebatchrun]. Reading
   `BillingForecast` needs the Billing license and Billing Admin
   [Dev guide: sforce_api_objects_billingforecast].

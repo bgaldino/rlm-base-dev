@@ -17,8 +17,7 @@ Confirm licensing before promising.
 
 ## Billing Settings that change behavior
 
-From Setup, Billing Settings [Help: ind.billing_setup_payments_configure,
-ind.billing_setup_credit_memo_features_enable]:
+From Setup, Billing Settings [Help: ind.billing_setup_payments_configure] [Help: ind.billing_setup_credit_memo_features_enable]:
 
 - Create Payment Schedules and Payment Schedule Items: automatic, for posted invoices.
   Otherwise create them by hand [Help: ind.billing_payment_schedules_and_payment_schedule_items].
@@ -59,7 +58,7 @@ ind.billing_setup_credit_memo_features_enable]:
   with the default flow used to apply the credit memo to invoices.
 - Credit, Payment and Refund Application Level: **Line Level** (default) or **Header
   Level**. Decide this early: it changes where balances live and how header tax works
-  ([tax.md](tax.md)) [inferred from Help: ind.billing_setup_header_tax_enable].
+  ([tax.md](tax.md)) [inferred] [Help: ind.billing_setup_header_tax_enable].
 - Rule-Based Credit and Payment Application, with an order and rules (below).
 - Level 2 and Level 3 data support, Share Payment Accounts.
 
@@ -67,8 +66,7 @@ ind.billing_setup_credit_memo_features_enable]:
 
 - **Gateway.** Native or third-party (bring your own); saved payment methods per account,
   with a default; externally tokenized methods can be migrated in
-  [Help: ind.billing_setup_third_party_payments, ind.billing_saved_payment_methods,
-  ind.billing_migrate_saved_payment_methods].
+  [Help: ind.billing_setup_third_party_payments] [Help: ind.billing_saved_payment_methods] [Help: ind.billing_migrate_saved_payment_methods].
 - **Process.** Payment batch runs process payment schedule items through a payment
   scheduler (Billing Batch Schedulers, New Payment Scheduler) and apply the result at the
   application level [Help: ind.billing_payment_runs_schedule]. Ad hoc: Payment Sale,
@@ -78,8 +76,7 @@ ind.billing_setup_credit_memo_features_enable]:
   item, which cuts gateway calls and fees [Help: ind.billing_payments_consolidate_invoices].
 - **Retries.** A retry rule set holds the default behavior, rules override by error
   category, gateway and raw error code; intervals are Fixed or Staggered; a fixed interval has a
-  maximum number of attempts [Help: ind.billing_retry_failed_payments,
-  ind.billing_setup_payment_retry_rules].
+  maximum number of attempts [Help: ind.billing_retry_failed_payments] [Help: ind.billing_setup_payment_retry_rules].
 - **Reconciliation.** Document AI extracts payment advice and matches it against bank
   proofs, with its own Data 360 setup [Help: ind.billing_payment_reconciliation].
 - Pay Now links let a customer pay as a guest and save the method
@@ -114,7 +111,7 @@ not seen. Endpoint behavior:
 
 Decision: choose Match ID when customers pay with a reference, Match Balance or oldest
 otherwise. Ask what the customer's finance team expects for unreferenced cash
-[inferred from Help].
+[inferred].
 
 ## Measured: Line Level application
 
@@ -261,8 +258,7 @@ are: `asset-lifecycle-changes` and `rlm-business-apis` → `backdated-asset-life
 A debit memo adds a charge: undercharge correction, cancellation or suspension fee, late
 payment fee. Created in Draft, with a reason code you add to the Reason Code picklist first;
 a posted debit memo can become a draft invoice through the Invoice Ingestion API
-[Help: ind.billing_debit_memo_explain, ind.billing_debit_memo_create,
-ind.billing_invoice_creation]. Orgs created before Winter '26 need the Debit Memos and
+[Help: ind.billing_debit_memo_explain] [Help: ind.billing_debit_memo_create] [Help: ind.billing_invoice_creation]. Orgs created before Winter '26 need the Debit Memos and
 Debit Memo Lines tabs set to Default On [Help: ind.billing_debit_memo_create].
 
 ## Refunds
@@ -276,12 +272,10 @@ Debit Memo Lines tabs set to Default On [Help: ind.billing_debit_memo_create].
   needs a credit balance, a supported third-party gateway that processes unreferenced
   refunds, and a saved card payment method on the credit memo or billing account.
 
-[Help: ind.billing_refunds_overview, ind.billing_refund_orchestration,
-ind.billing_unreferenced_refunds, ind.billing_issue_unreferenced_refund]. Header-level
+[Help: ind.billing_refunds_overview] [Help: ind.billing_refund_orchestration] [Help: ind.billing_unreferenced_refunds] [Help: ind.billing_issue_unreferenced_refund]. Header-level
 application refunds against the memo; line-level spreads across lines with an open balance,
-largest first [Help: ind.billing_unreferenced_refunds,
-ind.billing_issue_unreferenced_refund]. Ask whether the customer wants refunds to cash
-automatically or credit balances held [inferred from Help].
+largest first [Help: ind.billing_unreferenced_refunds] [Help: ind.billing_issue_unreferenced_refund]. Ask whether the customer wants refunds to cash
+automatically or credit balances held [inferred].
 
 ## Write-off, disputes, collections
 
@@ -291,9 +285,8 @@ Collections, dunning, disputes and the write-off and late-fee operations are in 
 - **Write off** an invoice with a credit memo whose Reason Code you add first (such as bad
   debt); it updates write-off fields on the invoice, and afterwards no further credits or
   payments can be applied or unapplied. Use the Write-Off API or a flow action
-  [Help: ind.billing_write_off_invoices_impact,
-  ind.billing_write_off_invoices_invoke_action]. The Reason Code picklists are empty on a fresh
-  build, so the call fails while the picklist is empty ([collections](../collections/SKILL.md) →
+  [Help: ind.billing_write_off_invoices_impact] [Help: ind.billing_write_off_invoices_invoke_action]. The Reason Code picklists are empty on a fresh
+  build, so the call returns INVALID_API_INPUT until you add a value ([collections](../collections/SKILL.md) →
   `setup-and-operate.md`).
 - **Invoice aging** components show buckets and overdue counts on Account and Order pages
   [Help: ind.billing_invoice_aging]. The repo ships aging, dispute and collections

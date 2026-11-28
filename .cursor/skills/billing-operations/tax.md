@@ -52,7 +52,7 @@ How long, how many calls, or what a failed engine does to a run: not measured.
   [Help: ind.billing_tax_lines_import].
 
 Engines can be mixed: a treatment names its engine, so legal entities or products can
-differ [Help: ind.billing_tax_configuration_engine, ind.billing_standard_tax_rate].
+differ [Help: ind.billing_tax_configuration_engine] [Help: ind.billing_standard_tax_rate].
 
 Questions to ask the customer, with the Help-grounded consequence:
 
@@ -75,14 +75,12 @@ Questions to ask the customer, with the Help-grounded consequence:
 Prerequisites: provider details (seller code, address, credentials), a named credential
 for callouts, and a custom adapter extending `TaxEngineAdapter` for your own engine. Billing
 supports up to 2,000 invoice lines on one invoice, so test the adapter against the Apex
-total heap size limit [Help: ind.billing_tax_configuration_prerequisites,
-ind.billing_limits]. Then create a tax engine provider and a tax engine
+total heap size limit [Help: ind.billing_tax_configuration_prerequisites] [Help: ind.billing_limits]. Then create a tax engine provider and a tax engine
 [Help: ind.billing_tax_engine_and_engine_providers_create]; only Active engines calculate
 tax. The engine must support tax for credits, or negative invoice lines can't be
 processed and invoice voids fail
 [Help: ind.billing_tax_engine_and_engine_providers_create]. The Tax Admin permission set
-creates engines, policies and treatments [Help: ind.billing_tax_engine_create,
-ind.billing_tax_policies_and_treatments_create].
+creates engines, policies and treatments [Help: ind.billing_tax_engine_create] [Help: ind.billing_tax_policies_and_treatments_create].
 
 ## Revenue Standard Tax Engine
 
@@ -92,11 +90,10 @@ ind.billing_tax_policies_and_treatments_create].
   Revenue Standard Tax Entries decision table, or a cloned and activated copy named on the
   engine. Matching uses Geo Country and Geo State records, so enable the state and country
   picklists; all matching rates apply in priority order, lower number first
-  [Help: ind.billing_standard_tax_rate_application, ind.billing_tax_rate_configure].
+  [Help: ind.billing_standard_tax_rate_application] [Help: ind.billing_tax_rate_configure].
 - Match custom attributes (product category, exemption criteria) by cloning the decision
   table and mapping fields with a custom metadata type
-  [Help: ind.billing_extend_revenue_standard_tax_engine,
-  ind.billing_standard_tax_custom_metadata_types_configure].
+  [Help: ind.billing_extend_revenue_standard_tax_engine] [Help: ind.billing_standard_tax_custom_metadata_types_configure].
   Refresh and freshness of decision tables: `decision-tables`.
 
 ## Header tax
@@ -105,7 +102,7 @@ Set Credit, Payment and Refund Application Level to Header Level in Billing Sett
 Capture Taxes At Header option then appears on tax engines. Balance calculation then uses
 the header tax amount (Total Taxes Captured at Header) instead of summed line tax; line
 tax is used when the header amount is missing or a number of listed failures occur
-[Help: ind.billing_setup_header_tax_enable, ind.billing_tax_summary_difference].
+[Help: ind.billing_setup_header_tax_enable] [Help: ind.billing_tax_summary_difference].
 Choose it only if the customer's tax system returns one consolidated amount
 [inferred from Help].
 

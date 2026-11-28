@@ -83,13 +83,12 @@ write-off no further credits or payments can be applied or unapplied
 needs Billing Settings > Manage Billing Disputes and Service Requests, Omnistudio Metadata, Context
 Definitions and sharing for Dispute and Service Catalog Request; the templates cover suspend billing,
 update bill-to contact, extend due date, incorrect invoice charge and other inquiries, resolved by a
-Resolve Case quick action [Help: ind.billing_disputes_overview,
-ind.billing_dispute_management_enable]. The repo's Case-based collections flow and matrix:
+Resolve Case quick action [Help: ind.billing_disputes_overview] [Help: ind.billing_dispute_management_enable]. The repo's Case-based collections flow and matrix:
 [repo-collections-tier.md](repo-collections-tier.md). Chargebacks and card disputes:
 [Open: record a card chargeback against a payment and read the payment and invoice].
 
 **Retries and reminders.** Payment retries on collection-plan items and the Send Reminder button:
-the repo removed the no-op button; [Open: a working Send Reminder is not built].
+the repo removed the no-op Send Reminder button; none is built.
 
 ## Headless limits
 

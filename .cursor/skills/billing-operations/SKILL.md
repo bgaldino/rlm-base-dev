@@ -31,8 +31,7 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
 1. **Billing starts at order activation.** One active order-to-billing-schedule flow (or the
    Create Billing Schedules for Orders API) turns an activated order into billing schedules
    and a schedule group. Context definition and mapping come from Billing Settings or a
-   custom procedure plan [Help: ind.billing_schedules_from_orders,
-   ind.billing_schedules_from_transactions_create]. Setup and the duplicate-flow trap are
+   custom procedure plan [Help: ind.billing_schedules_from_orders] [Help: ind.billing_schedules_from_transactions_create]. Setup and the duplicate-flow trap are
    in billing-setup. Orders need a bill-to contact, billing address and shipping address, or
    activation fails [Help: ind.billing_setup_enable].
 2. **Invoices come from schedules, not orders.** A run picks schedules whose next billing
@@ -54,12 +53,10 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
    Posting In Progress or Error [Help: ind.billing_invoice_run_sync_process].
 5. **Tax is a per-product choice of engine.** A tax policy on the product, its treatment, and
    the treatment's tax engine decide how a line is taxed; engines can be mixed
-   [Help: ind.billing_tax_policies_and_treatments_create,
-   ind.billing_tax_configuration_engine]. Pick the engine with [tax.md](tax.md).
+   [Help: ind.billing_tax_policies_and_treatments_create] [Help: ind.billing_tax_configuration_engine]. Pick the engine with [tax.md](tax.md).
 6. **Cash and credits settle by an application level and a rule order.** Header or line
    level, payments first or credits first, and the match rules are Billing Settings, and
-   they change what a balance means [Help: ind.billing_setup_payments_configure,
-   ind.billing_setup_credit_memos_payments_application_rules]
+   they change what a balance means [Help: ind.billing_setup_payments_configure] [Help: ind.billing_setup_credit_memos_payments_application_rules]
    ([payments-and-credits.md](payments-and-credits.md)).
 7. **Legal entity is the accounting key.** It is required for financial accounting, it
    selects tax treatments when a tax policy says Legal Entity, and every journal and
@@ -107,7 +104,7 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
   measured".
 - **DO NOT** promise revenue recognition. The 264 Help area for Billing documents accounting
   periods, ledger accounts and transaction journals, and no revenue recognition schedules
-  [inferred from Help's silence; see [accounting.md](accounting.md)].
+  [inferred] Help is silent on it; see [accounting.md](accounting.md).
 
 ## Entry Conditions
 

@@ -13,7 +13,7 @@ Billing license [Help: ind.billing_setup_financial_accounting_features]. Confirm
 A legal entity models how the organization is structured and governs billing treatments,
 tax treatments, finance periods and finance books. Create each one Active; its currency
 can't be edited after creation in a multi-currency org
-[Help: ind.billing_legal_entities_manage, ind.billing_create_legal_entities].
+[Help: ind.billing_legal_entities_manage] [Help: ind.billing_create_legal_entities].
 
 Where the legal entity comes from [Help: ind.billing_legal_entity_default]:
 
@@ -25,7 +25,7 @@ Where the legal entity comes from [Help: ind.billing_legal_entity_default]:
 Decision: one entity is enough when billing and tax treatments do not vary; add entities
 when tax locations, currencies or ledgers differ, since treatment selection of Legal Entity
 is per entity ([billing-setup](../billing-setup/SKILL.md) → treatments, [tax.md](tax.md))
-[inferred from Help]. Email preferences resolve billing account first, then legal entity
+[inferred]. Email preferences resolve billing account first, then legal entity
 [Help: ind.billing_invoice_pdf_document_delivery_through_email].
 
 ## Accounting periods
@@ -34,13 +34,10 @@ is per entity ([billing-setup](../billing-setup/SKILL.md) → treatments, [tax.m
   overlaps and gaps.
 - Create a **legal entity accounting period** per entity per period; its status can only be
   Open at creation. Transactions are assigned to the entity's period
-  [Help: ind.billing_accounting_periods_explain,
-  ind.billing_legal_entity_accounting_periods_create].
+  [Help: ind.billing_accounting_periods_explain] [Help: ind.billing_legal_entity_accounting_periods_create].
 - Permission sets: Accounts Receivables Admin to create; Accounts Receivables Admin and
   Data Pipelines Base User to close or reopen
-  [Help: ind.billing_legal_entity_accounting_periods_create,
-  ind.billing_legal_entity_accounting_periods_close,
-  ind.billing_legal_entity_accounting_period_reopen].
+  [Help: ind.billing_legal_entity_accounting_periods_create] [Help: ind.billing_legal_entity_accounting_periods_close] [Help: ind.billing_legal_entity_accounting_period_reopen].
 
 ### Close and reopen
 
@@ -64,8 +61,7 @@ closing balances cannot be computed [Help: ind.billing_general_ledger_accounts_c
    [Help: ind.billing_general_ledger_accounts_create].
 2. **Assignment rules**: one per legal entity and transaction type, with a priority when
    several exist; equal priorities all apply. Each rule's entries name credit and debit
-   accounts and criteria [Help: ind.billing_general_ledger_account_assignment_rules_create,
-   ind.billing_general_ledger_account_assignment_rules_criteria].
+   accounts and criteria [Help: ind.billing_general_ledger_account_assignment_rules_create] [Help: ind.billing_general_ledger_account_assignment_rules_criteria].
 3. **Settings**: turn on Create Transaction Journals for Transactions
    [Help: ind.billing_setup_financial_accounting_features].
 4. **Journals** are created as dual entries (a debit and a credit) when [Help:
@@ -78,14 +74,13 @@ closing balances cannot be computed [Help: ind.billing_general_ledger_accounts_c
 
 Journals are meant to be integrated with the customer's accounting system for financial
 statements [Help: ind.billing_general_ledger_results]. Ask whether Salesforce is the
-ledger of record or only a sub-ledger feed [inferred from Help].
+ledger of record or only a sub-ledger feed [inferred].
 
 Period summaries per ledger account and period are created during closure by data
 processing definitions, or by hand while the period is Open
 [Help: ind.billing_general_ledger_accounting_period_summary_create]. Foreign exchange
 realized and unrealized gain or loss journals have their own use cases
-[Help: ind.billing_fgn_exch_realized_gains_losses_use_case,
-ind.billing_fgn_exch_unrealized_gains_losses_use_case], and amounts can be stored in
+[Help: ind.billing_fgn_exch_realized_gains_losses_use_case] [Help: ind.billing_fgn_exch_unrealized_gains_losses_use_case], and amounts can be stored in
 transactional, functional and corporate currency
 [Help: ind.billing_transaction_amounts_corporate_currency].
 
@@ -95,7 +90,7 @@ The 264 Help snapshot's Billing area describes financial accounting (periods, le
 journals) and no revenue recognition schedules or deferred-revenue waterfall. Do not promise
 recognition from this product; ask where the customer's recognition system of record lives.
 This is an inference from reading the Billing article list, not from a product statement
-[inferred from Help].
+[inferred].
 
 ## What the repo ships
 

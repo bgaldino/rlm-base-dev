@@ -38,8 +38,9 @@ are the source.
   `RLM_Receivables_Management` ("Billing - Receivables Management").
 - `RLM_Collections_Account_Record_Page` hosts the balance cards and overrides Account View only
   inside the Collection Console app ([permissions-and-personas.md](permissions-and-personas.md)). `RLM_Collections_Home_Page` does not include
-  `rlmBillingCaseMetrics`, whose only target is the home page, so that component sits on no page
-  [Repo: unpackaged/post_billing_ui/lwc/rlmBillingCaseMetrics/rlmBillingCaseMetrics.js-meta.xml].
+  `rlmBillingCaseMetrics` [Repo: templates/flexipages/standalone/collections/RLM_Collections_Home_Page.flexipage-meta.xml];
+  its only target is the home page [Repo: unpackaged/post_billing_ui/lwc/rlmBillingCaseMetrics/rlmBillingCaseMetrics.js-meta.xml],
+  so no shipped page hosts it.
 
 ## Billing UI components (`unpackaged/post_billing_ui/lwc`)
 

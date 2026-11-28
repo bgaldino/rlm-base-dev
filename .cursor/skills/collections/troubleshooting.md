@@ -5,12 +5,12 @@ Read this when something collections-related is empty, zero, refused or missing.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Pill reads "Status Unavailable"; "Promises to pay could not be read" | The user cannot read `CollectionPlan` (managed billing role sets do not carry it) [Measured: 2026-11-26, 264, fresh scratch build] | `RLM_BillingCollectionsRead` beside the group, with Billing Advanced |
-| Assigning the specialist permission fails | It needs Billing Advanced; a Billing-only license refuses it [Measured: 2026-11-26, 264, fresh scratch build] | Assign the Billing Advanced license first |
+| Pill reads "Status Unavailable"; "Promises to pay could not be read" | The user cannot read `CollectionPlan` (managed billing role sets do not carry it) [Measured: 2026-11-26, 264, ent-sb0 scratch build] | `RLM_BillingCollectionsRead` beside the group, with Billing Advanced |
+| Assigning the specialist permission fails | It needs Billing Advanced; a Billing-only license refuses it [Measured: 2026-11-26, 264, ent-sb0 scratch build] | Assign the Billing Advanced license first |
 | A permission set group fails to deploy and keeps its old content | A license-gated permission sits in a group and a holder lacks `BillingAdvancedPsl` [Repo: docs/references/revenue-cloud-permissions.md] | Move it to a standalone set |
-| Card shows "Variable does not exist: tmpVar1" | An inline USER_MODE query with a bind on a refused object (Case) [Measured: 2026-11-26, 264, fresh scratch build] | Catch `Exception` and show Unavailable |
-| "sObject type 'X' is not supported" | The user cannot read X [Measured: 2026-11-26, 264, fresh scratch build] | Grant read or show Unavailable |
-| "No such column 'CurrencyIsoCode'" | Single-currency org: the field does not exist, not a refusal [Measured: 2026-11-26, 264, fresh scratch build] | Describe first; drop the currency filter |
+| Card shows "Variable does not exist: tmpVar1" | An inline USER_MODE query with a bind on a refused object (Case) [Measured: 2026-11-26, 264, ent-sb0 scratch build] | Catch `Exception` and show Unavailable |
+| "sObject type 'X' is not supported" | The user cannot read X [Measured: 2026-11-25 to 2026-11-26, 264, fresh scratch build] | Grant read or show Unavailable |
+| "No such column 'CurrencyIsoCode'" | Single-currency org: the field does not exist, not a refusal [Measured: date not recorded, 264, org kind not recorded] | Describe first; drop the currency filter |
 | A total reads 0 but data exists | A refused read was coalesced to 0 | Show Unavailable; fix the controller |
 | Debit memos total missing | Reading `DebitMemo` needs Manage Debit Memos, not granted ([permissions-and-personas.md](permissions-and-personas.md)) | Label the total as excluding debit memos |
 | Dashboard says "Too many records" | A bounded read overflowed | Narrow by account or currency, as the message says |
@@ -26,7 +26,7 @@ Read this when something collections-related is empty, zero, refused or missing.
 | Fourth promise item accepted by REST | The three-item limit is the flow's [Measured: 2026-11-27, 264, fresh scratch build, API 68.0] | Enforce in your own code |
 | Console app missing for a persona | See [permissions-and-personas.md](permissions-and-personas.md) → Test personas; a bare-role persona did not reach the app even with visibility [Open: assign the app to a bare-role persona and compare with a profile that shows it; no cause found yet] | Use a visible profile; Login As |
 | Balance cards missing on an Account page | They sit on `RLM_Collections_Account_Record_Page` inside the Collection Console app only [Repo: templates/applications/conditional/collections/] | Open the account from that app |
-| Case Metrics not on any page | Its only target is the home page, which does not include it [Repo: unpackaged/post_billing_ui/lwc/rlmBillingCaseMetrics/rlmBillingCaseMetrics.js-meta.xml] | Add it to a home page |
+| Case Metrics not on any page | Its only target is the home page [Repo: unpackaged/post_billing_ui/lwc/rlmBillingCaseMetrics/rlmBillingCaseMetrics.js-meta.xml], and the collections home page does not include it [Repo: templates/flexipages/standalone/collections/RLM_Collections_Home_Page.flexipage-meta.xml] | Add it to a home page |
 | Dashboard tab named but missing | `post_billing_ui` not deployed before `assemble_and_deploy_ux` [Repo: unpackaged/post_billing_ui/README.md] | Deploy the bundle first |
 | An invoice PDF is blank for a persona | Missing Product2, UnitOfMeasure and Account address reads [Open: generate the PDF as a collections persona and read which reads are refused] | `document-generation` and `billing-operations` |
 | Dunning emails do not send | The campaign email path needs Marketing Cloud Growth and Data 360 [Help: ind.billing_collections_dunning_process_setup] | Set up Data 360 and Marketing Cloud Growth, or send from the Collection Plan record page [Help: ind.billing_collections_dunning_process_setup] |

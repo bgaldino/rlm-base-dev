@@ -8,14 +8,14 @@ Read this when writing Apex or LWC over plans, invoices, cases or payments. Pare
 ## Refusal signatures
 
 - Dynamic `Database.query` in USER_MODE on a refused object throws `QueryException: sObject type
-  '<X>' is not supported`; on a refused field, `No such column '<f>'`. Checked as Login As personas. [Measured: 2026-11-26, 264, fresh scratch build]
+  '<X>' is not supported`; on a refused field, `No such column '<f>'`. Checked as Login As personas. [Measured: 2026-11-25 to 2026-11-26, 264, fresh scratch build]
 - An inline `[... WITH USER_MODE]` query **with a bind** on a refused object threw
-  `QueryException: Variable does not exist: tmpVar1`: the text is misleading and means refused. [Measured: 2026-11-26, 264, fresh scratch build]
-- An inline `COUNT()` on a refused object raised `SecurityException`. [Measured: 2026-11-26, 264, fresh scratch build]
+  `QueryException: Variable does not exist: tmpVar1`: the text is misleading and means refused. [Measured: 2026-11-26, 264, ent-sb0 scratch build]
+- An inline `COUNT()` on a refused object raised `SecurityException`. [Measured: 2026-11-26, 264, ent-sb0 scratch build]
 - Which type each inline shape raises is not fully mapped, so catch `Exception` around a required
   read. [Open: map each inline shape to its exception type]
 - **"No such column" has two causes.** A single-currency org has no `CurrencyIsoCode` on Invoice or
-  Payment, and querying it throws the same text [Measured: 2026-11-26, 264, fresh scratch build]. Check describe before calling it a refusal, filter
+  Payment, and querying it throws the same text [Measured: date not recorded, 264, org kind not recorded]. Check describe before calling it a refusal, filter
   on currency only where the object has the field, and never offer a currency filter that cannot
   apply.
 
@@ -42,21 +42,20 @@ Read this when writing Apex or LWC over plans, invoices, cases or payments. Pare
 ## Governor limits
 
 - **SUM costs one query row per row summed**, with or without GROUP BY; `COUNT()` and `COUNT(Id)` cost
-  one. Count first, then sum only within the bound. [Open: run SUM with and without GROUP BY in anonymous Apex on a fresh 264 build and read the query rows used; the original run's date was not recorded]
+  one. Count first, then sum only within the bound. [Measured: 2026-11-25 to 2026-11-26, 264, fresh scratch build]
 - **The 50,000 query-row `LimitException` cannot be caught** and fails every card at once. Bound
   every read to min(10,000, rows left less 1,000), plus one row to detect overflow; a call then stays
   under 49,250 rows whatever the data [Repo: unpackaged/post_billing_ui/README.md]. Overflow shows "Too many records to total/list here." with
   narrowing advice built only from the filters the reads actually applied.
 - **List-form SOQL for loops are charged for chunks fetched ahead**: breaking after the first chunk of
   a 500-row result was charged 400 rows. A single-row loop over `Database.query` is charged every row;
-  `queryWithBinds` cannot drive a list-form loop (compile error). [Open: break out of a 500-row list-form loop in anonymous Apex on a fresh 264 build and read the query rows used; the original run's date was not recorded]
+  `queryWithBinds` cannot drive a list-form loop (compile error). [Measured: 2026-11-26, 264, fresh scratch build]
 - **Heap (6 MB synchronous)**: 10,001 Invoice rows with 5 fields about 1.34 MB; 10,001 Case rows with
   Id, CaseNumber and AccountId about 1.0 MB. **Case text is the trap**: `Case.Description` can be
   32,000 characters, 200 cases take 6.4 MB as a list and a for loop peaks at 6.46 MB. Read ids first,
   pick each account's newest open case, then read only those texts 50 per query keeping a
   200-character excerpt (1.65 MB peak). A top-ten balance roll-up over 10,000 invoices and 10,000
-  accounts peaked at 1.68 MB with two maps and 0.78 MB after releasing rows (862 ms CPU).
-  [Open: repeat the heap probes in anonymous Apex on a fresh 264 build and read Limits.getHeapSize(); the original run's date was not recorded]
+  accounts peaked at 1.68 MB with two maps and 0.78 MB after releasing rows (862 ms CPU). [Measured: 2026-11-25 to 2026-11-26, 264, fresh scratch build]
 - **Short lists say they are partial**: read one row past what is shown, then "Showing the first N of
   more than N". The account picker replaced a silent 500-account cut with a notice and a USER_MODE
   name search (first 50 matches, two-character minimum, wildcards escaped; "1_7" matched nothing
@@ -82,7 +81,7 @@ Read this when writing Apex or LWC over plans, invoices, cases or payments. Pare
   converting through the browser time zone shifts them by a day, and bucketing by local month shifts
   a period table. [Open: render a promise date in a browser outside UTC on a live 264 org and compare it to the stored date]
 - Label columns with names, never record Ids. A `lightning-datatable` `url` column with value `'#'`
-  renders as `https://#`, a broken link. [Measured: 2026-11-27, 264, fresh scratch build, live UI]
+  renders as `https://#`, a broken link. [Measured: 2026-11-27, 264, scratch, live UI]
 - Sort the Critical list by `DueDate`, not `DaysInvoiceOverdue`.
 
 ## Testing
