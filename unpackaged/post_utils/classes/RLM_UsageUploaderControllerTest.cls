@@ -706,6 +706,80 @@ private with sharing class RLM_UsageUploaderControllerTest {
         System.assertEquals(0, grants.size(), 'Asset without entitlements should return empty list');
     }
 
+    // ─── Current-bucket selection (todo 301) ──────────────────────────
+    //
+    // Buckets and entitlements cannot be inserted in a test (see the overage note below), so these
+    // drive pickCurrentBuckets with in-memory rows in the shapes measured on 264: per entitlement a
+    // term-length wallet whose parent is a grant-binding target, and one child under it, either a
+    // monthly bucket or an open-ended one. All start at the asset start.
+
+    private static final Id TOKEN_TUE = '1B0000000000001';
+    private static final Id CPU_TUE = '1B0000000000002';
+    private static final Id BINDING = '1Gv000000000001';
+
+    private static UsageEntitlementBucket bucket(
+            String id, Id parentId, Id tueId, String startAt, String endAt, Decimal balance) {
+        Map<String, Object> row = new Map<String, Object>{
+            'Id' => id,
+            'ParentId' => parentId,
+            'TransactionUsageEntitlementId' => tueId,
+            'EffectiveStartDateTime' => startAt,
+            'EffectiveEndDateTime' => endAt,
+            'BucketBalance' => balance
+        };
+        return (UsageEntitlementBucket) JSON.deserialize(JSON.serialize(row), UsageEntitlementBucket.class);
+    }
+
+    // A 12-month asset started on 2026-10-01 or 2026-11-01; its monthly bucket covers that month only.
+    private static List<UsageEntitlementBucket> threeShapes(Integer startMonth) {
+        Boolean nov = startMonth == 11;
+        String start = nov ? '2026-11-01T00:00:00.000Z' : '2026-10-01T00:00:00.000Z';
+        String monthEnd = nov ? '2026-11-30T23:59:59.000Z' : '2026-10-31T23:59:59.000Z';
+        String termEnd = nov ? '2027-10-31T23:59:59.000Z' : '2027-09-30T23:59:59.000Z';
+        return new List<UsageEntitlementBucket>{
+            // Wallets first: the old pick took the first row per entitlement among equal starts.
+            bucket('1B3000000000001', BINDING, TOKEN_TUE, start, termEnd, 0),
+            bucket('1B3000000000002', BINDING, CPU_TUE, start, termEnd, 0),
+            bucket('1B3000000000003', '1B3000000000001', TOKEN_TUE, start, monthEnd, 10000),
+            bucket('1B3000000000004', '1B3000000000002', CPU_TUE, start, null, 0)
+        };
+    }
+
+    @IsTest
+    static void pickCurrentBuckets_takesTheMonthlyBucketOverTheTermAndOpenOnesThatShareItsStart() {
+        Datetime asOf = Datetime.newInstanceGmt(2026, 11, 28, 12, 0, 0);
+        Map<Id, UsageEntitlementBucket> picked =
+            RLM_UsageUploaderController.pickCurrentBuckets(threeShapes(11), asOf);
+
+        System.assertEquals('1B3000000000003', String.valueOf(picked.get(TOKEN_TUE).Id).left(15),
+            'The monthly bucket covering now carries the balance; the term wallet ties on start');
+        System.assertEquals(10000, picked.get(TOKEN_TUE).BucketBalance);
+        System.assert(!picked.containsKey(CPU_TUE),
+            'An entitlement whose only child is open-ended has no period bucket: none, not a zero bucket');
+    }
+
+    @IsTest
+    static void pickCurrentBuckets_reportsNoneAfterABackdatedAssetsFirstPeriod() {
+        // A backdated asset gets a monthly bucket for its first period only; after it, only the
+        // term wallet covers now, and the wallet is not a per-period figure.
+        Datetime asOf = Datetime.newInstanceGmt(2026, 11, 28, 12, 0, 0);
+        Map<Id, UsageEntitlementBucket> picked =
+            RLM_UsageUploaderController.pickCurrentBuckets(threeShapes(10), asOf);
+
+        System.assert(picked.isEmpty(), 'No monthly bucket covers now, so no bucket is current: ' + picked);
+    }
+
+    @IsTest
+    static void pickCurrentBuckets_coversTheWholeMonthAndNotTheDayAfter() {
+        List<UsageEntitlementBucket> buckets = threeShapes(10);
+        System.assert(RLM_UsageUploaderController.pickCurrentBuckets(
+            buckets, Datetime.newInstanceGmt(2026, 10, 1, 0, 0, 0)).containsKey(TOKEN_TUE), 'first instant');
+        System.assert(RLM_UsageUploaderController.pickCurrentBuckets(
+            buckets, Datetime.newInstanceGmt(2026, 10, 31, 23, 59, 59)).containsKey(TOKEN_TUE), 'last instant');
+        System.assert(!RLM_UsageUploaderController.pickCurrentBuckets(
+            buckets, Datetime.newInstanceGmt(2026, 11, 1, 0, 0, 0)).containsKey(TOKEN_TUE), 'next month');
+    }
+
     // ─── Overage resolution ───────────────────────────────────────────
     //
     // 264 removed TransactionUsageEntitlement.ChargeForOverage, so overage is re-sourced from

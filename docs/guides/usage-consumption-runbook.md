@@ -208,8 +208,10 @@ sf apex run --file scripts/apex/validateRatedUsage.apex --target-org <alias>
 > an old pending journal fails a clean run, and old rated summaries satisfy the
 > arithmetic while the usage you just uploaded never rated at all.
 
-The report shows what the runtime actually did — buckets, drawdown, rating. The
-validator asserts it: `TotalAmount = OverageQuantity × NetUnitRate`, that rating
+The report shows what the runtime actually did — buckets, drawdown, rating. It labels
+each bucket MONTHLY, TERM or OPEN with its window; only MONTHLY rows hold a period's
+consumption and balance. Add `--as-of <a day in the period>` to list only the buckets
+covering that day. The validator asserts it: `TotalAmount = OverageQuantity × NetUnitRate`, that rating
 actually reached `RatingComplete`, and that the commitment drained before the grant.
 
 Expected drawdown order, and the bases each uses:
