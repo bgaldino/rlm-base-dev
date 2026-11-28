@@ -798,11 +798,11 @@ private with sharing class RLM_UsageUploaderControllerTest {
 
         RLM_UsageUploaderController.OverageLookup lookup =
             new RLM_UsageUploaderController.OverageLookup();
-        lookup.add(ast.Product2Id, ur.Id, 'Yes');
+        lookup.add(ast.Product2Id, ur.Id, null, null, 'Yes');
 
         System.assertEquals(
             'Yes',
-            lookup.resolve(ast.Product2Id, ur.Id),
+            lookup.resolve(ast.Product2Id, ur.Id, null),
             'An Anchor entitlement must resolve from its own product+resource policy row'
         );
     }
@@ -831,11 +831,11 @@ private with sharing class RLM_UsageUploaderControllerTest {
         // Only the Anchor has a policy row, which is the only shape the platform allows.
         RLM_UsageUploaderController.OverageLookup lookup =
             new RLM_UsageUploaderController.OverageLookup();
-        lookup.add(ast.Product2Id, ur.Id, 'Yes');
+        lookup.add(ast.Product2Id, ur.Id, null, null, 'Yes');
 
         System.assertEquals(
             'Yes',
-            lookup.resolve(packProduct.Id, ur.Id),
+            lookup.resolve(packProduct.Id, ur.Id, null),
             'A Pack entitlement must inherit the resource\'s Anchor-owned overage value, not blank'
         );
     }
@@ -865,24 +865,24 @@ private with sharing class RLM_UsageUploaderControllerTest {
 
         RLM_UsageUploaderController.OverageLookup lookup =
             new RLM_UsageUploaderController.OverageLookup();
-        lookup.add(ast.Product2Id, ur.Id, 'Yes');
-        lookup.add(secondAnchor.Id, ur.Id, 'No');
+        lookup.add(ast.Product2Id, ur.Id, null, null, 'Yes');
+        lookup.add(secondAnchor.Id, ur.Id, null, null, 'No');
 
         System.assertEquals(
             null,
-            lookup.resolve(unrelatedPack.Id, ur.Id),
+            lookup.resolve(unrelatedPack.Id, ur.Id, null),
             'A resource two Anchors disagree about must resolve to null, not to either value'
         );
 
         // Each Anchor still resolves its own row unambiguously.
         System.assertEquals(
             'Yes',
-            lookup.resolve(ast.Product2Id, ur.Id),
+            lookup.resolve(ast.Product2Id, ur.Id, null),
             'An exact product+resource match must survive resource-level ambiguity'
         );
         System.assertEquals(
             'No',
-            lookup.resolve(secondAnchor.Id, ur.Id),
+            lookup.resolve(secondAnchor.Id, ur.Id, null),
             'An exact product+resource match must survive resource-level ambiguity'
         );
     }
@@ -899,12 +899,12 @@ private with sharing class RLM_UsageUploaderControllerTest {
 
         RLM_UsageUploaderController.OverageLookup lookup =
             new RLM_UsageUploaderController.OverageLookup();
-        lookup.add(ast.Product2Id, ur.Id, 'Yes');
-        lookup.add(ast.Product2Id, ur.Id, 'No');
+        lookup.add(ast.Product2Id, ur.Id, null, null, 'Yes');
+        lookup.add(ast.Product2Id, ur.Id, null, null, 'No');
 
         System.assertEquals(
             null,
-            lookup.resolve(ast.Product2Id, ur.Id),
+            lookup.resolve(ast.Product2Id, ur.Id, null),
             'Conflicting rows for one product+resource pair must resolve to null'
         );
     }
@@ -923,24 +923,170 @@ private with sharing class RLM_UsageUploaderControllerTest {
 
         System.assertEquals(
             null,
-            empty.resolve(ast.Product2Id, ur.Id),
+            empty.resolve(ast.Product2Id, ur.Id, null),
             'A resource with no overage policy must resolve to null'
         );
         System.assertEquals(
             null,
-            empty.resolve(ast.Product2Id, null),
+            empty.resolve(ast.Product2Id, null, null),
             'A missing resource must not match on the product alone'
         );
 
         // A row with no resource is unkeyable and must be ignored outright.
         RLM_UsageUploaderController.OverageLookup lookup =
             new RLM_UsageUploaderController.OverageLookup();
-        lookup.add(ast.Product2Id, null, 'Yes');
+        lookup.add(ast.Product2Id, null, null, null, 'Yes');
         System.assertEquals(
             null,
-            lookup.resolve(ast.Product2Id, ur.Id),
+            lookup.resolve(ast.Product2Id, ur.Id, null),
             'A policy row with no usage resource must not be resolvable'
         );
+    }
+
+    // Overage periods (todo 121). activateRatingRecords keeps several Active associations for
+    // one product and resource when their periods do not overlap, so a policy that changes over
+    // time arrives as rows that disagree on purpose. Each entitlement resolves against the rows
+    // whose period contains its start.
+
+    private static Datetime gmt(Integer year, Integer month, Integer day) {
+        return Datetime.newInstanceGmt(year, month, day, 0, 0, 0);
+    }
+
+    /**
+     * Two non-overlapping periods with different values: each entitlement gets its own period's
+     * value, on the Anchor's own row and through the resource fallback alike. The period-blind
+     * lookup read the two rows as a conflict and blanked both.
+     */
+    @IsTest
+    static void testOverageLookup_ResolvesEachPeriodOfATimeVaryingPolicy() {
+        Asset ast = getTestAsset();
+        UsageResource ur = getTestUsageResource();
+        Product2 packProduct = new Product2(Name = 'Pack On A Time-Varying Resource', IsActive = true, UsageModelType = 'Pack');
+        insert packProduct;
+
+        RLM_UsageUploaderController.OverageLookup lookup =
+            new RLM_UsageUploaderController.OverageLookup();
+        lookup.add(ast.Product2Id, ur.Id, gmt(2026, 1, 1), Datetime.newInstanceGmt(2026, 6, 30, 23, 59, 59), 'Yes');
+        lookup.add(ast.Product2Id, ur.Id, gmt(2026, 7, 1), null, 'No');
+
+        System.assertEquals('Yes', lookup.resolve(ast.Product2Id, ur.Id, gmt(2026, 3, 1)), 'first period, own row');
+        System.assertEquals('No', lookup.resolve(ast.Product2Id, ur.Id, gmt(2026, 8, 1)), 'second period, own row');
+        System.assertEquals('Yes', lookup.resolve(packProduct.Id, ur.Id, gmt(2026, 3, 1)), 'first period, resource fallback');
+        System.assertEquals('No', lookup.resolve(packProduct.Id, ur.Id, gmt(2026, 8, 1)), 'second period, resource fallback');
+        System.assertEquals('Yes', lookup.resolve(ast.Product2Id, ur.Id, Datetime.newInstanceGmt(2026, 6, 30, 23, 59, 59)),
+            'the last instant of a period belongs to it');
+        System.assertEquals('No', lookup.resolve(ast.Product2Id, ur.Id, gmt(2026, 7, 1)),
+            'the first instant of a period belongs to it');
+    }
+
+    /**
+     * The ambiguity guard still fires, but only where the disagreeing rows share a period. Two
+     * overlapping rows (from March) disagree: before March only one row counts and answers;
+     * from March both count and the answer is unknown.
+     */
+    @IsTest
+    static void testOverageLookup_WithholdsOnlyWhenRowsDisagreeForTheSamePeriod() {
+        Asset ast = getTestAsset();
+        UsageResource ur = getTestUsageResource();
+        Product2 secondAnchor = new Product2(Name = 'Second Anchor From March', IsActive = true, UsageModelType = 'Anchor');
+        Product2 packProduct = new Product2(Name = 'Pack With No Row Of Its Own', IsActive = true, UsageModelType = 'Pack');
+        insert new List<Product2>{ secondAnchor, packProduct };
+
+        // Two Anchors disagreeing about one resource, from March.
+        RLM_UsageUploaderController.OverageLookup anchors =
+            new RLM_UsageUploaderController.OverageLookup();
+        anchors.add(ast.Product2Id, ur.Id, gmt(2026, 1, 1), null, 'Yes');
+        anchors.add(secondAnchor.Id, ur.Id, gmt(2026, 3, 1), null, 'No');
+        System.assertEquals('Yes', anchors.resolve(packProduct.Id, ur.Id, gmt(2026, 2, 1)),
+            'Before March only one Anchor governs the resource');
+        System.assertEquals(null, anchors.resolve(packProduct.Id, ur.Id, gmt(2026, 4, 1)),
+            'From March two Anchors disagree about the same period: unknown');
+
+        // Two rows for one product+resource pair disagreeing, from March.
+        RLM_UsageUploaderController.OverageLookup pair =
+            new RLM_UsageUploaderController.OverageLookup();
+        pair.add(ast.Product2Id, ur.Id, gmt(2026, 1, 1), null, 'Yes');
+        pair.add(ast.Product2Id, ur.Id, gmt(2026, 3, 1), null, 'No');
+        System.assertEquals('Yes', pair.resolve(ast.Product2Id, ur.Id, gmt(2026, 2, 1)),
+            'Before March only one row covers the pair');
+        System.assertEquals(null, pair.resolve(ast.Product2Id, ur.Id, gmt(2026, 4, 1)),
+            'From March the pair\'s rows disagree about the same period: unknown');
+    }
+
+    /**
+     * An entitlement whose start no row covers, or which has no start, falls back to every row:
+     * the period-blind rule. Agreeing rows still answer, and disagreeing ones are unknown.
+     */
+    @IsTest
+    static void testOverageLookup_UsesEveryRowWhenNoPeriodCoversTheStart() {
+        Asset ast = getTestAsset();
+        UsageResource ur = getTestUsageResource();
+
+        RLM_UsageUploaderController.OverageLookup agreeing =
+            new RLM_UsageUploaderController.OverageLookup();
+        agreeing.add(ast.Product2Id, ur.Id, gmt(2026, 1, 1), gmt(2026, 6, 30), 'Yes');
+        agreeing.add(ast.Product2Id, ur.Id, gmt(2026, 7, 1), gmt(2026, 12, 31), 'Yes');
+        System.assertEquals('Yes', agreeing.resolve(ast.Product2Id, ur.Id, gmt(2025, 6, 1)), 'before every period');
+        System.assertEquals('Yes', agreeing.resolve(ast.Product2Id, ur.Id, null), 'no start');
+
+        RLM_UsageUploaderController.OverageLookup disagreeing =
+            new RLM_UsageUploaderController.OverageLookup();
+        disagreeing.add(ast.Product2Id, ur.Id, gmt(2026, 1, 1), gmt(2026, 6, 30), 'Yes');
+        disagreeing.add(ast.Product2Id, ur.Id, gmt(2026, 7, 1), gmt(2026, 12, 31), 'No');
+        System.assertEquals(null, disagreeing.resolve(ast.Product2Id, ur.Id, gmt(2025, 6, 1)),
+            'Outside every period, disagreeing rows give no answer');
+    }
+
+    /**
+     * Covers the period fields in the query: two Active associations for one product and
+     * resource, one ending before the other starts, each with its own overage policy.
+     */
+    @IsTest
+    static void testLoadOverageLookup_ReadsEachPeriodOfATimeVaryingPolicy() {
+        UsageResource ur = getTestUsageResource();
+        ProductUsageResource firstPeriod = [
+            SELECT Id, ProductId, UsageResourceId, EffectiveStartDate
+            FROM ProductUsageResource
+            WHERE UsageResourceId = :ur.Id AND Status = 'Active'
+            LIMIT 1
+        ];
+        // The platform refuses an end date before today, so the change of policy is in the future.
+        Datetime changeAt = Datetime.now().addDays(10);
+        firstPeriod.EffectiveEndDate = changeAt.addSeconds(-1);
+        update firstPeriod;
+        insert new ProductUsageResourcePolicy(
+            ProductUsageResourceId = firstPeriod.Id,
+            UsageOveragePolicyId = buildOveragePolicy('First Period Policy', 'Yes'),
+            RatingFrequencyPolicyId = buildRatingFrequencyPolicy('First Period Rating'),
+            UsageAggregationPolicyId = buildAggregationPolicy('First Period Agg', 'TEST_AGG_FIRST')
+        );
+
+        ProductUsageResource secondPeriod = new ProductUsageResource(
+            ProductId = firstPeriod.ProductId,
+            UsageResourceId = firstPeriod.UsageResourceId,
+            Status = 'Draft',
+            EffectiveStartDate = changeAt,
+            IsOptional = false
+        );
+        insert secondPeriod;
+        insert new ProductUsageResourcePolicy(
+            ProductUsageResourceId = secondPeriod.Id,
+            UsageOveragePolicyId = buildOveragePolicy('Second Period Policy', 'No'),
+            RatingFrequencyPolicyId = buildRatingFrequencyPolicy('Second Period Rating'),
+            UsageAggregationPolicyId = buildAggregationPolicy('Second Period Agg', 'TEST_AGG_SECOND')
+        );
+        secondPeriod.Status = 'Active';
+        update secondPeriod;
+
+        Test.startTest();
+        RLM_UsageUploaderController.OverageLookup lookup =
+            RLM_UsageUploaderController.loadOverageLookup(new Set<Id>{ ur.Id });
+        Test.stopTest();
+
+        System.assertEquals('Yes', lookup.resolve(firstPeriod.ProductId, ur.Id, Datetime.now()),
+            'An entitlement starting in the first period reads the first policy');
+        System.assertEquals('No', lookup.resolve(firstPeriod.ProductId, ur.Id, changeAt.addDays(5)),
+            'An entitlement starting in the second period reads the second policy');
     }
 
     /**
@@ -994,7 +1140,7 @@ private with sharing class RLM_UsageUploaderControllerTest {
 
         System.assertEquals(
             'Yes',
-            lookup.resolve(pur.ProductId, ur.Id),
+            lookup.resolve(pur.ProductId, ur.Id, null),
             'The policy row inserted for this product and resource must be readable'
         );
     }
@@ -1054,7 +1200,7 @@ private with sharing class RLM_UsageUploaderControllerTest {
 
         System.assertEquals(
             'Yes',
-            lookup.resolve(activePur.ProductId, ur.Id),
+            lookup.resolve(activePur.ProductId, ur.Id, null),
             'The Active association governs; a Draft duplicate must neither supply the value ' +
             'nor blank it by disagreeing'
         );
@@ -1140,7 +1286,7 @@ private with sharing class RLM_UsageUploaderControllerTest {
         );
         System.assertEquals(
             null,
-            lookup.resolve(ast.Product2Id, ur.Id),
+            lookup.resolve(ast.Product2Id, ur.Id, null),
             'A denied caller must get a blank overage column, not a QueryException'
         );
     }
@@ -1191,7 +1337,7 @@ private with sharing class RLM_UsageUploaderControllerTest {
         );
         System.assertEquals(
             null,
-            lookup.resolve(getTestAsset().Product2Id, getTestUsageResource().Id),
+            lookup.resolve(getTestAsset().Product2Id, getTestUsageResource().Id, null),
             'An empty lookup must resolve to null'
         );
     }
