@@ -97,13 +97,16 @@ Read quote values before activation for cancellations as well as renewals.
   the same name and close date, one product line each. The sequence of activations, about 1 s or minutes apart, did
   not matter; it was a missing lookup, not a race.
 - **Fix:** the flow reads the account's open renewal Opportunities (same type, contract, currency, name prefix),
-  matches by name, price book and close date, adds the new lines to the oldest match, and creates an Opportunity
+  matches by price book and close date, adds the new lines to the oldest match, and creates an Opportunity
   only when none matches. Three orders on one account and end date gave one Opportunity with three lines; an order
   with a later end date got its own.
-- **Matching rule** [Inferred from the flow, not measured with a closed or renamed Opportunity]: name, price book and
-  close date, plus the order's contract and currency. A closed Opportunity is never reused, and one renamed by hand no
-  longer matches, so the next activation creates a new one. Orders with no contract matched an Opportunity with none
-  [Measured].
+- **Matching rule** [Inferred from the flow, not measured with a closed or renamed Opportunity]: price book and close
+  date, among the account's open Opportunities with the order's contract and currency and the renewal name prefix.
+  The same rule decides whether to create and which Opportunity a line joins, so a renamed one still matches; a
+  closed one is never reused. When several match, the oldest takes every line. Orders with no contract matched an
+  Opportunity with none [Measured].
+- **Bulk activation** [Inferred from the flow, which has no locking]: orders delivered in the same platform-event
+  batch can still each create an Opportunity.
 - **Test-data traps:** an order placed with the Place Sales Transaction graph needs an `AppUsageAssignment`, shipping
   and billing addresses and a bill-to contact before activation; an order created by plain sObject inserts has no
   order action and creates no assets, so the flow never runs. A contract set directly on an order is not a substitute
