@@ -10,7 +10,7 @@ description: >-
 
 # Revenue Cloud Data Model
 
-Revenue Cloud v68.0 (Winter '27 / Release 264) — **265 objects, 4,292 platform fields, 815 relationships** across 9 domains.
+Revenue Cloud v68.0 (Winter '27 / Release 264) — **265 objects, 4,292 platform fields, 1,050 relationships** across 9 domains.
 `tests/test_erd_doc_counts.py` holds these totals to `docs/erds/erd-data.json`.
 
 The ERD reflects **canonical Revenue Cloud platform schema only**. Custom fields (any `__c` suffix, including project-deployed `RLM_*__c` and managed-package fields) are excluded by validation tooling so the schema stays platform-pure.
@@ -211,7 +211,7 @@ For live org introspection, use the Salesforce DX MCP `run_soql_query` tool.
 
 ## Source Data
 
-- `docs/erds/erd-data.json` — canonical machine-readable schema (265 objects, 4,292 fields, 815 relationships, custom fields excluded)
+- `docs/erds/erd-data.json` — canonical machine-readable schema (265 objects, 4,292 fields, 1,050 relationships, custom fields excluded)
 - `docs/erds/contracts-erd-data.json` — separately sourced Contracts CLM viewer extension; see its 264 schema provenance before treating feature-gated visibility as universal
 - `docs/erds/*.mermaid` — per-domain ERD diagrams
 - `docs/erds/revenue-cloud-erd.html` — interactive force-directed graph viewer

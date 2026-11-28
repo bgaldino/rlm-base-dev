@@ -4889,6 +4889,1416 @@
       "target": "OmniProcess",
       "field": "ReferenceObjectId",
       "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "InvBatchDraftToPostedRun",
+      "field": "PrimaryRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "Invoice",
+      "field": "PrimaryRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "InvoiceBatchRun",
+      "field": "PrimaryRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "InvoiceBatchRunRecovery",
+      "field": "PrimaryRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "Order",
+      "field": "PrimaryRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "OrderItem",
+      "field": "PrimaryRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "Payment",
+      "field": "PrimaryRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "PaymentBatchRun",
+      "field": "PrimaryRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "Quote",
+      "field": "PrimaryRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "Refund",
+      "field": "PrimaryRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "DebitMemo",
+      "field": "RelatedRecord2Id",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "GeneralLedgerAccount",
+      "field": "RelatedRecord2Id",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "GeneralLedgerAcctAsgntRule",
+      "field": "RelatedRecord2Id",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "InvoiceLineTax",
+      "field": "RelatedRecord2Id",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "Payment",
+      "field": "RelatedRecord2Id",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "PaymentLineInvoice",
+      "field": "RelatedRecord2Id",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "PaymentLineInvoiceLine",
+      "field": "RelatedRecord2Id",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "Refund",
+      "field": "RelatedRecord2Id",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "RefundLinePayment",
+      "field": "RelatedRecord2Id",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "CreditMemoLine",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "InvBatchDraftToPostedRun",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "Invoice",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "InvoiceBatchRun",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "InvoiceLine",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "OrderItem",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "Payment",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "PaymentSchedule",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "PaymentScheduleItem",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "QuoteLineItem",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "RevenueTransactionErrorLog",
+      "target": "Refund",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "AttrPicklistExcludedValue",
+      "target": "ProductAttributeDefinition",
+      "field": "AttributeId",
+      "type": "lookup"
+    },
+    {
+      "source": "AttrPicklistExcludedValue",
+      "target": "ProductClassificationAttr",
+      "field": "AttributeId",
+      "type": "lookup"
+    },
+    {
+      "source": "DebitMemoLine",
+      "target": "Contract",
+      "field": "ReferenceRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "DebitMemoLine",
+      "target": "CreditMemoLine",
+      "field": "ReferenceRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "BindingObjectRateCardEntry",
+      "target": "Account",
+      "field": "BindingObjectId",
+      "type": "lookup"
+    },
+    {
+      "source": "BindingObjectRateCardEntry",
+      "target": "Contract",
+      "field": "BindingObjectId",
+      "type": "lookup"
+    },
+    {
+      "source": "PaymentSchedule",
+      "target": "Contract",
+      "field": "ReferenceEntityId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "Account",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AccountBillingAccount",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AccountingPeriod",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AssessmentQuestion",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AssessmentQuestionAssignment",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AssessmentQuestionSet",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AssessmentQuestionVersion",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "Asset",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AssetAction",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AssetActionSource",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AssetActionSrcPriceAdjustment",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AssetContractRelationship",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AssetRateAdjustment",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AssetRateCardEntry",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AssetRelationship",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AssetStatePeriod",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AttrPicklistExcludedValue",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AttributeAdjustmentCondition",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AttributeBasedAdjRule",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AttributeBasedAdjustment",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AttributeCategory",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AttributeCategoryAttribute",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AttributeDefinition",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AttributePicklist",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "AttributePicklistValue",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "BillingAccount",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "BillingArrangement",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "BillingArrangementLine",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "BillingMilestonePlan",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "BillingMilestonePlanItem",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "BillingPolicy",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "BillingSchedule",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "BillingScheduleGroup",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "BillingTreatment",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "BillingTreatmentItem",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "BindingObjUsageRsrcPlcy",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "BindingObjectCustomExt",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "BindingObjectRateAdjustment",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "BindingObjectRateCardEntry",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "BsgRelationship",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "BundleBasedAdjustment",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ChannelProgram",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ChannelProgramLevel",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ChannelProgramMember",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "CollectionPlan",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "CollectionPlanItem",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "Contact",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "Contract",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ContractItemPrice",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ContractItemPriceAdjTier",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ContractLineItem",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "CostBook",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "CostBookEntry",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "CreditMemo",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "CreditMemoInvApplication",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "CreditMemoLine",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "CreditMemoLineTax",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "DebitMemo",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "DebitMemoLine",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "DebitMemoLineTax",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "Dispute",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "DisputeItem",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "DocumentClauseSet",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ExpressionSetConstraintObj",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "FulfillmentFalloutRule",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "FulfillmentOrder",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "FulfillmentOrderLineItem",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "FulfillmentStep",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "FulfillmentStepDefinition",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "FulfillmentStepDefinitionGroup",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "FulfillmentStepDependencyDef",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "FulfillmentStepJeopardyRule",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "FulfillmentTaskAssignmentRule",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "FulfillmentWorkspace",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "FulfillmentWorkspaceItem",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "GeneralLdgrAcctPrdSummary",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "GeneralLedgerAccount",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "GeneralLedgerAcctAsgntRule",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "GeneralLedgerJrnlEntryRule",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "IndexRate",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "InvBatchDraftToPostedRun",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "Invoice",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "InvoiceBatchRun",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "InvoiceBatchRunCriteria",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "InvoiceBatchRunRecovery",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "InvoiceDocument",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "InvoiceLine",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "InvoiceLineRelationship",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "InvoiceLineTax",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "LegalEntyAccountingPeriod",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ObjectStateActionDefinition",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ObjectStateDefinition",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ObjectStateTransition",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ObjectStateTransitionAction",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ObjectStateValue",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "OmniProcessAsmtQuestionVer",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "Order",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "OrderDeliveryMethod",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "OrderItem",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "OrderItemDetail",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "OrderItemGroup",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "OrderItemRateAdjustment",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "OrderItemRateCardEntry",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "OrderItemRecipient",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "OrderItemUsageRsrcGrant",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "OrderItemUsageRsrcPlcy",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "PaymentSchedule",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "PaymentScheduleItem",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "PriceBookEntryDerivedPrice",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "PriceBookRateCard",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "PriceRevisionPolicy",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "PricingAdjBatchJob",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "PricingAdjBatchJobLog",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "PricingApiExecution",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "PricingProcessExecution",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProdtAttrScope",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "Product2",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductAttributeDefinition",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductCatalog",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductCategory",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductCategoryDisqual",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductCategoryProduct",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductCategoryQualification",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductClassification",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductClassificationAttr",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductComponentGroup",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductComponentGrpOverride",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductConfigFlowAssignment",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductConfigurationFlow",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductConfigurationRule",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductDecompEnrichmentRule",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductDisqualification",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductFulfillmentDecompRule",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductFulfillmentScenario",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductQualification",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductRampSegment",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductRelComponentOverride",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductUsageGrant",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductUsageResource",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ProductUsageResourcePolicy",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "QuotLineItmUsageRsrcPlcy",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "QuotLineItmUseRsrcGrant",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "Quote",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "QuoteLineDetail",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "QuoteLineGroup",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "QuoteLineItem",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "QuoteLineItemRecipient",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "QuoteLineRateAdjustment",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "QuoteLineRateCardEntry",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "RateAdjustmentByAttribute",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "RateAdjustmentByTier",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "RateCard",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "RateCardEntry",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "RatingFrequencyPolicy",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "SalesTransactionType",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "SeqPolicySelectionCondition",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "SequenceGapReconciliation",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "SequencePolicy",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "TaxRate",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "TransactionJournal",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "TransactionUsageEntitlement",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "UnitOfMeasure",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "UnitOfMeasureClass",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "UsageBillingPeriodItem",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "UsageCmtAssetRelatedObj",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "UsageCommitmentPolicy",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "UsageEntitlementAccount",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "UsageEntitlementBucket",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "UsageEntitlementEntry",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "UsageGrantRenewalPolicy",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "UsageGrantRolloverPolicy",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "UsageOveragePolicy",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "UsageRatableSumCmtAssetRt",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "UsageRatableSummary",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "UsageResource",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "UsageResourceBillingPolicy",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "UsageResourcePolicy",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "UsageSummary",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ValTfrm",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ApprovalSubmission",
+      "target": "ValTfrmGrp",
+      "field": "RelatedRecordId",
+      "type": "lookup"
+    },
+    {
+      "source": "ExpressionSetConstraintObj",
+      "target": "ProductClassification",
+      "field": "ReferenceObjectId",
+      "type": "lookup"
+    },
+    {
+      "source": "AssetWarranty",
+      "target": "Account",
+      "field": "BindingObjectId",
+      "type": "lookup"
+    },
+    {
+      "source": "AssetWarranty",
+      "target": "Contract",
+      "field": "BindingObjectId",
+      "type": "lookup"
+    },
+    {
+      "source": "UsageEntitlementAccount",
+      "target": "Account",
+      "field": "GrantBindingTargetId",
+      "type": "lookup"
+    },
+    {
+      "source": "UsageEntitlementAccount",
+      "target": "Contract",
+      "field": "GrantBindingTargetId",
+      "type": "lookup"
+    },
+    {
+      "source": "FulfillmentStepSource",
+      "target": "DisputeItem",
+      "field": "SourceLineItemId",
+      "type": "lookup"
+    },
+    {
+      "source": "FulfillmentStepSource",
+      "target": "FulfillmentOrderLineItem",
+      "field": "SourceLineItemId",
+      "type": "lookup"
+    },
+    {
+      "source": "FulfillmentStepSource",
+      "target": "OrderItem",
+      "field": "SourceLineItemId",
+      "type": "lookup"
+    },
+    {
+      "source": "FulfillmentLineSourceRel",
+      "target": "FulfillmentOrderLineItem",
+      "field": "SourceLineItemId",
+      "type": "lookup"
+    },
+    {
+      "source": "FulfillmentLineSourceRel",
+      "target": "OrderItem",
+      "field": "SourceLineItemId",
+      "type": "lookup"
+    },
+    {
+      "source": "ProductDecompEnrichmentRule",
+      "target": "ExpressionSet",
+      "field": "CalculationDefinitionId",
+      "type": "lookup"
+    },
+    {
+      "source": "InvoiceLine",
+      "target": "OrderItem",
+      "field": "GroupReferenceEntityItemId",
+      "type": "lookup"
+    },
+    {
+      "source": "InvoiceLine",
+      "target": "QuoteLineItem",
+      "field": "GroupReferenceEntityItemId",
+      "type": "lookup"
+    },
+    {
+      "source": "InvoiceLine",
+      "target": "OrderItem",
+      "field": "ReferenceEntityItemId",
+      "type": "lookup"
+    },
+    {
+      "source": "AssetStatePeriod",
+      "target": "Account",
+      "field": "BindingInstanceTargetId",
+      "type": "lookup"
+    },
+    {
+      "source": "AssetStatePeriod",
+      "target": "Contract",
+      "field": "BindingInstanceTargetId",
+      "type": "lookup"
+    },
+    {
+      "source": "BillingSchedule",
+      "target": "OrderItem",
+      "field": "ReferenceEntityItemId",
+      "type": "lookup"
+    },
+    {
+      "source": "AssetActionSource",
+      "target": "OrderItem",
+      "field": "ReferenceEntityItemId",
+      "type": "lookup"
     }
   ]
 }

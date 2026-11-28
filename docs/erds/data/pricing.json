@@ -44,7 +44,7 @@
           "relationshipName": "Item",
           "relationshipType": "Lookup",
           "refersTo": "Product2, ProductCategory",
-          "type": "dateTime"
+          "type": "reference"
         },
         "AdjustmentMethod": {
           "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
@@ -82,7 +82,7 @@
           "relationshipName": "ProductSellingModel",
           "relationshipType": "Lookup",
           "refersTo": "ProductSellingModel",
-          "type": "picklist"
+          "type": "reference"
         },
         "SellingModelType": {
           "properties": "Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort",
@@ -849,7 +849,7 @@
           "description": "The Salesforce ID of the sales representative who owns the pricing procedure resolution. This field is a polymorphic relationship field.",
           "relationshipName": "Owner",
           "refersTo": "Group, User",
-          "type": "picklist"
+          "type": "reference"
         },
         "Status": {
           "properties": "Create, Defaulted on create, Filter, Group, Restricted picklist, Sort, Update",
@@ -934,7 +934,7 @@
           "relationshipName": "AttributeDefinition",
           "relationshipType": "Lookup",
           "refersTo": "AttributeDefinition",
-          "type": "picklist"
+          "type": "reference"
         },
         "BooleanValue": {},
         "DateTimeValue": {
@@ -1146,7 +1146,7 @@
           "relationshipName": "PriceAdjustmentSchedule",
           "relationshipType": "Lookup",
           "refersTo": "PriceAdjustmentSchedule",
-          "type": "int"
+          "type": "reference"
         },
         "PricingTerm": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -1171,7 +1171,7 @@
           "relationshipName": "ProductSellingModel",
           "relationshipType": "Lookup",
           "refersTo": "ProductSellingModel",
-          "type": "picklist"
+          "type": "reference"
         },
         "SellingModelType": {
           "properties": "Defaulted on create, Filter, Group, Restricted picklist, Sort",
@@ -1499,7 +1499,7 @@
           "description": "The Salesforce ID of the sales representative who owns the pricing procedure resolution. This field is a polymorphic relationship field.",
           "relationshipName": "Owner",
           "refersTo": "Group, User",
-          "type": "long"
+          "type": "reference"
         },
         "ProcessedRecordsCount": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",

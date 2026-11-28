@@ -24,7 +24,7 @@
           "description": "The ID of the flow orchestration instance record that's associated with the approval. This field is a relationship field.",
           "relationshipName": "FlowOrchestrationInstance",
           "refersTo": "FlowOrchestrationInstance",
-          "type": "string"
+          "type": "reference"
         },
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",

@@ -177,7 +177,7 @@ have caught that. Full account:
 [`doc-consistency/erd-count-drift.md`](../doc-consistency/erd-count-drift.md).
 
 All four docs above are covered, `scripts/ai/README.md` included — its citation wraps
-mid-phrase (`263` / `objects, 4,292 platform fields, 815 verified relationship edges`),
+mid-phrase (`263` / `objects, 4,292 platform fields, 1,050 verified relationship edges`),
 so the check matches over a sliding window rather than per line, and **each site must
 still state a triple**: asking only whether *any* site matched let that file carry wrong
 numbers behind a reworded phrase and still pass. The Statistics bullet block in
@@ -310,7 +310,7 @@ The pattern `*CnvAmount` / `*CnvRate` / `*CnvDate` / `*IsoCode` IS canonical RC 
 ## What Was Verified
 
 **264 (2026-08-15).** `erd-data.json` is a 264 capture: 265 objects, 4,292 fields,
-815 relationships. Cross-validated across two 264 `ent` scratch orgs, which agreed field-for-field — 254 describable
+1,050 relationships. Cross-validated across two 264 `ent` scratch orgs, which agreed field-for-field — 254 describable
 objects, 3,913 platform fields each. 264 had no Core UDD branch or Metadata Coverage
 Report at this refresh (a `core-264-public` `p4/264-patch` branch was listed in code
 search on 2026-11-24; its UDD pass is pending), so the Core verification below carries
@@ -328,10 +328,11 @@ rather than product-and-resource level, so neither is the sole binding site);
 94 reference fields with a null `refersTo`;
 and 10 `refersTo` values whose casing matched no ERD node, which silently broke
 traversal (`PricebookEntry` vs the ERD's then-key `PriceBookEntry`, since renamed).
-Later, every reference field gained its relationship row, and fields that the 264
-snapshot (`scripts/erd/schema_diff/264-schema.json`) types as non-references lost the
-`reference` type and `refersTo` they had carried from the docs; the relationship
-count above is after both.
+Later, every reference field gained a relationship row for each of its targets (a
+polymorphic field one per target), and the field types were aligned with the 264 snapshot
+(`scripts/erd/schema_diff/264-schema.json`) on reference-ness: fields it types as
+references are typed `reference`, and fields it types otherwise lost the `reference` type
+and `refersTo` they had carried from the docs. The relationship count above is after both.
 
 **262 (2026-05-27).** 127 entities individually verified against canonical Core UDD
 source in `core-262-public` at `p4/262-patch` (internal code search).

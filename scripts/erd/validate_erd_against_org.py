@@ -223,14 +223,17 @@ def diff_object(
 def link_new_objects(erd_data: dict, new_names: set = None) -> int:
     """Add the relationship rows touching `new_names` that are missing: the new objects' own
     reference fields and existing objects' fields that point at them. `None` means every
-    object (a backfill). Targets must exist in the ERD. Returns rows added; a second run adds 0."""
+    object (a backfill). Every target of a polymorphic field is linked; targets must exist in the
+    ERD. Returns rows added; a second run adds 0."""
     objects, rels = erd_data["objects"], erd_data["relationships"]
     seen = {(r["source"], r["target"], r.get("field", "")) for r in rels}
     added = 0
     for name, obj in objects.items():
         for fname, f in obj["fields"].items():
             targets = f.get("refersTo") or []
-            for target in [targets] if isinstance(targets, str) else targets:
+            if isinstance(targets, str):  # a polymorphic field's targets are comma-joined
+                targets = [t.strip() for t in targets.split(",")]
+            for target in targets:
                 if (new_names is None or name in new_names or target in new_names) and target in objects \
                         and (name, target, fname) not in seen:
                     seen.add((name, target, fname))

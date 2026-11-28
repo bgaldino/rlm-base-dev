@@ -15,7 +15,7 @@
           "description": "ID of the batch job that triggered the rating request on the aggregated records. This field is a relationship field.",
           "relationshipName": "BatchJob",
           "refersTo": "BatchJob",
-          "type": "picklist"
+          "type": "reference"
         },
         "ErrorCode": {
           "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
@@ -131,7 +131,7 @@
           "description": "ID of the standard unit of measure record of the associated rate card entry. This field is a relationship field.",
           "relationshipName": "RateUnitOfMeasure",
           "refersTo": "UnitOfMeasure",
-          "type": "string"
+          "type": "reference"
         },
         "RateUnitOfMeasureName": {
           "properties": "Filter, Group, Sort",
@@ -277,7 +277,7 @@
           "description": "The object associated with the entitlements that are granted with the sellable product. This field is a polymorphic relationship field.",
           "relationshipName": "BindingObject",
           "refersTo": "Account, BindingObjectCustomExt, Contract",
-          "type": "double"
+          "type": "reference"
         },
         "BindingObjectRateOrder": {
           "properties": "Filter, Nillable, Sort",
@@ -654,7 +654,7 @@
           "description": "ID of the user who created the record. This field is a polymorphic relationship field.",
           "relationshipName": "Owner",
           "refersTo": "Group, User",
-          "type": "string"
+          "type": "reference"
         },
         "RatingProcedureName": {
           "properties": "Create, Filter, Group, Sort, Update",

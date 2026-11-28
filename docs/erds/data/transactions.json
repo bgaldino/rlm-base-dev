@@ -163,7 +163,7 @@
           "relationshipName": "SourceAsset",
           "relationshipType": "Lookup",
           "refersTo": "Asset",
-          "type": "picklist"
+          "type": "reference"
         },
         "Subtype": {
           "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
@@ -189,7 +189,7 @@
           "properties": "Create, Filter, Group, Sort, Update",
           "relationshipName": "AttributeDefinition",
           "refersTo": "AttributeDefinition",
-          "type": "string"
+          "type": "reference"
         },
         "AttributeName": {
           "properties": "Filter, Group, idLookup, Nillable, Sort",
@@ -201,7 +201,7 @@
           "description": "The ID of the attribute picklist value if the attribute is a picklist type. This field is a relationship field.",
           "relationshipName": "AttributePicklistValue",
           "refersTo": "AttributePicklistValue",
-          "type": "string"
+          "type": "reference"
         },
         "AttributeValue": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -235,7 +235,7 @@
           "relationshipName": "Asset",
           "relationshipType": "Lookup",
           "refersTo": "Asset",
-          "type": "string"
+          "type": "reference"
         },
         "AssetRelationshipNumber": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
@@ -284,7 +284,7 @@
           "relationshipName": "RelatedAsset",
           "relationshipType": "Lookup",
           "refersTo": "Asset",
-          "type": "picklist"
+          "type": "reference"
         },
         "RelatedAssetPricing": {
           "properties": "Filter, Group, Nillable, Restricted picklist, Sort",
@@ -777,7 +777,7 @@
           "relationshipName": "Contract",
           "relationshipType": "Lookup",
           "refersTo": "Contract",
-          "type": "dateTime"
+          "type": "reference"
         },
         "EndDate": {
           "properties": "Create, Filter, Sort, Update",
@@ -873,7 +873,7 @@
           "description": "The ID of the binding object associated with the asset rate card entry. Available in API version 65.0 and later. This field is a relationship field.",
           "relationshipName": "BindingObject",
           "refersTo": "Asset",
-          "type": "double"
+          "type": "reference"
         },
         "BindingObjectRateOrder": {
           "properties": "Filter, Nillable, Sort",
@@ -914,7 +914,7 @@
           "description": "The ID of the unit of measure record that's associated with the asset rate card entry. This field is a relationship field.",
           "relationshipName": "RateUnitOfMeasure",
           "refersTo": "UnitOfMeasure",
-          "type": "dateTime"
+          "type": "reference"
         },
         "StartDate": {
           "properties": "Filter, Sort",
@@ -983,7 +983,7 @@
           "relationshipName": "QuoteLineItem",
           "relationshipType": "Lookup",
           "refersTo": "QuoteLineItem",
-          "type": "date"
+          "type": "reference"
         },
         "ReferenceDate": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -1552,7 +1552,7 @@
           "relationshipName": "OrderItem",
           "relationshipType": "Lookup",
           "refersTo": "OrderItem",
-          "type": "string"
+          "type": "reference"
         },
         "PriceWaterfallIdentifier": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -1645,7 +1645,7 @@
           "relationshipName": "AttributeDefinition",
           "relationshipType": "Lookup",
           "refersTo": "AttributeDefinition",
-          "type": "string"
+          "type": "reference"
         },
         "AttributeName": {
           "properties": "Filter, Group, idLookup, Nillable, Sort",
@@ -1772,7 +1772,7 @@
           "description": "The ID of the asset that this price adjustment applies to. This field is a relationship field.",
           "relationshipName": "Asset",
           "refersTo": "Asset",
-          "type": "string"
+          "type": "reference"
         },
         "Name": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
@@ -1784,7 +1784,7 @@
           "description": "The ID of the record that caused the price adjustment. This field is a polymorphic relationship field.",
           "relationshipName": "PriceAdjustmentCause",
           "refersTo": "Promotion",
-          "type": "picklist"
+          "type": "reference"
         },
         "PriceAdjustmentSource": {
           "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort",
@@ -1866,7 +1866,7 @@
           "relationshipName": "SalesTransactionType",
           "relationshipType": "Lookup",
           "refersTo": "SalesTransactionType",
-          "type": "currency"
+          "type": "reference"
         },
         "TotalAmountOverride": {
           "properties": "Create, Filter, Nillable, Sort, Update",
@@ -2265,7 +2265,7 @@
           "relationshipName": "Contact",
           "relationshipType": "Lookup",
           "refersTo": "Contact",
-          "type": "String"
+          "type": "reference"
         },
         "Country": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -2387,7 +2387,7 @@
           "relationshipName": "Parent",
           "relationshipType": "Lookup",
           "refersTo": "Asset",
-          "type": "string"
+          "type": "reference"
         },
         "PostalCode": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -2410,7 +2410,7 @@
           "relationshipName": "Product2",
           "relationshipType": "Lookup",
           "refersTo": "Product2",
-          "type": "string"
+          "type": "reference"
         },
         "ProductCode": {
           "properties": "Filter, Group, Nillable, Sort",
@@ -2483,7 +2483,7 @@
           "relationshipName": "SalesStore",
           "relationshipType": "Lookup",
           "refersTo": "RetailStore, WebStore",
-          "type": "string"
+          "type": "reference"
         },
         "SerialNumber": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -3441,7 +3441,7 @@
           "relationshipName": "Asset",
           "relationshipType": "Lookup",
           "refersTo": "Asset",
-          "type": "string"
+          "type": "reference"
         },
         "AssetStatePeriodNumber": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
@@ -3458,7 +3458,7 @@
           "description": "The ID of a custom product target for a usage-based quote line item, order Item, or asset allocation. This field is a polymorphic relationship field.",
           "relationshipName": "BindingInstanceTarget",
           "refersTo": "Account, Asset, BindingObjectCustomExt, Contract",
-          "type": "percent"
+          "type": "reference"
         },
         "Discount": {
           "properties": "Createable, Filter, Nillable, Sort, Updateable",
@@ -3480,7 +3480,7 @@
           "description": "The ID of the related legal entity. This field is a relationship field.",
           "relationshipName": "LegalEntity",
           "refersTo": "LegalEntity",
-          "type": "currency"
+          "type": "reference"
         },
         "Mrr": {
           "properties": "Createable, Filter, Sort, Updateable",
@@ -3579,7 +3579,7 @@
           "relationshipName": "AssetAction",
           "relationshipType": "Lookup",
           "refersTo": "AssetAction",
-          "type": "string"
+          "type": "reference"
         },
         "AssetActionSourceNumber": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
@@ -3628,7 +3628,7 @@
           "relationshipName": "LegalEntity",
           "relationshipType": "Lookup",
           "refersTo": "LegalEntity",
-          "type": "currency"
+          "type": "reference"
         },
         "ListPrice": {
           "properties": "Creatable, Filter, Nillable, Sort, Updateable",
@@ -3703,7 +3703,7 @@
           "relationshipName": "ReferenceEntityItem",
           "relationshipType": "Lookup",
           "refersTo": "OrderItem, WorkOrderLineItem",
-          "type": "string"
+          "type": "reference"
         },
         "SegmentIdentifier": {
           "properties": "Filter, Group, Nillable, Sort",

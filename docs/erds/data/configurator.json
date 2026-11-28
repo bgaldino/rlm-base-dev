@@ -23,7 +23,7 @@
           "description": "The expression set associated with the expression set constraint object. This field is a relationship field.",
           "relationshipName": "ExpressionSet",
           "refersTo": "ExpressionSet",
-          "type": "dateTime"
+          "type": "reference"
         },
         "LastReferencedDate": {
           "properties": "Filter, Nillable, Sort",
@@ -224,7 +224,7 @@
           "relationshipName": "Owner",
           "relationshipType": "Lookup",
           "refersTo": "Group, User",
-          "type": "picklist"
+          "type": "reference"
         },
         "ProcessScope": {
           "properties": "Create, Defaulted on create, Filter, Group, Restricted picklist, Sort, Update",

@@ -392,16 +392,16 @@ def main():
     again = copy.deepcopy(erd)
     check("every_reference_field_has_a_relationship_row_and_relinking_adds_zero",
           validator.link_new_objects(again) == 0)
-    # A reference type or refersTo on a field the 264 snapshot types as a non-reference is
-    # stale doc metadata: it inflates the reference count, and relinking turns a refersTo
-    # into a false edge.
+    # On fields the 264 snapshot also has, the ERD agrees with it on reference-ness: a refersTo
+    # the snapshot lacks is stale doc metadata that relinking turns into a false edge, and a
+    # real reference must carry the reference type.
     snap_objects = snap["264"]["objects"]
-    stale = [(n, f) for n, o in erd["objects"].items() for f, x in o["fields"].items()
-             if (x.get("refersTo") or x.get("type") == "reference")
-             and f in snap_objects.get(n, {}).get("fields", {})
-             and not snap_objects[n]["fields"][f].get("referenceTo")]
-    check("no_reference_metadata_on_a_field_the_snapshot_types_as_non_reference", not stale,
-          f"stale: {stale}")
+    disagree = [(n, f) for n, o in erd["objects"].items() for f, x in o["fields"].items()
+                if f in snap_objects.get(n, {}).get("fields", {})
+                and bool(snap_objects[n]["fields"][f].get("referenceTo"))
+                != bool(x.get("refersTo") and x.get("type") == "reference")]
+    check("reference_type_and_refersTo_agree_with_the_snapshot", not disagree,
+          f"disagree: {disagree}")
 
     real_describe = validator.describe_sobject
     validator.describe_sobject = lambda org, name: {"name": "PricebookEntry", "fields": []}

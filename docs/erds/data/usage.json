@@ -92,7 +92,7 @@
           "description": "The ID of the general ledger account for a debit transaction that's related to the transaction journal. This field is a relationship field.",
           "relationshipName": "CreditGeneralLedgerAccount",
           "refersTo": "GeneralLedgerAccount",
-          "type": "currency"
+          "type": "reference"
         },
         "Debit": {
           "properties": "Create, Filter, Nillable, Sort, Update"
@@ -102,7 +102,7 @@
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
           "relationshipName": "DebitGeneralLedgerAccount",
           "refersTo": "GeneralLedgerAccount",
-          "type": "picklist"
+          "type": "reference"
         },
         "ForeignExchangeGainOrLossType": {
           "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
@@ -207,7 +207,7 @@
           "description": "The base unit of measure that's used to calculate and display quantities. This field is a relationship field.",
           "relationshipName": "BaseUnitOfMeasure",
           "refersTo": "UnitOfMeasure",
-          "type": "string"
+          "type": "reference"
         },
         "Code": {
           "properties": "Create, Filter, Group, Sort, Update",
@@ -219,7 +219,7 @@
           "description": "The description of the unit of measure class.",
           "relationshipName": "DefaultUnitOfMeasure",
           "refersTo": "UnitOfMeasure",
-          "type": "string"
+          "type": "reference"
         },
         "LastReferencedDate": {
           "properties": "Filter, Nillable, Sort",
@@ -451,7 +451,7 @@
           "description": "The parent usage entitlement bucket record that's associated with the entitlement entry. This field is a relationship field.",
           "relationshipName": "ParentEntitlementBucket",
           "refersTo": "UsageEntitlementBucket",
-          "type": "dateTime"
+          "type": "reference"
         },
         "TransactionDate": {
           "properties": "Create, Filter, Sort, Update",
@@ -743,7 +743,7 @@
           "description": "The account that's associated with the usage entitlement. This field is a relationship field.",
           "relationshipName": "Account",
           "refersTo": "Account",
-          "type": "picklist"
+          "type": "reference"
         },
         "ActionType": {
           "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
@@ -914,7 +914,7 @@
           "description": "The account that's associated with the usage entitlement. This field is a relationship field.",
           "relationshipName": "Account",
           "refersTo": "Account",
-          "type": "int"
+          "type": "reference"
         },
         "BillDayOfMonth": {
           "properties": "Create, Filter, Group, Sort, Update",
@@ -955,7 +955,7 @@
           "description": "The target that's associated with the usage entitlement account. This field is a relationship field.",
           "relationshipName": "GrantBindingTarget",
           "refersTo": "Account, Asset, BindingObjectCustomExt, Contract",
-          "type": "dateTime"
+          "type": "reference"
         },
         "LastReferencedDate": {
           "properties": "Filter, Nillable, Sort",
@@ -1044,7 +1044,7 @@
           "description": "The product selling model associated with the product usage grant. This field is available in API version 65.0 and later. This field is a relationship field.",
           "relationshipName": "ProductSellingModel",
           "refersTo": "ProductSellingModel",
-          "type": "string"
+          "type": "reference"
         },
         "ProductUsageGrantNum": {
           "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
@@ -1070,7 +1070,7 @@
           "description": "The grant rollover policy associated with the product usage grant. This field is a relationship field.",
           "relationshipName": "RolloverPolicy",
           "refersTo": "UsageGrantRolloverPolicy",
-          "type": "picklist"
+          "type": "reference"
         },
         "Status": {
           "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
@@ -1153,7 +1153,7 @@
           "description": "The asset that's associated with the ratable summary. This field is a relationship field.",
           "relationshipName": "Asset",
           "refersTo": "Asset",
-          "type": "dateTime"
+          "type": "reference"
         },
         "EndDateTime": {
           "properties": "Create, Filter, Sort, Update",
@@ -1299,7 +1299,7 @@
           "description": "The ID of the owner of the unit of measure record. This field is a polymorphic relationship field.",
           "relationshipName": "Owner",
           "refersTo": "Group, User",
-          "type": "int"
+          "type": "reference"
         },
         "Sequence": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -1477,7 +1477,7 @@
           "description": "The ID of the owner of the usage resource record. This field is a polymorphic relationship field.",
           "relationshipName": "Owner",
           "refersTo": "Group, User",
-          "type": "picklist"
+          "type": "reference"
         },
         "Status": {
           "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
@@ -1632,7 +1632,7 @@
           "description": "The unit that's used to measure the usage entitlement bucket balance. This field is a relationship field.",
           "relationshipName": "BucketBalanceUom",
           "refersTo": "UnitOfMeasure",
-          "type": "int"
+          "type": "reference"
         },
         "CompletedRollovers": {
           "properties": "Create, Filter, Group, Nillable, Sort, Update",
@@ -1722,7 +1722,7 @@
           "description": "The asset ID associated with the Usage Ratable Summary. This field is a relationship field.",
           "relationshipName": "CommitmentAsset",
           "refersTo": "Asset",
-          "type": "picklist"
+          "type": "reference"
         },
         "ErrorCode": {
           "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
