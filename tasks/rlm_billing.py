@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
 # Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version, require_identifier, soql_quote
+from tasks.soql_utils import option_text, project_api_version, require_identifier, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -71,7 +71,7 @@ class CreateSequencePolicies(BaseSalesforceApiTask):
     def _run_task(self) -> None:
         import requests
 
-        plan_dir = self.options.get("plan_dir", DEFAULT_PLAN_DIR)
+        plan_dir = option_text(self.options.get("plan_dir"), "plan_dir", TaskOptionsError) or DEFAULT_PLAN_DIR
         json_path = os.path.join(plan_dir, "SequencePolicies.json")
 
         if not os.path.isfile(json_path):
@@ -263,7 +263,7 @@ class CreateInvoiceSchedulers(BaseSalesforceApiTask):
     def _run_task(self) -> None:
         import requests
 
-        plan_dir = self.options.get("plan_dir", DEFAULT_PLAN_DIR)
+        plan_dir = option_text(self.options.get("plan_dir"), "plan_dir", TaskOptionsError) or DEFAULT_PLAN_DIR
         json_path = os.path.join(plan_dir, "InvoiceSchedulers.json")
         if not os.path.isfile(json_path):
             raise TaskOptionsError(f"InvoiceSchedulers.json not found: {json_path}")

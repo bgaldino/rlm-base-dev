@@ -142,6 +142,13 @@ def test_missing_data_file_fails_the_task(tmp_path):
         _task(tmp_path)._run_task()
 
 
+def test_plan_dir_option_is_read_through_option_text():
+    task = _task("unused")
+    task.options = {"plan_dir": ["a", "b"]}
+    with pytest.raises(Exception, match="plan_dir must be a single value"):
+        task._run_task()
+
+
 def test_wired_into_prepare_billing_behind_the_billing_flag():
     data = yaml.safe_load((REPO / "cumulusci.yml").read_text(encoding="utf-8"))
     assert data["tasks"]["create_invoice_schedulers"]["class_path"] == "tasks.rlm_billing.CreateInvoiceSchedulers"
