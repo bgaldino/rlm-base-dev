@@ -410,21 +410,23 @@ class LifecycleCore:
 
     pending_wait: Optional[dict] = None
 
-    def confirm_or_defer(self, es_def_id: str, esv: dict, *, active: bool,
-                         defer: bool) -> None:
+    def confirm_or_defer(self, es_def_id: Optional[str], esv: dict, *, active: bool,
+                         defer: bool, name: Optional[str] = None) -> None:
         """After a version write: wait for ``IsActive=active``, or (``defer``, an
         activation only) record and print the submit when it is not yet visible.
 
         A version that already reads active is confirmed by the same check the poll
         accepts, so it takes the normal path (no follow-up). Stale reads are false
-        reads, so a True read is trustworthy.
+        reads, so a True read is trustworthy. ``name`` (the set's DeveloperName, when
+        the caller has it) saves a lookup of ``es_def_id`` for the printed command.
         """
         if self.dry_run:
             return
         if not (defer and active) or self._version_state(esv["Id"]) is True:
             self.wait_for_version_state(esv["Id"], active)
             return
-        name = self.definition_name(es_def_id) or "<expression set>"
+        name = (name or (self.definition_name(es_def_id) if es_def_id else None)
+                or "<expression set>")
         org = self.command_target_org() or "<sf alias>"
         cmd = (f"python scripts/expression_sets/activate_expression_set.py "
                f"--target-org {org} --expression-set {name} "

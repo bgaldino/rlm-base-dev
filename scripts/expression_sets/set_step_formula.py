@@ -433,7 +433,7 @@ def main(argv=None) -> int:
         return 0
 
     if engine.pending_wait:
-        result.update({"changed": True, "submitted": True,
+        result.update({"changed": True, "submitted": True, "ok": True,
                        "pendingWait": engine.pending_wait})
         eprint("\nSubmitted: the formula is written; activation is not yet confirmed. "
                "Run the wait command above, then read the step back with --show.")

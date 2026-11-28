@@ -20,8 +20,9 @@ Progressive-disclosure sub-file of `.cursor/skills/expression-sets/SKILL.md`. Wo
   600`), and exits 1 with the state reached if the version is still off at the timeout
   (re-run it to keep waiting; no `--confirm`). While the version is unconfirmed, the
   overlay and import tools skip the step-label restore (they print a relabel command
-  that reactivates the version) and the overlay and formula tools skip their read-back,
-  so repeat those after the wait:
+  that reactivates the version). The overlay still runs its step-graph verification but
+  skips its final `IsActive` report, and the formula tool skips its read-back, so
+  repeat those after the wait:
 
   ```bash
   python scripts/expression_sets/set_step_formula.py --target-org <sf_alias> \

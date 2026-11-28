@@ -3426,12 +3426,13 @@ def test_submit_wait_split():
           seen == [False, True], seen)
 
     # Import create path: --no-activate --no-wait waits for the (inactive) state.
-    calls, created = [], []
+    calls, created, looked_up = [], [], []
 
     def resolve_def(*a, **k):
         from scripts.expression_sets._resolve import ResolveError
         if not created:
             raise ResolveError("not found")
+        looked_up.append(True)
         return "9QAn"
 
     class _CreateEngine(_FakeEngine):
@@ -3442,7 +3443,7 @@ def test_submit_wait_split():
         def set_version_active(self, *a, **k):
             calls.append(("set", a[1]))
 
-        def confirm_or_defer(self, es_def_id, esv, *, active, defer):
+        def confirm_or_defer(self, es_def_id, esv, *, active, defer, name=None):
             calls.append(("confirm", active, defer))
 
     with tempfile.TemporaryDirectory() as td:
@@ -3463,6 +3464,8 @@ def test_submit_wait_split():
     check("create --no-activate --no-wait asks for an inactive version (engine waits it)",
           rc == 0 and ("confirm", False, True) in calls and ("set", False) in calls,
           (rc, calls))
+    check("create makes no definition lookup after the POST just to print a command",
+          not looked_up, looked_up)
     # activate --wait: success; timeout exits 1 with the state; argparse rejections.
     def run_wait(esv_active, extra, *, found=True):
         t = _PlanTransport(plans={}, esv_active=esv_active)
@@ -3492,6 +3495,11 @@ def test_submit_wait_split():
     rc, logs, _ = run_wait(False, ["--timeout", "2"])
     check("--wait timeout: exit 1 with the state reached",
           rc == 1 and any("State reached: IsActive=False" in m for m in logs), (rc, logs))
+    rc, logs, out = run_wait(False, ["--timeout", "2", "--json"])
+    res = json.loads(out)
+    check("--wait --json failure names the version and its state",
+          res.get("ok") is False and res.get("version") == "X_V1"
+          and res.get("versionId") == "9QMv" and res.get("versionIsActive") is False, res)
     rc, logs, out = run_wait(True, ["--version", "Nope", "--json"])
     check("--wait: unknown version exits 1 and still prints the JSON result",
           rc == 1 and json.loads(out).get("ok") is False, (rc, out))

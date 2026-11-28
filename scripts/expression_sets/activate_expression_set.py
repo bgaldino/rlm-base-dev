@@ -200,7 +200,7 @@ def _wait(args) -> int:
                           dry_run=False, logger=eprint)
     engine = LifecycleEngine(transport, logger=eprint, max_wait_seconds=args.timeout,
                              poll_interval_seconds=5)
-    state = None
+    state, esv = None, None
     try:
         es_id = resolve_expression_set_id(
             args.es_api_name, target_org=args.target_org, api_version=args.api_version)
@@ -228,6 +228,8 @@ def _wait(args) -> int:
         eprint(f"\nFAILED: {exc}")
         if args.json:
             print(json.dumps({"action": "wait", "expressionSet": args.es_api_name,
+                              "version": (esv or {}).get("ApiName"),
+                              "versionId": (esv or {}).get("Id"),
                               "ok": False, "versionIsActive": state}, indent=2))
         return 1
     if args.json:

@@ -307,10 +307,8 @@ def main(argv=None) -> int:
                 desired = activate_after
                 if bool(esv.get("IsActive")) is not desired:
                     engine.set_version_active(esv["Id"], desired)
-                    engine.confirm_or_defer(
-                        resolve_definition_id(api_name, target_org=args.target_org,
-                                              api_version=args.api_version),
-                        esv, active=desired, defer=args.no_wait)
+                    engine.confirm_or_defer(None, esv, active=desired,
+                                            defer=args.no_wait, name=api_name)
                 result["expressionSetId"] = es_id
                 result["versionId"] = esv["Id"]
                 # A clone starts label-less (POST has no label field): apply the
