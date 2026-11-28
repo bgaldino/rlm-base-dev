@@ -1769,6 +1769,7 @@ def test_the_bare_name_hint_follows_the_requested_type():
 
 COLLECTION_CONSOLE = "standard__CollectionConsole.app-meta.xml"
 DASHBOARD_TAB = "RLM_Collections_Dashboard"
+SPECIALIST_CONSOLE_TAB = "standard-CollectionsConsoleDashboard"  # the platform's tab (todo 259)
 
 
 def _app_tabs_and_mappings(path):
@@ -1792,6 +1793,15 @@ def test_dashboard_tab_needs_billing_ui(tmp_path):
     out = _assemble_with(tmp_path, "billing_ui=false")
     tabs, mappings = _app_tabs_and_mappings(out / "applications" / COLLECTION_CONSOLE)
     assert DASHBOARD_TAB not in tabs + mappings
+    # The standard Collections Specialist Console tab (todo 259) is the template's own, not billing_ui's.
+    assert tabs.count(SPECIALIST_CONSOLE_TAB) == 1
+    assert mappings.count(SPECIALIST_CONSOLE_TAB) == 1
+
+
+def test_default_assembly_keeps_the_specialist_console_tab(assembled):
+    tabs, mappings = _app_tabs_and_mappings(assembled / "applications" / COLLECTION_CONSOLE)
+    assert tabs.count(SPECIALIST_CONSOLE_TAB) == 1
+    assert mappings.count(SPECIALIST_CONSOLE_TAB) == 1
 
 
 def test_dashboard_tab_patch_is_not_applied_without_the_collections_console(tmp_path):
