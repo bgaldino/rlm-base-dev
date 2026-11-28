@@ -34,8 +34,7 @@
         <readable>true</readable>
     </fieldPermissions>
     <!-- Contract fields RLM_CreateContractFromQuote (a user-context screen flow) writes or reads after
-         createContract (todo 518). Without BillingAddress, ContractTerm or EndDate the contract rolls back;
-         without ShippingAddress it saves with no shipping address. EndDate is read-only:
+         createContract (todo 518). EndDate is read-only:
          the platform calculates it from StartDate and ContractTerm. -->
     <fieldPermissions>
         <editable>true</editable>
