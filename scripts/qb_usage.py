@@ -14,6 +14,7 @@ access token is handled here.
 
     python scripts/qb_usage.py audit --org rlm-base__pr308
     python scripts/qb_usage.py report --org rlm-base__pr308 --accounts "Robot Resellers"
+    python scripts/qb_usage.py report --org rlm-base__pr308 --as-of 2026-06-15
     python scripts/qb_usage.py orchestrate --org rlm-base__pr308
 
 The companion Apex lives in scripts/apex/:
@@ -38,6 +39,7 @@ Exit codes (orchestrate):
 A failed Apex run raises ApexRunError rather than being reported as success.
 """
 import argparse
+import datetime
 import json
 import os
 import subprocess
@@ -311,6 +313,40 @@ def cmd_audit(args):
 # ----------------------------------------------------------------------
 # report -- runtime
 # ----------------------------------------------------------------------
+def parse_sf_datetime(value):
+    """Parse an sf CLI datetime ("2026-06-01T00:00:00.000+0000") as an aware UTC datetime."""
+    if not value:
+        return None
+    return datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%f%z")
+
+
+def bucket_shape(bucket, bucket_ids):
+    """MONTHLY, TERM or OPEN for one bucket, given the Ids of all the asset's buckets.
+
+    Each usage entitlement carries a term-length wallet (consumed null, balance 0) and
+    one child under it: a MONTHLY bucket holding the period's consumption and balance,
+    or an OPEN bucket (null end) carrying zeros (todo 051, measured on 264). Only MONTHLY
+    is a per-period figure. NO bucket has a null ParentId -- the wallet's parent is a
+    grant-binding target -- so a child is told by set membership, not a null check.
+    """
+    if not bucket.get("EffectiveEndDateTime"):
+        return "OPEN"
+    return "MONTHLY" if bucket.get("ParentId") in bucket_ids else "TERM"
+
+
+def overlaps_day(bucket, day):
+    """True when the bucket's effective period overlaps the UTC day `day`.
+
+    validateRatedUsage.apex's overlap predicate (todo 051): start before the day ends
+    and end (null = open) after it starts.
+    """
+    day_start = datetime.datetime.combine(day, datetime.time(0), tzinfo=datetime.timezone.utc)
+    day_end = day_start + datetime.timedelta(days=1)
+    start = parse_sf_datetime(bucket.get("EffectiveStartDateTime"))
+    end = parse_sf_datetime(bucket.get("EffectiveEndDateTime"))
+    return (start is None or start < day_end) and (end is None or end > day_start)
+
+
 def cmd_report(args):
     org = args.org
     accounts = args.accounts or [None]
@@ -327,31 +363,53 @@ def cmd_report(args):
 
         buckets = sf_query(org,
             "SELECT Id, ParentId, UsageResource.Code, BucketBalance, ConsumedEntitlement, "
+            "EffectiveStartDateTime, EffectiveEndDateTime, "
             "TransactionUsageEntitlement.Product.StockKeepingUnit, "
             "TransactionUsageEntitlement.Account.Name, "
             "TransactionUsageEntitlement.EntitlementQuantity "
             f"FROM UsageEntitlementBucket {where_bucket}")
 
-        # The tree is 3 levels and NO bucket has a null ParentId -- the wallet's
-        # parent is a grant-binding target, the child's parent is the wallet. So a
-        # child is identified by set membership, not by a null check.
+        # Shapes read against every bucket of the account (the wallet/child test needs
+        # the wallet), then --as-of keeps the rows whose period overlaps that day.
         ids = {b["Id"] for b in buckets}
+        for b in buckets:
+            b["shape"] = bucket_shape(b, ids)
+        scope = ""
+        if args.as_of:
+            buckets = [b for b in buckets if overlaps_day(b, args.as_of)]
+            scope = f" overlapping {args.as_of.isoformat()} (UTC)"
         if buckets:
-            print("\n  buckets (child rows carry the balance)")
-            print(f"    {'account':<32} {'product':<18} {'granted':>10} {'consumed':>10} "
-                  f"{'balance':>10}  role")
+            print(f"\n  buckets{scope} -- only MONTHLY rows are per-period figures; "
+                  "TERM and OPEN rows carry zeros")
+            print(f"    {'account':<32} {'product':<18} {'resource':<20} {'shape':<8} "
+                  f"{'window':<23} {'granted':>10} {'consumed':>10} {'balance':>10}")
             for b in sorted(buckets, key=lambda b: (
                     nested(b, "TransactionUsageEntitlement", "Account", "Name") or "",
-                    b["ParentId"] in ids)):
+                    nested(b, "UsageResource", "Code") or "",
+                    b.get("EffectiveStartDateTime") or "",
+                    b["shape"])):
                 tue = b.get("TransactionUsageEntitlement") or {}
+                start = parse_sf_datetime(b.get("EffectiveStartDateTime"))
+                end = parse_sf_datetime(b.get("EffectiveEndDateTime"))
+                window = (f"{start.date() if start else '?'}.."
+                          f"{end.date() if end else 'open'}")
                 print(f"    {(nested(tue, 'Account', 'Name') or '?'):<32} "
                       f"{(nested(tue, 'Product', 'StockKeepingUnit') or '?'):<18} "
+                      f"{(nested(b, 'UsageResource', 'Code') or '?'):<20} "
+                      f"{b['shape']:<8} {window:<23} "
                       f"{str(tue.get('EntitlementQuantity') or '-'):>10} "
                       f"{str(b['ConsumedEntitlement'] or 0):>10} "
-                      f"{str(b['BucketBalance'] or 0):>10}  "
-                      f"{'child' if b['ParentId'] in ids else 'wallet (rolled up)'}")
+                      f"{str(b['BucketBalance'] or 0):>10}")
+            if args.as_of:
+                # A backdated asset gets a monthly bucket for its first period only.
+                def acct_of(b):
+                    return nested(b, "TransactionUsageEntitlement", "Account", "Name") or "?"
+                with_monthly = {acct_of(b) for b in buckets if b["shape"] == "MONTHLY"}
+                for name in sorted({acct_of(b) for b in buckets} - with_monthly):
+                    print(f"    {name}: no MONTHLY bucket covers this day -- usage booked "
+                          "into it rates at full overage")
         else:
-            print("\n  buckets: none")
+            print(f"\n  buckets{scope}: none")
 
         where_rated = ("WHERE Asset.Product2.StockKeepingUnit IN "
                        f"({', '.join(repr(s) for s in QB_USAGE_SKUS)})")
@@ -500,6 +558,9 @@ def main():
     r = sub.add_parser("report", help="runtime buckets, drawdown and rated amounts")
     r.add_argument("--org", required=True)
     r.add_argument("--accounts", nargs="*", help="account names (default: all)")
+    r.add_argument("--as-of", type=datetime.date.fromisoformat, metavar="YYYY-MM-DD",
+                   help="list only the buckets whose effective period overlaps this UTC day "
+                        "(default: every bucket, each labelled with its window and shape)")
     r.set_defaults(func=cmd_report)
 
     o = sub.add_parser("orchestrate", help="drive usage orchestration to convergence")

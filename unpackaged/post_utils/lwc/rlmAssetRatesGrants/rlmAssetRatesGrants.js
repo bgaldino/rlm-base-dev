@@ -157,10 +157,14 @@ export default class RlmAssetRatesGrants extends LightningElement {
                     grants: []
                 };
             }
-            const remaining = grant.bucketBalance != null ? grant.bucketBalance : grant.entitlementQuantity;
-            const consumed = grant.totalConsumedEntitlement || 0;
+            // Per-period figures come only from the bucket covering today. Without one the
+            // grant shows an explicit "no bucket" state, not the entitlement quantity as a
+            // balance. totalConsumedEntitlement is term-cumulative, so it is never "Used".
+            const hasCurrentBucket = grant.hasCurrentBucket === true;
+            const remaining = hasCurrentBucket ? (grant.bucketBalance || 0) : null;
+            const consumed = hasCurrentBucket ? (grant.consumedEntitlement || 0) : null;
             const total = grant.entitlementQuantity || 0;
-            const pct = total > 0 ? Math.round((consumed / total) * 100) : 0;
+            const pct = hasCurrentBucket && total > 0 ? Math.round((consumed / total) * 100) : 0;
 
             grouped[key].grants.push({
                 id: grant.entitlementId || `${key}-grant-${grantIdx}`,
@@ -169,6 +173,7 @@ export default class RlmAssetRatesGrants extends LightningElement {
                 grantType: grant.grantType || 'Grant',
                 overage: grant.chargeForOverage || 'N/A',
                 overageLabel: `Overage: ${grant.chargeForOverage || 'N/A'}`,
+                hasCurrentBucket: hasCurrentBucket,
                 total: total,
                 consumed: consumed,
                 remaining: remaining,

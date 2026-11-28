@@ -87,15 +87,27 @@
                                             <lightning-badge label={grant.overageLabel} class="slds-theme_warning"></lightning-badge>
                                         </template>
                                     </div>
-                                    <span class="slds-text-body_small"><strong>{grant.remaining} remaining</strong></span>
+                                    <template if:true={grant.hasCurrentBucket}>
+                                        <span class="slds-text-body_small"><strong>{grant.remaining} remaining</strong></span>
+                                    </template>
                                 </div>
 
-                                <!-- Progress indicator -->
-                                <lightning-progress-ring value={grant.percentUsed} size="small"></lightning-progress-ring>
-                                <div class="slds-grid slds-grid_align-spread slds-m-top_xxx-small">
-                                    <span class="slds-text-body_small slds-text-color_weak">Used: {grant.consumed}</span>
-                                    <span class="slds-text-body_small slds-text-color_weak">Total: {grant.total}</span>
-                                </div>
+                                <template if:true={grant.hasCurrentBucket}>
+                                    <!-- Progress indicator -->
+                                    <lightning-progress-ring value={grant.percentUsed} size="small"></lightning-progress-ring>
+                                    <div class="slds-grid slds-grid_align-spread slds-m-top_xxx-small">
+                                        <span class="slds-text-body_small slds-text-color_weak">Used: {grant.consumed}</span>
+                                        <span class="slds-text-body_small slds-text-color_weak">Total: {grant.total}</span>
+                                    </div>
+                                </template>
+                                <template if:false={grant.hasCurrentBucket}>
+                                    <p class="slds-text-body_small slds-text-color_weak" data-id="no-current-bucket">
+                                        No usage bucket covers the current period.
+                                    </p>
+                                    <div class="slds-grid slds-grid_align-end slds-m-top_xxx-small">
+                                        <span class="slds-text-body_small slds-text-color_weak">Total: {grant.total}</span>
+                                    </div>
+                                </template>
                             </div>
                         </template>
                     </div>

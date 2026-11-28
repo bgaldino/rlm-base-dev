@@ -124,8 +124,12 @@ public with sharing class RLM_UsageUploaderController {
         @AuraEnabled public String chargeForOverage;
         @AuraEnabled public Datetime startDate;
         @AuraEnabled public Datetime endDate;
+        // From the bucket covering now (pickCurrentBuckets). Null when none covers now; then
+        // hasCurrentBucket is false and the grant has no per-period figures to show.
+        @AuraEnabled public Boolean hasCurrentBucket;
         @AuraEnabled public Decimal bucketBalance;
         @AuraEnabled public Decimal consumedEntitlement;
+        // Term-cumulative on a term-length bucket, so not a per-period figure (todo 301).
         @AuraEnabled public Decimal totalConsumedEntitlement;
     }
 
@@ -831,24 +835,15 @@ public with sharing class RLM_UsageUploaderController {
         // and why the resource, not just the product-resource pair, has to be consulted.
         OverageLookup overage = loadOverageLookup(usageResourceIds);
 
-        // Query the current-period entitlement buckets (child buckets with a parent)
-        // These contain the actual balance and consumption for the current period
-        Map<Id, UsageEntitlementBucket> currentBucketByTue = new Map<Id, UsageEntitlementBucket>();
-        for (UsageEntitlementBucket ueb : [
-            SELECT Id, TransactionUsageEntitlementId, BucketBalance,
+        // The bucket covering now, per entitlement. See pickCurrentBuckets for the rule.
+        Map<Id, UsageEntitlementBucket> currentBucketByTue = pickCurrentBuckets([
+            SELECT Id, ParentId, TransactionUsageEntitlementId, BucketBalance,
                    ConsumedEntitlement, TotalConsumedEntitlement,
                    EffectiveStartDateTime, EffectiveEndDateTime
             FROM UsageEntitlementBucket
             WHERE TransactionUsageEntitlementId IN :tueIds
-              AND ParentId != null
             WITH USER_MODE
-            ORDER BY EffectiveStartDateTime DESC
-        ]) {
-            // Keep only the most recent period bucket per TUE
-            if (!currentBucketByTue.containsKey(ueb.TransactionUsageEntitlementId)) {
-                currentBucketByTue.put(ueb.TransactionUsageEntitlementId, ueb);
-            }
-        }
+        ], Datetime.now());
 
         // Build wrapper list
         List<GrantInfoWrapper> wrappers = new List<GrantInfoWrapper>();
@@ -865,8 +860,9 @@ public with sharing class RLM_UsageUploaderController {
             w.startDate = tue.EffectiveStartDateTime;
             w.endDate = tue.EffectiveEndDateTime;
 
-            // Add bucket info if available
+            // Per-period figures only from the bucket covering now; none is an explicit state.
             UsageEntitlementBucket bucket = currentBucketByTue.get(tue.Id);
+            w.hasCurrentBucket = bucket != null;
             if (bucket != null) {
                 w.bucketBalance = bucket.BucketBalance;
                 w.consumedEntitlement = bucket.ConsumedEntitlement != null ? bucket.ConsumedEntitlement : 0;
@@ -877,6 +873,47 @@ public with sharing class RLM_UsageUploaderController {
         }
 
         return wrappers;
+    }
+
+    /**
+     * Picks, per entitlement, the period bucket whose effective window covers asOf, shortest
+     * window first. An entitlement with none is absent from the result, which the caller
+     * reports as hasCurrentBucket = false rather than as a zero bucket.
+     *
+     * Each entitlement carries a term-length wallet (consumption null, balance 0) and one child
+     * under it: a monthly bucket holding the period's consumption and balance, or an open-ended
+     * bucket (null end) carrying zeros (todo 051, measured on 264). All share the asset start,
+     * so "latest start" cannot tell them apart. Only a child with an end qualifies. The wallet
+     * also covers today, so it must be excluded by shape, not by window: a backdated asset gets
+     * a monthly bucket for its first period only, and after that period only the wallet covers
+     * today. NO bucket has a null ParentId (the wallet's parent is a grant-binding target), so a
+     * child is told by set membership: its ParentId is another bucket in the list.
+     */
+    @TestVisible
+    private static Map<Id, UsageEntitlementBucket> pickCurrentBuckets(
+            List<UsageEntitlementBucket> buckets, Datetime asOf) {
+        Set<Id> bucketIds = new Set<Id>();
+        for (UsageEntitlementBucket b : buckets) {
+            bucketIds.add(b.Id);
+        }
+        Map<Id, UsageEntitlementBucket> picked = new Map<Id, UsageEntitlementBucket>();
+        for (UsageEntitlementBucket b : buckets) {
+            Datetime startAt = b.EffectiveStartDateTime;
+            Datetime endAt = b.EffectiveEndDateTime;
+            if (!bucketIds.contains(b.ParentId) || startAt == null || endAt == null
+                    || startAt > asOf || endAt < asOf) {
+                continue;
+            }
+            UsageEntitlementBucket current = picked.get(b.TransactionUsageEntitlementId);
+            if (current == null || windowMillis(b) < windowMillis(current)) {
+                picked.put(b.TransactionUsageEntitlementId, b);
+            }
+        }
+        return picked;
+    }
+
+    private static Long windowMillis(UsageEntitlementBucket b) {
+        return b.EffectiveEndDateTime.getTime() - b.EffectiveStartDateTime.getTime();
     }
 
     /**

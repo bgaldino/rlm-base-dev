@@ -1129,6 +1129,7 @@ STDLIB_SUITES = [
     "tests/test_procedure_plan_overlay_activation.py",
     "tests/test_project_memory_schema.py",
     "tests/test_qb_multicurrency_data.py",
+    "tests/test_qb_usage_report.py",
     "tests/test_record_action_helper.py",
     "tests/test_renewal_bucket_planner.py",
     "tests/test_rlm_apex_file.py",
