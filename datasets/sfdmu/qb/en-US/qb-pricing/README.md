@@ -56,7 +56,7 @@ activatePriceAdjustmentSchedules  ->  Upsert/Update/Readonly
 |----|------------------------------|-----------|--------------|---------------------------------------------------------------------------------------------------------|---------|
 | 1  | CurrencyType                 | Upsert    |              | `IsoCode`                                                                                               | 7       |
 | 2  | ProrationPolicy              | Update    |              | `Name`                                                                                                  | 1       |
-| 3  | ProductSellingModel          | Readonly  |              | `Name;SellingModelType`                                                                                 | 9       |
+| 3  | ProductSellingModel          | Readonly  |              | `Name;SellingModelType`                                                                                 | 10      |
 | 4  | AttributeDefinition          | Readonly  |              | `Code`                                                                                                  | 39      |
 | 5  | Product2                     | Readonly  |              | `StockKeepingUnit`                                                                                      | 316     |
 | 6  | CostBook                     | Upsert    |              | `Name`                                                                                                  | 1       |
@@ -67,7 +67,7 @@ activatePriceAdjustmentSchedules  ->  Upsert/Update/Readonly
 | 11 | AttributeAdjustmentCondition | Upsert    | ✓            | `AttributeBasedAdjRule.Name;AttributeDefinition.Code;Product.StockKeepingUnit`                          | 4       |
 | 12 | AttributeBasedAdjustment     | Upsert    | ✓            | `AttributeBasedAdjRule.Name;PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 28 |
 | 13 | BundleBasedAdjustment        | Upsert    | ✓            | `PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ParentProduct.StockKeepingUnit;RootBundle.StockKeepingUnit;ProductSellingModel.Name;ParentProductSellingModel.Name;RootProductSellingModel.Name;CurrencyIsoCode` | 14 |
-| 14 | PricebookEntry               | Upsert    | ✓            | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`                                    | 1862     |
+| 14 | PricebookEntry               | Upsert    | ✓            | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`                                    | 1869     |
 | 15 | PricebookEntryDerivedPrice   | Upsert    | ✓            | `Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 0 |
 | 16 | CostBookEntry                | Upsert    | ✓            | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 623      |
 
@@ -103,7 +103,9 @@ Currency types (7 currencies: USD, GBP, EUR, AUD, CAD, CHF, JPY) and proration p
 
 ### Pricebooks and Entries (Objects 6, 14)
 
-The Standard Price Book with 1,862 pricebook entries (266 product/selling-model combinations × 7 currencies) mapping products to selling models with unit prices and currency.
+The Standard Price Book with 1,869 pricebook entries (267 product/selling-model combinations × 7 currencies) mapping products to selling models with unit prices and currency.
+
+`TEST-SUB` on `Term Weekly` (USD 7 a week; the other currencies from `scripts/expand_currency_pricing_data.py`) is the weekly and N-term billing example (todo 254); how to quote it is in the `qb-pcm` README → *Products and Selling Models*.
 
 **The `PricebookEntry` query is scoped to `Pricebook2.IsStandard = true`.** Every row belongs to the Standard Price Book, and the externalId (`Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`) has no price-book part. Unscoped, a custom price book's entry for the same SKU, selling model and currency is indistinguishable, and a reload can update it instead of the standard one (measured 2026-11-02: with a custom book named so it sorted first, a price change landed on the custom entry). Extraction reads the same scope.
 
@@ -191,13 +193,13 @@ qb-pricing/
 ├── ProrationPolicy.csv                  # 1 record
 │
 │  Source CSVs — Readonly Parents (lookup context)
-├── ProductSellingModel.csv              # 9 records (Readonly)
+├── ProductSellingModel.csv              # 10 records (Readonly)
 ├── AttributeDefinition.csv              # 39 records (Readonly)
 ├── Product2.csv                         # 316 records (Readonly)
 │
 │  Source CSVs — Pricebooks
 ├── Pricebook2.csv                       # 1 record
-├── PricebookEntry.csv                   # 1862 records
+├── PricebookEntry.csv                   # 1869 records
 ├── PricebookEntryDerivedPrice.csv       # 0 records (header only — see note below)
 │
 │  Source CSVs — Price Adjustments

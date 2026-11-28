@@ -63,9 +63,9 @@ Upsert all 28 objects in dependency order
 | 9  | ProductClassificationAttr     | Upsert    | `Name`¹                                                                                               | 36      |
 | 10 | Product2                      | Upsert    | `StockKeepingUnit`                                                                                    | 314     |
 | 11 | ProductAttributeDefinition    | Upsert    | `AttributeDefinition.Code;Product2.StockKeepingUnit`                                                  | 17      |
-| 12 | ProductSellingModel           | Upsert    | `Name;SellingModelType`                                                                               | 9       |
+| 12 | ProductSellingModel           | Upsert    | `Name;SellingModelType`                                                                               | 10      |
 | 13 | ProrationPolicy               | Upsert    | `Name`                                                                                                | 1       |
-| 14 | ProductSellingModelOption     | Upsert    | `Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType`              | 267     |
+| 14 | ProductSellingModelOption     | Upsert    | `Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType`              | 268     |
 | 15 | ProductRampSegment            | Upsert    | `Product.StockKeepingUnit;ProductSellingModel.SellingModelType;SegmentType`                            | 6       |
 | 16 | ProductRelationshipType       | Upsert    | `Name`                                                                                                | 4       |
 | 17 | ProductComponentGroup         | Upsert    | `Code`                                                                                                | 109     |
@@ -97,7 +97,11 @@ Hierarchical product classification tree (`ParentProductClassificationId` self-r
 
 ### Products and Selling Models (Objects 10-15)
 
-Core product records (313 products) with product-level attribute overrides, 9 selling models (Evergreen, Term, One-Time variants), proration policy, selling model assignments per product, and ramp segments.
+Core product records (313 products) with product-level attribute overrides, 10 selling models (Evergreen, Term, One-Time variants), proration policy, selling model assignments per product, and ramp segments.
+
+**Weekly and N-term billing example (todo 254).** `Term Weekly` (Term-Defined, 1, `PricingTermUnit` `Weekly`) is sold on one product, `TEST-SUB` (QuantumBit Subscription), beside its monthly and annual models; `qb-pricing` prices it at USD 7 a week. N-term billing has no catalog record: it is the quote line's or order product's `BillingTerm`, the number of billing periods one billing period item covers (default 1) [Help: `ind.billing_multiple_term_billing`]. To show both, quote `TEST-SUB` on Term Weekly with `BillingFrequency` `Weekly`, a `PeriodBoundary`, and a `BillingTerm`. Measured on a fresh 264 build with billing (2026-11-28, Place Sales Transaction, USD): a 12-week line priced at 84; after order activation each line had one billing schedule with `BillingTermUnit` `Week`, 7 a period with `BillingTerm` 1 and 28 with `BillingTerm` 4. Neither line needed a billing treatment of its own, since the frequency equals the pricing term (`billing-setup`, Quick Rule 3). A weekly line can't later change to or from another frequency [Help: `ind.billing_frequency_change_flow_impact`].
+
+Known limitations: `scripts/build_quote_to_asset.py --billing-frequency` and the transaction harness's term units don't offer Weekly yet, so a weekly quote is placed through the API or the UI.
 
 ### Bundles and Components (Objects 16-18)
 
@@ -282,9 +286,9 @@ qb-pcm/
 │  Source CSVs — Products and Selling Models
 ├── Product2.csv                         # 314 records
 ├── ProductAttributeDefinition.csv       # 17 records
-├── ProductSellingModel.csv              # 9 records
+├── ProductSellingModel.csv              # 10 records
 ├── ProrationPolicy.csv                  # 1 record
-├── ProductSellingModelOption.csv        # 267 records
+├── ProductSellingModelOption.csv        # 268 records
 ├── ProductRampSegment.csv               # 6 records
 │
 │  Source CSVs — Bundles and Components
