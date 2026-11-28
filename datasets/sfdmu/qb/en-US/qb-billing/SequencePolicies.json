@@ -320,5 +320,28 @@
         "operator": "Equals"
       }
     ]
+  },
+  {
+    "name": "264 Field Token Example Invoice Policy",
+    "description": "264 example of a field token ({DocumentNumber}) in a sequence pattern. Inactive draft: it shares the US Invoice Numbering Policy's condition, so deactivate that policy before activating this one.",
+    "effectiveFromDateTime": "2024-01-01",
+    "isActive": false,
+    "dateStampFormat": "YYYY",
+    "sequenceMode": "Gapless",
+    "targetObject": "Invoice",
+    "sequencePattern": "INV-FT-{Date}-{DocumentNumber}-{SequenceValue}",
+    "sequenceStartNumber": 1,
+    "incrementByNumber": 1,
+    "minimumSequenceNumberWidth": 6,
+    "timeZone": "America/Los_Angeles",
+    "selectionConditions": [
+      {
+        "conditionNumber": 1,
+        "filterField": "LegalEntityId",
+        "filterFieldType": "Reference",
+        "filterValue": "Default Legal Entity - US",
+        "operator": "Equals"
+      }
+    ]
   }
 ]
