@@ -76,6 +76,7 @@
     <label>Billing - Collections</label>
     <navType>Console</navType>
     <tabs>standard-home</tabs>
+    <tabs>standard-CollectionsConsoleDashboard</tabs>
     <tabs>standard-Account</tabs>
     <tabs>standard-Contact</tabs>
     <tabs>standard-Case</tabs>
@@ -95,6 +96,9 @@
         </mappings>
         <mappings>
             <tab>standard-CollectionPlanReason</tab>
+        </mappings>
+        <mappings>
+            <tab>standard-CollectionsConsoleDashboard</tab>
         </mappings>
         <mappings>
             <tab>standard-Contact</tab>
