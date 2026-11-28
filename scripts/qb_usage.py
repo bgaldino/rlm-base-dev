@@ -57,19 +57,21 @@ QB_USAGE_SKUS = [
 ]
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, REPO_ROOT)
+from scripts.soql_literal import soql_quote  # noqa: E402
 
 
 # ----------------------------------------------------------------------
 # sf CLI plumbing
 # ----------------------------------------------------------------------
 def soql_str(value):
-    """Quote a value as a SOQL string literal, escaping backslash then quote.
+    """Quote a value as a SOQL string literal (scripts/soql_literal.py's rule).
 
     Account names legitimately contain apostrophes (O'Brien). Unescaped, the query
     fails, sf_query returns [], and the report shows "no buckets" instead of an
     error -- a silent wrong answer rather than a loud one.
     """
-    return "'" + str(value).replace("\\", "\\\\").replace("'", "\\'") + "'"
+    return soql_quote(value)
 
 
 def sf_query(org, soql):

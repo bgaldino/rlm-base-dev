@@ -108,6 +108,9 @@ import sys
 import tempfile
 import time
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from scripts.soql_literal import soql_quote, soql_text  # noqa: E402
+
 DEFAULT_ACCOUNTS = "Infinitech,Kingsbridge Digital"
 DEFAULT_SKU = "QB-DB"
 DEFAULT_START = "2026-06-01"
@@ -147,13 +150,13 @@ def _run(args, timeout=300):
 
 
 def soql_str(value):
-    """Quote a value as a SOQL string literal, escaping backslash then quote.
+    """Quote a value as a SOQL string literal (scripts/soql_literal.py's rule).
 
     Account names legitimately contain apostrophes (O'Brien), which would
     otherwise break the query -- and sf_query returns [] on failure, so the
     breakage surfaces as "no records" rather than an error.
     """
-    return "'" + str(value).replace("\\", "\\\\").replace("'", "\\'") + "'"
+    return soql_quote(value)
 
 
 def sf_query(org, soql):
@@ -207,8 +210,8 @@ def sf_rest(org, path, method="GET", body=None):
 
 
 def esc(s):
-    """Escape a value for embedding in an Apex string literal."""
-    return s.replace("\\", "\\\\").replace("'", "\\'")
+    """Escape a value for embedding in an Apex string literal (the SOQL literal rule holds for Apex)."""
+    return soql_text(s)
 
 
 # ----------------------------------------------------------------------

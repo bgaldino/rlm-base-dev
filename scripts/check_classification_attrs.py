@@ -38,6 +38,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from scripts.soql_literal import soql_quote  # noqa: E402
+
 FIELDS = [
     "AttributeNameOverride", "DefaultValue", "Description", "DisplayType", "HelpText",
     "IsHidden", "IsPriceImpacting", "IsReadOnly", "IsRequired", "MaximumCharacterCount",
@@ -62,7 +65,7 @@ class Untrusted(Exception):
 
 
 def soql_literal(value: str) -> str:
-    return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
+    return soql_quote(value)
 
 
 def norm(value, field: str = "") -> str:

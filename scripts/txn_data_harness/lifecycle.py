@@ -28,7 +28,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable, NamedTuple, Optional
 
 from .auth import SfRestClient
-from .discovery import Account, PostalAddress, Product
+from .discovery import Account, PostalAddress, Product, _sql_escape
 from .models import LineItem, ResolvedInvoiceLine, ResolvedInvoiceOverrides
 from .term import Term
 
@@ -1910,7 +1910,7 @@ def resolve_account_id(client: SfRestClient, account: str) -> str:
     if by_id:
         rows = client.query(f"SELECT Id FROM Account WHERE Id = '{account}'")
     else:
-        escaped = account.replace("\\", "\\\\").replace("'", "\\'")
+        escaped = _sql_escape(account)
         rows = client.query(f"SELECT Id FROM Account WHERE Name = '{escaped}'")
     if by_id and not rows:
         raise SettlementError("apply-rules", f"Account {account} was not found or is "

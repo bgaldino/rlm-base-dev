@@ -34,6 +34,9 @@ import subprocess
 import sys
 from collections import OrderedDict
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+from scripts.soql_literal import soql_quote  # noqa: E402
+
 API = "v68.0"
 
 # The three quotes the DF Hands-On canvas calls out. Override with --quotes.
@@ -124,7 +127,7 @@ def _run(args, timeout=300):
 
 def soql_str(value):
     """Quote a value as a SOQL string literal (names may contain apostrophes)."""
-    return "'" + str(value).replace("\\", "\\\\").replace("'", "\\'") + "'"
+    return soql_quote(value)
 
 
 def sf_query(org, soql):

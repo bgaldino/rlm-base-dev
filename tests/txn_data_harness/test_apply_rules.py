@@ -60,6 +60,18 @@ def test_resolve_account_id_by_id_and_by_escaped_name():
     assert org.queries[-1] == "SELECT Id FROM Account WHERE Name = 'O\\'Hare \\\\ Co'"
 
 
+def test_resolve_account_id_escapes_line_breaks_like_soql_quote():
+    """Todo 502: the harness escapes a name by the shared rule (scripts/soql_literal.py)."""
+    from scripts.soql_literal import soql_quote, soql_text
+    from scripts.txn_data_harness.discovery import _sql_escape
+
+    nasty = "a'b\\c\nd\re"
+    assert _sql_escape(nasty) == soql_text(nasty)
+    org = QueryOrg({"FROM Account": [{"Id": ACCOUNT}]})
+    assert lifecycle.resolve_account_id(org, nasty) == ACCOUNT
+    assert org.queries[-1] == f"SELECT Id FROM Account WHERE Name = {soql_quote(nasty)}"
+
+
 def test_resolve_account_id_takes_a_15_character_id_and_returns_the_org_id():
     org = QueryOrg({"FROM Account": [{"Id": ACCOUNT}]})
     assert lifecycle.resolve_account_id(org, ACCOUNT[:15]) == ACCOUNT
@@ -87,7 +99,8 @@ def test_resolve_account_id_reads_a_16_character_name_as_a_name():
 def test_resolve_account_id_reads_an_id_with_a_trailing_newline_as_a_name():
     org = QueryOrg({"FROM Account": [{"Id": ACCOUNT}]})
     lifecycle.resolve_account_id(org, "001AAAAAAAAAAAA\n")
-    assert org.queries[-1] == "SELECT Id FROM Account WHERE Name = '001AAAAAAAAAAAA\n'"
+    # The newline is escaped in the literal (todo 502).
+    assert org.queries[-1] == "SELECT Id FROM Account WHERE Name = '001AAAAAAAAAAAA\\n'"
 
 
 @pytest.mark.parametrize("rows, found", [([], "no account"),
