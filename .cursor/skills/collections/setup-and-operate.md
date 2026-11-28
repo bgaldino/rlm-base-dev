@@ -18,7 +18,7 @@ Each claim carries its own tag.
    debit memo reason. Setup > Object Manager > Credit Memo > Fields and Relationships > Reason Code,
    add a value such as "Bad Debt" (same for Debit Memo). No headless route to add the value was
    found (no CustomField row, no matching StandardValueSet) [Measured: 2026-11-27, 264, fresh scratch build, API 68.0] [Open: do the Credit Memo and Debit Memo
-   metadata carry `ReasonCode` valueSet entries? Retrieve both with the Metadata API and read them]
+   metadata carry ReasonCode valueSet entries? Retrieve both with the Metadata API and read them]
 5. **Console.** Specialist console setup: grant field access to `CollectionPlanItem.InitialDueAmount`
    for the Collection Progress chart [Help: ind.billing_collections_specialist_console_setup]. No
    repo set grants it ([object-model.md](object-model.md)), so add it yourself.

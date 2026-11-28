@@ -29,8 +29,8 @@ Financial Services Cloud and Automotive Cloud, not Revenue Cloud
 Tags: `[Help: <article>]` (264 Help snapshot, id without `.htm.md`, no backticks), `[Dev guide: <page>]`,
 `[Repo: <path>]`, `[Measured: <date>, <release>, <org kind>]` (an observation on that build, with
 optional trailing qualifiers such as API version, browser or sample size; re-measure on the patch
-in hand before relying on it), `[inferred]` and `[Core]` (reasoning or core-code reading, not
-measured), `[Open: <question and the check that settles it>]`.
+in hand before relying on it), `[inferred]` (reasoning, not measured), `[Open: <the check that
+settles it, optionally as a question>]`.
 Anything untagged is a pointer to a sub-file.
 
 ## Quick Rules

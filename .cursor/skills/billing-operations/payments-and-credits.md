@@ -286,7 +286,8 @@ Collections, dunning, disputes and the write-off and late-fee operations are in 
   debt); it updates write-off fields on the invoice, and afterwards no further credits or
   payments can be applied or unapplied. Use the Write-Off API or a flow action
   [Help: ind.billing_write_off_invoices_impact] [Help: ind.billing_write_off_invoices_invoke_action]. The Reason Code picklists are empty on a fresh
-  build; the call returned INVALID_API_INPUT while the picklist was empty ([collections](../collections/SKILL.md) →
+  build; the call returned INVALID_API_INPUT while the picklist was empty
+  [Measured: 2026-11-27, 264, fresh scratch build, API 68.0] ([collections](../collections/SKILL.md) →
   `setup-and-operate.md`).
 - **Invoice aging** components show buckets and overdue counts on Account and Order pages
   [Help: ind.billing_invoice_aging]. The repo ships aging, dispute and collections
