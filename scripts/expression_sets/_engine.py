@@ -406,6 +406,34 @@ class LifecycleCore:
                 + "; ".join(failures)
             )
 
+    # -- Submit / wait split ---------------------------------------------------
+
+    pending_wait: Optional[dict] = None
+
+    def announce_submitted(self, es_def_id: str, esv: dict,
+                           plans: Optional[List[str]] = None) -> None:
+        """Record and print what a ``--no-wait`` run left to finish.
+
+        The activation was submitted but not confirmed, and ``plans`` (cascaded
+        procedure-plan versions) are still off. The printed command waits for the
+        version and then reactivates them.
+        """
+        plans = list(plans or [])
+        name = self.definition_name(es_def_id) or "<expression set>"
+        org = self.command_target_org() or "<sf alias>"
+        cmd = (f"python scripts/expression_sets/activate_expression_set.py "
+               f"--target-org {org} --expression-set {name} "
+               f"--version {esv.get('ApiName') or esv['Id']} --wait --timeout 600")
+        if plans:
+            cmd += f" --plans {','.join(plans)}"
+        self.pending_wait = {"versionId": esv["Id"], "version": esv.get("ApiName"),
+                             "plans": plans, "command": cmd}
+        self.emit("info", f"Submitted: ExpressionSetVersion {esv['Id']} "
+                          f"({esv.get('ApiName')}) activation requested, not yet confirmed"
+                          + (f"; procedure-plan version(s) {', '.join(plans)} stay off "
+                             "until it is" if plans else "") + ".")
+        self.emit("info", f"Wait for it with: {cmd}")
+
     # -- The deactivate → mutate → reactivate sequencer ----------------------
 
     def run_mutation(
@@ -418,6 +446,7 @@ class LifecycleCore:
         cascade: bool,
         verb: str = "mutation",
         reactivate_on_failure: bool = False,
+        wait_reactivation: bool = True,
     ) -> None:
         """Run the safety-critical deactivate → mutate → reactivate lifecycle.
 
@@ -443,6 +472,12 @@ class LifecycleCore:
         * After any failure, including a failed recovery, the version and every
           referencing plan are re-read and reported; records this run deactivated
           get a restore command.
+
+        * ``wait_reactivation=False`` (the CLIs' ``--no-wait``) submits the
+          reactivation and returns without polling it or reactivating the cascaded
+          plans (a plan needs the version active first). Only a *successful*
+          mutation defers; every failure path still waits and restores as above.
+          :meth:`announce_submitted` prints the command that finishes the job.
 
         Re-raises the original failure (chaining a recovery failure onto it when
         both happen). Refuses, before any write, to cycle an active version with no
@@ -513,6 +548,8 @@ class LifecycleCore:
                 # The version and the plans are restored independently, so a
                 # failed version reactivation can't leave the plans offline.
                 # Errors are raised after the health report below.
+                defer = (not wait_reactivation and mutate_succeeded and not failure
+                         and not self.dry_run)
                 if was_active or not failed_before_mutate:
                     try:
                         # After an unconfirmed deactivation, a stale read could
@@ -521,11 +558,13 @@ class LifecycleCore:
                             esv_id, True,
                             force=failed_before_mutate and version_off_attempted,
                         )
-                        if not self.dry_run:
+                        if defer:
+                            self.announce_submitted(es_def_id, esv, cascaded_ppvs)
+                        elif not self.dry_run:
                             self.wait_for_version_state(esv_id, True)
                     except Exception as reactivate_exc:
                         reactivate_error = reactivate_exc
-                if cascaded_ppvs:
+                if cascaded_ppvs and not defer:
                     try:
                         self.cascade_reactivate_procedure_plans(cascaded_ppvs)
                     except Exception as plan_exc:

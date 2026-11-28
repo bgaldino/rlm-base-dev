@@ -36,6 +36,17 @@ Usage
     python scripts/expression_sets/activate_expression_set.py \
         --target-org rlm-base__beta \
         --expression-set RLM_MyClone --activate --confirm
+
+**Wait mode** (``--wait``) finishes a ``--no-wait`` submit from
+``import_expression_set`` / ``set_step_formula`` / ``apply_expression_set_overlay``:
+it polls the version (``--version`` takes its apiName or Id) until ``IsActive=true``
+or ``--timeout`` seconds pass, then reactivates the procedure-plan versions named
+by ``--plans`` (the ids the submit printed). It writes only those plans, needs no
+``--confirm``, is safe to repeat, and exits 1 with the state reached on a timeout.
+
+    python scripts/expression_sets/activate_expression_set.py \
+        --target-org rlm-base__beta --expression-set RLM_MyClone \
+        --version RLM_MyClone_V1 --wait --timeout 600 [--plans <id>,<id>]
 """
 
 import argparse
@@ -81,6 +92,14 @@ def main(argv=None) -> int:
     state = parser.add_mutually_exclusive_group(required=True)
     state.add_argument("--activate", action="store_true", help="Set IsActive=true.")
     state.add_argument("--deactivate", action="store_true", help="Set IsActive=false.")
+    state.add_argument("--wait", action="store_true",
+                       help="Wait for a submitted activation (see --timeout), then "
+                            "reactivate --plans. No --confirm needed.")
+    parser.add_argument("--timeout", type=int, default=600,
+                        help="--wait: seconds to poll before giving up (default 600).")
+    parser.add_argument("--plans", default="",
+                        help="--wait: comma-separated ProcedurePlanDefinitionVersion ids "
+                             "to reactivate once the version is active.")
     parser.add_argument("--no-cascade", action="store_true",
                         help="Touch only the ES version; skip the procedure-plan cascade.")
     parser.add_argument("--confirm", action="store_true",
@@ -90,6 +109,8 @@ def main(argv=None) -> int:
     parser.add_argument("--json", action="store_true", help="Emit a result summary as JSON.")
     args = parser.parse_args(argv)
 
+    if args.wait:
+        return _wait(args)
     desired_active = bool(args.activate)
     preview = not args.confirm
     cascade = not args.no_cascade
@@ -109,7 +130,7 @@ def main(argv=None) -> int:
         if args.version_api_name:
             versions = [
                 v for v in _list_versions(engine, es_id)
-                if v.get("ApiName") == args.version_api_name
+                if args.version_api_name in (v.get("ApiName"), v.get("Id"))
             ]
             if not versions:
                 eprint(f"Error: version '{args.version_api_name}' not found under "
@@ -165,6 +186,54 @@ def main(argv=None) -> int:
             "version": esv.get("ApiName"), "versionId": esv.get("Id"),
             "dryRun": preview,
         }, indent=2))
+    return 0
+
+
+def _wait(args) -> int:
+    """``--wait``: poll the submitted version, then reactivate the named plans."""
+    transport = Transport(target_org=args.target_org, api_version=args.api_version,
+                          dry_run=False, logger=eprint)
+    engine = LifecycleEngine(transport, logger=eprint, max_wait_seconds=args.timeout,
+                             poll_interval_seconds=5)
+    plans = [p for p in args.plans.split(",") if p.strip()]
+    state = None
+    try:
+        es_id = resolve_expression_set_id(
+            args.es_api_name, target_org=args.target_org, api_version=args.api_version)
+        if args.version_api_name:
+            found = [v for v in _list_versions(engine, es_id)
+                     if args.version_api_name in (v.get("ApiName"), v.get("Id"))]
+            if not found:
+                eprint(f"Error: version '{args.version_api_name}' not found under "
+                       f"'{args.es_api_name}'.")
+                return 1
+            esv = found[0]
+        else:
+            esv = resolve_version_by_es_id(
+                es_id, target_org=args.target_org, api_version=args.api_version,
+                logger=eprint)
+        eprint(f"Waiting up to {args.timeout}s for '{args.es_api_name}' version "
+               f"{esv.get('ApiName')} to read IsActive=true.")
+        try:
+            engine.wait_for_version_state(esv["Id"], True)
+            state = True
+        except LifecycleError:
+            state = engine._version_state(esv["Id"])
+            eprint(f"State reached: IsActive={state}. Re-run --wait to keep waiting.")
+            raise
+        if plans:
+            engine.cascade_reactivate_procedure_plans(plans)
+    except (ExpressionSetClientError, ResolveError, LifecycleError) as exc:
+        eprint(f"\nFAILED: {exc}")
+        if args.json:
+            print(json.dumps({"action": "wait", "expressionSet": args.es_api_name,
+                              "ok": False, "versionIsActive": state}, indent=2))
+        return 1
+    if args.json:
+        print(json.dumps({"action": "wait", "expressionSet": args.es_api_name,
+                          "version": esv.get("ApiName"), "versionId": esv.get("Id"),
+                          "ok": True, "versionIsActive": True,
+                          "plansReactivated": plans}, indent=2))
     return 0
 
 

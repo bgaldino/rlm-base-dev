@@ -116,6 +116,10 @@ def main(argv=None) -> int:
                              "second deactivate→Tooling PATCH→reactivate cycle. (A "
                              "'labels' block in the input is applied after a "
                              "create or replace unless this is set.)")
+    parser.add_argument("--no-wait", action="store_true",
+                        help="Submit and return without waiting for reactivation (exit 0); "
+                             "the output names the activate_expression_set.py --wait "
+                             "command that finishes it. Step labels are not restored.")
     parser.add_argument("--confirm", action="store_true",
                         help="Actually perform the import. Without it, only PREVIEWS.")
     parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
@@ -262,6 +266,7 @@ def main(argv=None) -> int:
             engine.run_mutation(
                 es_def_id=es_def_id, esv=esv, mutate=mutate,
                 activate_after=activate_after, cascade=cascade, verb="Import",
+                wait_reactivation=not args.no_wait,
             )
             # Restore clobbered labels (a relabel cycle per version). Inactive
             # versions are relabelled in place; the toggled version is skipped
@@ -271,10 +276,11 @@ def main(argv=None) -> int:
             restore_result = restore_version_labels(
                 engine, restore_maps, es_id=es_id, es_def_id=es_def_id,
                 cascade=cascade,
-                skip_version_id=None if activate_after else esv.get("Id"),
+                skip_version_id=(None if activate_after and not args.no_wait
+                                 else esv.get("Id")),
             )
             if restore_result.pop("skipped") and not preview:
-                eprint("Note: --no-activate set — the toggled version's labels were "
+                eprint("Note: --no-activate/--no-wait set — the toggled version's labels were "
                        "left un-restored; the relabel command printed above restores "
                        "them.")
             result["expressionSetId"] = es_id
@@ -300,13 +306,23 @@ def main(argv=None) -> int:
                 desired = activate_after
                 if bool(esv.get("IsActive")) is not desired:
                     engine.set_version_active(esv["Id"], desired)
-                    engine.wait_for_version_state(esv["Id"], desired)
+                    if args.no_wait:
+                        engine.announce_submitted(
+                            resolve_definition_id(
+                                api_name, target_org=args.target_org,
+                                api_version=args.api_version), esv)
+                    else:
+                        engine.wait_for_version_state(esv["Id"], desired)
                 result["expressionSetId"] = es_id
                 result["versionId"] = esv["Id"]
                 # A clone starts label-less (POST has no label field): apply the
                 # input's "labels" block through Tooling, in place (no cycle needed
                 # while inactive; the shared relabel core toggles an active version).
-                if file_labels and preserve_labels:
+                if file_labels and preserve_labels and args.no_wait:
+                    eprint("Note: --no-wait set — the input's labels block was not "
+                           "applied; re-run the import with --confirm (no --no-wait) "
+                           "once the version is active, or relabel it.")
+                elif file_labels and preserve_labels:
                     new_def_id = resolve_definition_id(
                         api_name, target_org=args.target_org,
                         api_version=args.api_version)
@@ -334,6 +350,8 @@ def main(argv=None) -> int:
                f"({restore_result.get('error')}). Check version and procedure-plan "
                f"activation states, then run the relabel command printed above for "
                f"each version whose restore failed.")
+    if engine.pending_wait:
+        result["pendingWait"] = engine.pending_wait
     if args.json:
         print(json.dumps(result, indent=2))
     return 0 if restore_ok else 1

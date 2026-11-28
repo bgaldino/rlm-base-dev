@@ -919,6 +919,8 @@ class _FakeEngine:
     Connect PATCH the test isn't exercising), so this isolates the ONE thing
     under test: the post-mutation label-restore wiring at the CLI boundary."""
 
+    pending_wait = None
+
     def __init__(self, *a, **k):
         self.log = lambda *a, **k: None
 
@@ -3347,6 +3349,91 @@ def test_import_labels_block():
             undo()
 
 
+def test_submit_wait_split():
+    """--no-wait submits without polling reactivation; activate --wait finishes it."""
+    print("test_submit_wait_split")
+    from scripts.expression_sets._lifecycle import LifecycleEngine
+    import scripts.expression_sets.activate_expression_set as act_mod
+    import scripts.expression_sets.apply_expression_set_overlay as apply_mod
+    import scripts.expression_sets.import_expression_set as import_mod
+    import scripts.expression_sets.set_step_formula as formula_mod
+
+    # Argument handling: every blocking tool takes --no-wait; the default blocks.
+    for mod in (import_mod, apply_mod, formula_mod):
+        check(f"{mod.__name__.rsplit('.', 1)[1]} documents --no-wait",
+              "--no-wait" in Path(mod.__file__).read_text())
+
+    # Engine: --no-wait skips the reactivation wait and the plan reactivation.
+    def run(**kw):
+        t = _PlanTransport(plans={"1Cv1": True})
+        waits, logs = [], []
+        engine = LifecycleEngine(t, logger=logs.append, max_wait_seconds=0,
+                                 poll_interval_seconds=1)
+        engine.wait_for_version_state = lambda vid, active: waits.append(active)
+        engine.definition_name = lambda _id: "X_Set"
+        engine.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True,
+                                                   "ApiName": "X_V1"},
+                            mutate=lambda: None, activate_after=True, cascade=True, **kw)
+        return t, waits, engine, logs
+
+    t, waits, engine, logs = run()
+    check("default still waits for deactivation and reactivation", waits == [False, True], waits)
+    check("default reactivates the plans", t.plans["1Cv1"] is True and not engine.pending_wait)
+    t, waits, engine, logs = run(wait_reactivation=False)
+    check("--no-wait waits for deactivation only", waits == [False], waits)
+    check("--no-wait submitted the activation", t.esv_active is True)
+    check("--no-wait leaves the cascaded plan for the wait step", t.plans["1Cv1"] is False)
+    cmd = (engine.pending_wait or {}).get("command", "")
+    check("--no-wait prints the wait command with version and plan ids",
+          "--expression-set X_Set --version X_V1 --wait" in cmd and "--plans 1Cv1" in cmd, cmd)
+
+    # CLI: set_step_formula --no-wait exits 0 without the reactivation wait.
+    waited = []
+    orig = LifecycleEngine.wait_for_version_state
+    LifecycleEngine.wait_for_version_state = lambda self, vid, active: waited.append(active)
+    try:
+        rc, flogs = _run_set_formula(
+            _FormulaTransport(metadata=_formula_metadata(), plans={"1Cv1": True}),
+            ["--parent-step", _RAMP_PARENT, "--formula", "1 + 1", "--confirm",
+             "--no-wait"])
+    finally:
+        LifecycleEngine.wait_for_version_state = orig
+    check("set_step_formula --no-wait: exit 0, only the deactivation waited",
+          rc == 0 and waited == [False], (rc, waited))
+    check("set_step_formula --no-wait prints the wait command",
+          any("--wait" in m and "activate_expression_set.py" in m for m in flogs))
+
+    # activate --wait: finishes the plans; times out non-zero with the state reached.
+    def run_wait(esv_active, extra):
+        t = _PlanTransport(plans={"1Cv1": False}, esv_active=esv_active)
+        logs = []
+
+        def make_engine(tr, **k):
+            k.pop("logger", None)
+            e = LifecycleEngine(tr, logger=logs.append, **k)
+            e.sleep = lambda _s: None
+            return e
+        undo = _patch(act_mod, Transport=lambda **k: t, eprint=logs.append,
+                      LifecycleEngine=make_engine,
+                      resolve_expression_set_id=lambda *a, **k: "9QLx",
+                      resolve_version_by_es_id=lambda *a, **k: {"Id": "9QMv",
+                                                                "ApiName": "X_V1"})
+        try:
+            rc = act_mod.main(["--target-org", "x", "--expression-set", "X", "--wait",
+                               *extra])
+        finally:
+            undo()
+        return rc, logs, t
+
+    rc, logs, t = run_wait(True, ["--plans", "1Cv1"])
+    check("--wait: active version, plan reactivated, exit 0",
+          rc == 0 and t.plans["1Cv1"] is True, (rc, t.plans))
+    rc, logs, t = run_wait(False, ["--timeout", "2", "--plans", "1Cv1"])
+    check("--wait timeout: exit 1, state reported, plans untouched",
+          rc == 1 and t.plans["1Cv1"] is False
+          and any("State reached: IsActive=False" in m for m in logs), (rc, logs))
+
+
 def main():
     for fn in (test_graph, test_payload, test_overlay, test_tooling,
                test_label_preservation, test_failed_mutation_keeps_plans_online,
@@ -3361,7 +3448,8 @@ def main():
                test_headless_pricing_inputs, test_headless_response_failures,
                test_headless_context_id_overrides,
                test_overlay_group_emptied_precheck,
-               test_preview_log_prefix, test_import_labels_block):
+               test_preview_log_prefix, test_import_labels_block,
+               test_submit_wait_split):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed.")
     return 1 if _FAIL else 0

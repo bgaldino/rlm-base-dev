@@ -309,6 +309,10 @@ def main(argv=None) -> int:
     parser.add_argument("--formula", help="The new formula text. Required unless --show.")
     parser.add_argument("--show", action="store_true",
                         help="Print the current formula and exit (read-only).")
+    parser.add_argument("--no-wait", action="store_true",
+                        help="Submit and return without waiting for reactivation (exit 0); "
+                             "the output names the activate_expression_set.py --wait "
+                             "command that finishes it.")
     parser.add_argument("--confirm", action="store_true",
                         help="Actually write the formula. Without it, only PREVIEWS.")
     parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
@@ -414,6 +418,7 @@ def main(argv=None) -> int:
             # Metadata unchanged, so restoring the version is safe and keeps the
             # procedure online.
             reactivate_on_failure=True,
+            wait_reactivation=not args.no_wait,
         )
     except (ExpressionSetClientError, ResolveError, LifecycleError, ToolingError,
             StepFormulaError, ValueError) as exc:  # ValueError: an unreadable version date
@@ -423,6 +428,15 @@ def main(argv=None) -> int:
     if preview:
         eprint("\n[preview] No mutation performed. Re-run with --confirm to apply.")
         result["changed"] = False
+        if args.json:
+            print(json.dumps(result, indent=2))
+        return 0
+
+    if args.no_wait and engine.pending_wait:
+        result.update({"changed": True, "submitted": True,
+                       "pendingWait": engine.pending_wait})
+        eprint("\nSubmitted: the formula is written; activation is not yet confirmed. "
+               "Run the wait command above, then read the step back with --show.")
         if args.json:
             print(json.dumps(result, indent=2))
         return 0

@@ -7,9 +7,28 @@ Progressive-disclosure sub-file of `.cursor/skills/expression-sets/SKILL.md`. Wo
 - **Run times.** Read tools take seconds. `import_expression_set.py`, `set_step_formula.py`
   and `apply_expression_set_overlay.py` take minutes on a large procedure (the overlay
   apply ran past two minutes on a 124-step clone and past 110 seconds on the 121-step
-  default [Measured: 2026-11-26, 264, ent-sb0 harness build]). They block
+  default [Measured: 2026-11-26, 264, ent-sb0 harness build]). By default they block
   until the version is active again, so run them in the background with a timeout of 600
-  seconds or more, then read the output. There is no poll mode; the tools wait themselves.
+  seconds or more, then read the output.
+- **Submit, then wait (for a foreground limit such as 120 s).** Add `--no-wait` to
+  `import_expression_set.py`, `set_step_formula.py` or `apply_expression_set_overlay.py`.
+  The run still waits for the deactivation (the write needs it), submits the
+  reactivation and exits 0 without polling it. It leaves any cascaded procedure plans
+  off and prints the exact `activate_expression_set.py ... --wait` command that finishes
+  the job. `--no-wait` also skips the step-label restore and the final read-back, so
+  re-run those after the wait. Finish with `--wait`: it polls `IsActive` (default
+  `--timeout 600`), reactivates the plans named by `--plans`, and exits 1 with the state
+  reached if the version is still off at the timeout (re-run it to keep waiting; it is
+  safe to repeat and needs no `--confirm`):
+
+  ```bash
+  python scripts/expression_sets/set_step_formula.py --target-org <sf_alias> \
+    --expression-set <Set> --step <Step> --formula '<expr>' --confirm --no-wait
+  # prints: Wait for it with: python scripts/expression_sets/activate_expression_set.py \
+  #   --target-org <sf_alias> --expression-set <Set> --version <Set_V1> --wait --timeout 600 --plans <ids>
+  python scripts/expression_sets/activate_expression_set.py --target-org <sf_alias> \
+    --expression-set <Set> --version <Set_V1> --wait --timeout 100 --plans <ids>   # repeat until exit 0
+  ```
 - **Check the end state.** `apply_expression_set_overlay.py` reads the version back after
   `--confirm`, prints `Final ExpressionSetVersion ... IsActive=<bool>` and exits 1 when
   activation was requested and the version is off (`finalIsActive` in `--json`) [Repo:
