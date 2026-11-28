@@ -114,8 +114,8 @@ public with sharing class RLM_OnAccountBillingController {
             return queryInvoiceStatus(accountId);
         } catch (Exception e) {
             // Any exception type is caught, so no platform text reaches the cards (it goes to the
-            // debug log). Measured on a 264 scratch org (deploy 0AfWt00000hUL33KAG, 2026-11-26, a
-            // test user with no Invoice read): the first inline WITH USER_MODE COUNT() below raised
+            // debug log). [Measured: 2026-11-26, 264, scratch org, a test user with no Invoice
+            // read] the first inline WITH USER_MODE COUNT() below raised
             // System.SecurityException "Access to entity 'Invoice' denied", while the tests' dynamic
             // Database.query(..., AccessLevel.USER_MODE) probes of a refused object raised
             // QueryException; which inline queries raise which is not measured.
@@ -444,8 +444,8 @@ public with sharing class RLM_OnAccountBillingController {
 
     // Whether the org has any dated rates, read in system mode. False when the object itself is
     // not available (advanced currency management off). The build orgs have none: COUNT() returned
-    // 0 as admin on rlm-base__apexcov-ac1125-r1 and rlm-base__hdr-hdr-r1, both multi-currency with
-    // advanced currency management off (measured 2026-11-26).
+    // 0 as admin on two build orgs, both multi-currency with advanced currency management off
+    // [Measured: 2026-11-26, 264, scratch orgs].
     @TestVisible
     private static Boolean datedRatesExist() {
         try {

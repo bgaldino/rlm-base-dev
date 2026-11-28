@@ -9,13 +9,13 @@
                 </div>
             </template>
 
-            <template if:true={error}>
+            <template if:true={isUnavailable}>
                 <div class="slds-text-color_error slds-m-vertical_small">
-                    {errorMessage}
+                    {unavailableText}
                 </div>
             </template>
 
-            <template if:true={rows.length}>
+            <template if:true={hasRows}>
                 <lightning-datatable
                     key-field="Id"
                     data={rows}
@@ -28,12 +28,10 @@
                 ></lightning-datatable>
             </template>
 
-            <template if:false={rows.length}>
-                <template if:false={isLoading}>
-                    <div class="slds-m-vertical_medium slds-align_absolute-center slds-text-color_weak">
-                        No split invoices found for this invoice.
-                    </div>
-                </template>
+            <template if:true={isEmpty}>
+                <div class="slds-m-vertical_medium slds-align_absolute-center slds-text-color_weak">
+                    No split invoices found for this invoice.
+                </div>
             </template>
         </div>
     </lightning-card>

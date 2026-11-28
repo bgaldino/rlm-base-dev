@@ -1,51 +1,80 @@
 import { LightningElement, api, track, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { gql, graphql } from 'lightning/graphql';
-import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getRelatedNames from '@salesforce/apex/RLM_DisputeDetailsController.getRelatedNames';
-import saveApprovedAmounts from '@salesforce/apex/RLM_DisputeDetailsController.saveApprovedAmounts';
 import { parseDateOnly } from 'c/rlmDateOnly';
 
+// Each read is loading until its own reply, then ready or unavailable (todo 509). A refused or failed
+// read shows only its fixed sentence, never the platform's text (that goes to the console); a refused
+// line read never reads as a dispute with no lines. A record change puts every read back to loading.
+const LOADING = 'loading';
+const READY = 'ready';
+const UNAVAILABLE = 'unavailable';
+const DISPUTE_UNAVAILABLE_TEXT = "Unable to read this case's dispute. Contact your administrator.";
+const LINES_UNAVAILABLE_TEXT = "Unable to read this dispute's lines. Contact your administrator.";
+
 /**
- * Dispute Details – shows the Dispute record linked to the current Case,
- * with editable approved amounts on dispute items.
+ * Dispute Details – shows the Dispute record linked to the current Case and its disputed lines.
+ * Approved amounts are read-only here; they are edited on the dispute items themselves.
  */
 export default class RlmDisputeDetails extends NavigationMixin(LightningElement) {
     _recordId;
 
-    // A new record (Case) starts a new load: the previous dispute, its items and any error are
-    // cleared, so nothing of it shows while the next one loads or if that load fails.
     @api
     get recordId() { return this._recordId; }
     set recordId(value) {
         if (value !== this._recordId) {
+            // A new case: both reads start over, and a line-names reply in flight is dropped.
+            this._seq += 1;
+            this.disputeState = LOADING;
+            this.linesState = LOADING;
             this.disputeData = null;
             this.disputeItems = [];
             this._disputeId = null;
-            this.error = undefined;
-            this.errorMessage = '';
-            this._disputeLoaded = false;
-            this._itemsLoaded = false;
-            this.isLoading = true;
         }
         this._recordId = value;
     }
 
-    @track isLoading = true;
-    @track isSaving = false;
-    @track error;
-    @track errorMessage = '';
+    // One state per read: the case's dispute and the dispute's lines. Each read's reply sets only its
+    // own state.
+    disputeState = LOADING;
+    linesState = LOADING;
     @track disputeData = null;
     @track disputeItems = [];
 
     _disputeId = null;
-    _disputeLoaded = false;
-    _itemsLoaded = false;
-    _rawDisputedAmount = 0;
+    // Bumped by a record change, a different dispute, a line reply and a line failure: a line-names
+    // reply applies only while it is still the latest.
+    _seq = 0;
+
+    // ── View state ──
+    get isLoading() {
+        if (!this.recordId) return false;
+        if (this.disputeState === LOADING) return true;
+        return this.disputeState === READY && this.hasData && this.linesState === LOADING;
+    }
+
+    get disputeUnavailable() { return !!this.recordId && this.disputeState === UNAVAILABLE; }
+    get disputeUnavailableText() { return DISPUTE_UNAVAILABLE_TEXT; }
+    get showDispute() { return !this.isLoading && this.disputeState === READY && this.hasData; }
+    get noDispute() { return !this.recordId || (this.disputeState === READY && !this.hasData); }
+
+    get linesUnavailable() { return this.linesState === UNAVAILABLE; }
+    get linesUnavailableText() { return LINES_UNAVAILABLE_TEXT; }
+    get showItems() { return this.linesState === READY && this.disputeItems.length > 0; }
+
+    // The total of the lines' approved amounts: unavailable when the lines could not be read, never a
+    // blank or $0.00 that reads as nothing approved.
+    get formattedApprovedTotal() {
+        if (this.linesState === UNAVAILABLE) return 'Unavailable';
+        if (this.linesState !== READY) return '';
+        const total = this.disputeItems.reduce((sum, item) => sum + (Number(item.approvedAmount) || 0), 0);
+        return this.formatCurrency(total);
+    }
 
     // ── Header getters ──
     get disputeName() {
-        return this.disputeData?.name || '';
+        return this.showDispute ? this.disputeData.name : '';
     }
 
     get disputeRecordUrl() {
@@ -62,33 +91,26 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
         variables: '$disputeVariables'
     })
     wiredDispute({ data, errors }) {
-        if (!this.recordId) {
-            this._disputeLoaded = true;
-            this._itemsLoaded = true;
-            this.checkLoadingComplete();
-            return;
-        }
         if (errors && errors.length) {
-            this.error = errors;
-            this.errorMessage = this.readableError(errors[0]);
+            console.error('rlmDisputeDetails: the dispute read failed', errors);
+            this.disputeState = UNAVAILABLE;
             this.disputeData = null;
-            this.disputeItems = [];
-            this._disputeId = null;
-            this._disputeLoaded = true;
-            this._itemsLoaded = true;
-            this.checkLoadingComplete();
             return;
         }
-        if (data) {
-            this.processDispute(data);
-            this.error = undefined;
-            this.errorMessage = '';
-            this._disputeLoaded = true;
-            if (!this._disputeId) {
-                this._itemsLoaded = true;
-            }
-            this.checkLoadingComplete();
+        // The empty delivery before the first reply is not an answer.
+        if (!data) return;
+        const node = data?.uiapi?.query?.Dispute?.edges?.[0]?.node;
+        const id = node?.Id || null;
+        if (id !== this._disputeId) {
+            // A different dispute (or none): its lines are read afresh. The same dispute (a re-read)
+            // leaves the lines' state as it is, since the line wire does not answer again.
+            this._seq += 1;
+            this.linesState = LOADING;
+            this.disputeItems = [];
+            this._disputeId = id;
         }
+        this.disputeData = node ? this.shapeDispute(node) : null;
+        this.disputeState = READY;
     }
 
     get disputeVariables() {
@@ -126,14 +148,14 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
     wiredDisputeItems({ data, errors }) {
         if (!this._disputeId) return;
         if (errors && errors.length) {
+            console.error('rlmDisputeDetails: the dispute line read failed', errors);
+            this._seq += 1;
+            this.linesState = UNAVAILABLE;
             this.disputeItems = [];
-            this._itemsLoaded = true;
-            this.checkLoadingComplete();
             return;
         }
-        if (data) {
-            this.processDisputeItems(data);
-        }
+        if (!data) return;
+        this.processDisputeItems(data, (this._seq += 1));
     }
 
     get disputeItemsVariables() {
@@ -166,20 +188,7 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
         }
     `;
 
-    checkLoadingComplete() {
-        if (this._disputeLoaded && this._itemsLoaded) {
-            this.isLoading = false;
-        }
-    }
-
-    processDispute(data) {
-        const node = data?.uiapi?.query?.Dispute?.edges?.[0]?.node;
-        if (!node) {
-            this.disputeData = null;
-            this._disputeId = null;
-            return;
-        }
-
+    shapeDispute(node) {
         const id = node.Id;
         const name = node?.Name?.value || '—';
         const invoiceId = node?.InvoiceId?.value || null;
@@ -192,10 +201,20 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
             ? parseDateOnly(receivedDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
             : '—';
 
-        this._disputeId = id;
-        this._rawDisputedAmount = disputedAmount;
+        // Resolve Invoice DocumentNumber via Apex. The name is applied only while the dispute shown
+        // still points at that invoice, so a late reply never lands on another dispute.
+        if (invoiceId) {
+            getRelatedNames({ invoiceIds: [invoiceId], invoiceLineIds: [] })
+                .then((result) => {
+                    const invoiceName = result?.invoiceNames?.[invoiceId];
+                    if (invoiceName && this.disputeData?.invoiceId === invoiceId) {
+                        this.disputeData = { ...this.disputeData, invoiceDisplayName: invoiceName };
+                    }
+                })
+                .catch(() => { /* keep the dash */ });
+        }
 
-        this.disputeData = {
+        return {
             id,
             name,
             invoiceId,
@@ -209,27 +228,9 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
             disputeUrl: this.buildRecordUrl(id),
             invoiceUrl: invoiceId ? this.buildRecordUrl(invoiceId) : null
         };
-
-        // Resolve Invoice DocumentNumber via Apex
-        if (invoiceId) {
-            getRelatedNames({ invoiceIds: [invoiceId], invoiceLineIds: [] })
-                .then((result) => {
-                    // The record may have changed while the name was being read: apply it only to
-                    // the dispute it was read for.
-                    if (this._disputeId !== id) return;
-                    const invoiceNames = result.invoiceNames || {};
-                    if (invoiceNames[invoiceId]) {
-                        this.disputeData = {
-                            ...this.disputeData,
-                            invoiceDisplayName: invoiceNames[invoiceId]
-                        };
-                    }
-                })
-                .catch(() => { /* keep the dash */ });
-        }
     }
 
-    processDisputeItems(data) {
+    processDisputeItems(data, seq) {
         const edges = data?.uiapi?.query?.DisputeItem?.edges || [];
 
         const items = edges.map((edge) => {
@@ -264,101 +265,41 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
             };
         });
 
-        this.disputeItems = items;
-        this.recalculateTotalApproved();
-
-        // If GraphQL relationship didn't return names, fall back to Apex
+        // If GraphQL relationship didn't return names, fall back to Apex; the lines show once it
+        // answers, and a name it cannot read stays a dash.
         const needsApex = items.some((i) => i.invoiceLineId && !i._hasGqlName);
         const invoiceLineIds = items.map((i) => i.invoiceLineId).filter(Boolean);
-
-        if (needsApex && invoiceLineIds.length > 0) {
-            const disputeId = this._disputeId;
-            getRelatedNames({ invoiceIds: [], invoiceLineIds })
-                .then((result) => {
-                    if (this._disputeId !== disputeId) return;
-                    const lineNames = result.lineNames || {};
-                    const lineBalances = result.lineBalances || {};
-                    this.disputeItems = this.disputeItems.map((item) => ({
-                        ...item,
-                        invoiceLineName: (item.invoiceLineId && lineNames[item.invoiceLineId]) || item.invoiceLineName,
-                        balance: (item.balance === '—' && item.invoiceLineId && lineBalances[item.invoiceLineId] != null)
-                            ? this.formatCurrency(lineBalances[item.invoiceLineId])
-                            : item.balance
-                    }));
-                })
-                .catch(() => { /* keep existing data */ })
-                .finally(() => {
-                    // A reply for a dispute no longer shown does not touch the current load.
-                    if (this._disputeId !== disputeId) return;
-                    this._itemsLoaded = true;
-                    this.checkLoadingComplete();
-                });
-        } else {
-            this._itemsLoaded = true;
-            this.checkLoadingComplete();
+        if (!needsApex || invoiceLineIds.length === 0) {
+            this._applyItems(items);
+            return;
         }
-    }
-
-    // ── Editable Approved Amount ──
-    handleApprovedAmountChange(event) {
-        const itemId = event.currentTarget.dataset.id;
-        const newValue = Number(event.target.value ?? 0);
-        this.disputeItems = this.disputeItems.map((item) => {
-            if (item.id === itemId) {
-                return { ...item, approvedAmount: newValue };
-            }
-            return item;
-        });
-        this.recalculateTotalApproved();
-    }
-
-    recalculateTotalApproved() {
-        const total = this.disputeItems.reduce((sum, item) => sum + (Number(item.approvedAmount) || 0), 0);
-        if (this.disputeData) {
-            this.disputeData = {
-                ...this.disputeData,
-                formattedApprovedAmount: this.formatCurrency(total)
-            };
-        }
-    }
-
-    handleSave() {
-        this.isSaving = true;
-        const items = this.disputeItems.map((item) => ({
-            id: item.id,
-            approvedAmount: item.approvedAmount
-        }));
-        saveApprovedAmounts({ items })
-            .then(() => {
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'Success',
-                        message: 'Approved amounts saved.',
-                        variant: 'success'
-                    })
-                );
+        getRelatedNames({ invoiceIds: [], invoiceLineIds })
+            .then((result) => {
+                const lineNames = result?.lineNames || {};
+                const lineBalances = result?.lineBalances || {};
+                return items.map((item) => ({
+                    ...item,
+                    invoiceLineName: (item.invoiceLineId && lineNames[item.invoiceLineId]) || item.invoiceLineName,
+                    balance: (item.balance === '—' && item.invoiceLineId && lineBalances[item.invoiceLineId] != null)
+                        ? this.formatCurrency(lineBalances[item.invoiceLineId])
+                        : item.balance
+                }));
             })
-            .catch((err) => {
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'Error saving',
-                        message: this.readableError(err),
-                        variant: 'error'
-                    })
-                );
-            })
-            .finally(() => {
-                this.isSaving = false;
+            .catch(() => items)
+            .then((named) => {
+                // A reply for lines no longer shown does not touch the current load.
+                if (seq === this._seq) this._applyItems(named);
             });
+    }
+
+    _applyItems(items) {
+        this.disputeItems = items;
+        this.linesState = READY;
     }
 
     // ── Getters ──
     get hasData() {
         return this.disputeData !== null;
-    }
-
-    get hasItems() {
-        return this.disputeItems.length > 0;
     }
 
     get itemCount() {
@@ -384,13 +325,5 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
                 actionName: 'view'
             }
         });
-    }
-
-    readableError(err) {
-        if (!err) return 'Unknown error';
-        if (typeof err === 'string') return err;
-        if (err.message) return err.message;
-        if (err.body?.message) return err.body.message;
-        return JSON.stringify(err);
     }
 }

@@ -3,12 +3,45 @@ import { getRecord, getFieldValue } from 'lightning/uiRecordApi';
 import getBillingScheduleGroups from '@salesforce/apex/RLM_BillingScheduleGroupController.getBillingScheduleGroups';
 import { NavigationMixin } from 'lightning/navigation';
 
+// Each read is loading until its own reply, then ready or unavailable (todo 509). A refused or failed
+// read shows only its fixed sentence, never the platform's text (that goes to the console); a record
+// change puts every read back to loading, and a reply for an earlier request is dropped.
+const LOADING = 'loading';
+const READY = 'ready';
+const UNAVAILABLE = 'unavailable';
+const ORDER_UNAVAILABLE_TEXT =
+    'Unable to read this order, so its billing schedule groups are not shown. Contact your administrator.';
+const GROUPS_UNAVAILABLE_TEXT = 'Unable to show the billing schedule groups. Contact your administrator.';
+
 export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(LightningElement) {
-    @api recordId;
+    _recordId;
+    _connected = false;
+
+    @api
+    get recordId() { return this._recordId; }
+    set recordId(value) {
+        if (value === this._recordId) return;
+        this._recordId = value;
+        // The first record is loaded on connect; a later one starts every read over.
+        if (this._connected) {
+            this._reset();
+            this._loadAccountPage();
+        }
+    }
     @api objectApiName;
+
+    // One state per read: the Order's account (Order pages only) and the groups. Each read's reply
+    // sets only its own state.
+    orderState = LOADING;
+    groupsState = LOADING;
+    // Bumped by a record change, every groups request and an order failure: a groups reply applies
+    // only while it is still the latest request.
+    _seq = 0;
+    // The account the latest groups request was for; an order re-read for the same account does not
+    // read the groups again.
+    _requestedAccountId;
+
     @track billingGroups = [];
-    @track error;
-    @track isLoading = true;
     @track showExpired = false;
     @track activeChargeType = 'all';
     @track activeStatusFilter = 'all';
@@ -24,38 +57,67 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
 
     @track chargeTypeCounts = { all: 0, recurring: 0, oneTime: 0, usage: 0, milestone: 0 };
 
-    accountId;
     currencyCode = 'USD';
-    hasInitialized = false;
     allBillingGroups = [];
 
     connectedCallback() {
-        // For Account pages, recordId IS the accountId
-        if (this.objectApiName === 'Account') {
-            this.accountId = this.recordId;
-            this.loadBillingGroups();
-        }
-        // For Order pages, we need to fetch the AccountId from the Order
-        // This will be handled by the wire below
+        if (this._connected) return;
+        this._connected = true;
+        this._loadAccountPage();
     }
 
-    @wire(getRecord, { 
-        recordId: '$recordId', 
+    // For Account pages, recordId IS the accountId. Order pages read the account from the Order
+    // through the wire below.
+    _loadAccountPage() {
+        if (this.objectApiName === 'Account') this.loadBillingGroups(this.recordId);
+    }
+
+    _reset() {
+        this._seq += 1;
+        this._requestedAccountId = undefined;
+        this.orderState = LOADING;
+        this.groupsState = LOADING;
+        this._clearGroups();
+    }
+
+    _clearGroups() {
+        this.allBillingGroups = [];
+        this.billingGroups = [];
+        this.chargeTypeCounts = { all: 0, recurring: 0, oneTime: 0, usage: 0, milestone: 0 };
+        this.totalBsgs = 0;
+        this.activeBsgs = 0;
+        this.expiredBsgs = 0;
+        this.completelyBilledBsgs = 0;
+        this.totalAmount = 0;
+        this.pendingAmount = 0;
+        this.currencyCode = 'USD';
+    }
+
+    // Read only on Order pages: there is no Order to read on an Account page.
+    get orderRecordId() {
+        return this.objectApiName === 'Order' ? this.recordId : undefined;
+    }
+
+    @wire(getRecord, {
+        recordId: '$orderRecordId',
         fields: ['Order.AccountId']
     })
     wiredRecord({ error, data }) {
-        // Only process if this is an Order page
-        if (this.objectApiName !== 'Order') {
+        if (this.objectApiName !== 'Order') return;
+        if (error) {
+            // A groups reply in flight is dropped: without the order it is not shown.
+            console.error('rlmBillingScheduleGroupHierarchy: the order read failed', error);
+            this._seq += 1;
+            this._requestedAccountId = undefined;
+            this.orderState = UNAVAILABLE;
+            this.groupsState = LOADING;
+            this._clearGroups();
             return;
         }
-
-        if (data) {
-            this.accountId = getFieldValue(data, 'Order.AccountId');
-            this.loadBillingGroups();
-        } else if (error) {
-            this.error = 'Error loading record: ' + (error.body ? error.body.message : error);
-            this.isLoading = false;
-        }
+        if (!data) return;
+        this.orderState = READY;
+        const accountId = getFieldValue(data, 'Order.AccountId') || null;
+        if (accountId !== this._requestedAccountId) this.loadBillingGroups(accountId);
     }
 
     classifyChargeType(bsg) {
@@ -71,29 +133,60 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
         return 'recurring';
     }
 
-    loadBillingGroups() {
-        if (!this.accountId || this.hasInitialized) return;
-        
-        this.hasInitialized = true;
-        this.isLoading = true;
-        getBillingScheduleGroups({ accountId: this.accountId })
-            .then(data => {
+    loadBillingGroups(accountId) {
+        const seq = (this._seq += 1);
+        this._requestedAccountId = accountId;
+        this.groupsState = LOADING;
+        this._clearGroups();
+        if (!accountId) {
+            // An Order with no account has no groups.
+            this.groupsState = READY;
+            return;
+        }
+        getBillingScheduleGroups({ accountId }).then(
+            (data) => {
+                if (seq !== this._seq) return;
                 try {
-                    this.allBillingGroups = data;
-                    this.countChargeTypes(data);
+                    this.allBillingGroups = data || [];
+                    this.countChargeTypes(this.allBillingGroups);
                     this.applyChargeTypeFilter();
-                    this.error = undefined;
+                    this.groupsState = READY;
                 } catch (e) {
-                    this.error = 'Error processing billing schedule groups: ' + e.message;
-                    this.billingGroups = [];
+                    this._groupsFailed(e);
                 }
-                this.isLoading = false;
-            })
-            .catch(error => {
-                this.error = error.body ? error.body.message : 'Unknown error occurred';
-                this.billingGroups = [];
-                this.isLoading = false;
-            });
+            },
+            (error) => {
+                if (seq === this._seq) this._groupsFailed(error);
+            }
+        );
+    }
+
+    _groupsFailed(error) {
+        console.error('rlmBillingScheduleGroupHierarchy: the billing schedule group read failed', error);
+        this._clearGroups();
+        this.groupsState = UNAVAILABLE;
+    }
+
+    // The view's one state: on an Order page the order's, then the groups'.
+    get state() {
+        if (this.objectApiName === 'Order' && this.orderState !== READY) return this.orderState;
+        return this.groupsState;
+    }
+
+    get isLoading() {
+        return this.state === LOADING;
+    }
+
+    // The fixed sentence for a read that could not be made; '' otherwise.
+    get error() {
+        if (this.state !== UNAVAILABLE) return '';
+        return this.objectApiName === 'Order' && this.orderState === UNAVAILABLE
+            ? ORDER_UNAVAILABLE_TEXT
+            : GROUPS_UNAVAILABLE_TEXT;
+    }
+
+    get isEmpty() {
+        return this.state === READY && this.allBillingGroups.length === 0;
     }
 
     countChargeTypes(data) {
@@ -423,7 +516,7 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
     }
 
     get hasData() {
-        return this.allBillingGroups && this.allBillingGroups.length > 0;
+        return this.state === READY && this.allBillingGroups.length > 0;
     }
 
     get hasGroups() {
@@ -529,7 +622,9 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
         return this.formatCurrency(this.pendingAmount);
     }
 
+    // Only for groups that were read: no "0 items" while loading or when the read failed.
     get summaryText() {
+        if (this.state !== READY) return '';
         return `${this.totalBsgs} items • Billed: ${this.formattedTotalAmount} • Pending: ${this.formattedPendingAmount}`;
     }
 
