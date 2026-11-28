@@ -104,7 +104,7 @@ the header tax amount (Total Taxes Captured at Header) instead of summed line ta
 tax is used when the header amount is missing or a number of listed failures occur
 [Help: ind.billing_setup_header_tax_enable] [Help: ind.billing_tax_summary_difference].
 Choose it only if the customer's tax system returns one consolidated amount
-[inferred from Help].
+[inferred].
 
 ## Imported tax
 

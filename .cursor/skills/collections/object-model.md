@@ -31,7 +31,7 @@ Read this to map a collections concept to an object, field or picklist. Parent:
   Debit Memo `ReasonCode`. A null Status is what the platform leaves, and no repo file adds values
   [Measured: 2026-11-27, 264, fresh scratch build, API 68.0]. The Collections and Recovery Help adds Active and Pending to Status
   [Help: ind.collections_add_cpstatus_picklist_values] (a different product)
-  [Open: confirm Billing collections uses the same values].
+  [Open: does Billing collections use Active and Pending for Status? Add both on a fresh 264 build and run the promise and close flows].
 - **Due date is `Duedate`** (lower-case d). A payment batch run keys on the item's
   `TargetPaymentProcessingDate`, not the plan's `Duedate` or `DaysPastDue`
   [Help: ind.billing_collection_plan_payment_promise_collect].
@@ -91,6 +91,6 @@ Read this to map a collections concept to an object, field or picklist. Parent:
   "no plan". [Measured: 2026-11-26, 264, fresh scratch build]
 - Account sharing hides names, not rows: `Invoice`, `BillingScheduleGroup` and `BillingArrangement`
   stay visible when Account is Private, and a USER_MODE Account read simply omits the hidden id. Checked as a Login As persona with Account read and no View All.
-  [Measured: 2026-11-27, 264, scratch]
+  [Measured: 2026-11-27, 264, ent-sb0 scratch build]
 - Whether describe hides license-gated Dispute fields from a user without the Billing license, so
   that user sees a real-looking 0: [Open: describe Dispute as a user without the license].

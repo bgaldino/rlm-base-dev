@@ -13,9 +13,9 @@ Read this when writing Apex or LWC over plans, invoices, cases or payments. Pare
   `QueryException: Variable does not exist: tmpVar1`: the text is misleading and means refused. [Measured: 2026-11-26, 264, ent-sb0 scratch build]
 - An inline `COUNT()` on a refused object raised `SecurityException`. [Measured: 2026-11-26, 264, ent-sb0 scratch build]
 - Which type each inline shape raises is not fully mapped, so catch `Exception` around a required
-  read. [Open: map each inline shape to its exception type]
+  read. [Open: which exception class does each inline query shape raise on a refused object? As a Login As persona, run each shape and log the class]
 - **"No such column" has two causes.** A single-currency org has no `CurrencyIsoCode` on Invoice or
-  Payment, and querying it throws the same text [Measured: date not recorded, 264, org kind not recorded]. Check describe before calling it a refusal, filter
+  Payment, and querying it throws the same text [Open: is CurrencyIsoCode absent from Invoice and Payment on a single-currency org? Describe both on a single-currency 264 scratch org]. Check describe before calling it a refusal, filter
   on currency only where the object has the field, and never offer a currency filter that cannot
   apply.
 
@@ -81,7 +81,7 @@ Read this when writing Apex or LWC over plans, invoices, cases or payments. Pare
   converting through the browser time zone shifts them by a day, and bucketing by local month shifts
   a period table. [Open: render a promise date in a browser outside UTC on a live 264 org and compare it to the stored date]
 - Label columns with names, never record Ids. A `lightning-datatable` `url` column with value `'#'`
-  renders as `https://#`, a broken link. [Measured: 2026-11-27, 264, scratch, live UI]
+  renders as `https://#`, a broken link. [Measured: 2026-11-27, 264, ent-sb0 scratch build, live UI]
 - Sort the Critical list by `DueDate`, not `DaysInvoiceOverdue`.
 
 ## Testing

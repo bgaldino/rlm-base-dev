@@ -17,8 +17,8 @@ Each claim carries its own tag.
    ([object-model.md](object-model.md)). Write-off needs a credit memo reason and the late-fee action a
    debit memo reason. Setup > Object Manager > Credit Memo > Fields and Relationships > Reason Code,
    add a value such as "Bad Debt" (same for Debit Memo). No headless route to add the value was
-   found (no CustomField row, no matching StandardValueSet) [Measured: 2026-11-27, 264, fresh scratch build, API 68.0] [Open: a metadata or Tooling route
-   that adds picklist values to these standard fields]
+   found (no CustomField row, no matching StandardValueSet) [Measured: 2026-11-27, 264, fresh scratch build, API 68.0] [Open: do the Credit Memo and Debit Memo
+   metadata carry `ReasonCode` valueSet entries? Retrieve both with the Metadata API and read them]
 5. **Console.** Specialist console setup: grant field access to `CollectionPlanItem.InitialDueAmount`
    for the Collection Progress chart [Help: ind.billing_collections_specialist_console_setup]. No
    repo set grants it ([object-model.md](object-model.md)), so add it yourself.
@@ -63,8 +63,7 @@ unpackaged/post_collections/flows/RLM_Create_Late_Fee.flow-meta.xml]. A REST cre
 `DebitMemo` with `{}` fails with REQUIRED_FIELD_MISSING for AccountId, Status and
 InvoiceGenerationStatus [Measured: 2026-11-27, 264, fresh scratch build, API 68.0]. The flow itself
 was not run, since screen flows have no headless route: [Open: run the quick action in the UI as a
-specialist and read the DebitMemo]. The late-fee action was reported reverted and hidden in 264
-[Open: read the quick action's metadata and visibility on a fresh 264 build].
+specialist and read the DebitMemo].
 
 **Write off.** `Invoice.RLM_Write_Off_Invoice` launches `RLM_WriteOffInvoices`, which calls the
 `writeOffInvoices` action with a reason code and the reason "Bad Debt" [Repo:
@@ -87,8 +86,9 @@ Resolve Case quick action [Help: ind.billing_disputes_overview] [Help: ind.billi
 [repo-collections-tier.md](repo-collections-tier.md). Chargebacks and card disputes:
 [Open: record a card chargeback against a payment and read the payment and invoice].
 
-**Retries and reminders.** Payment retries on collection-plan items and the Send Reminder button:
-the repo removed the no-op Send Reminder button; none is built.
+**Reminders.** The repo removed the no-op Send Reminder button; none is built
+[Repo: unpackaged/post_billing_ui/lwc/rlmCollectionsDashboard/__tests__/rlmCollectionsDashboard.test.js].
+Payment retry rules: `billing-operations` → `payments-and-credits.md`.
 
 ## Headless limits
 

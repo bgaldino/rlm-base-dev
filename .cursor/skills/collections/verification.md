@@ -39,8 +39,8 @@ For each persona (collector, billing operations, bare managed role, read-only):
    "Status Unavailable" with only the bare role [Measured: 2026-11-26, 264, ent-sb0 scratch build].
 3. Open the dashboard: every section either shows data or says why not; none shows 0 for a section the
    persona cannot read. Debit memos read "not available".
-4. Case Metrics for a user who reads Case but not Dispute: Open Billing Cases a real 0, the dispute
-   figures "Unavailable" [Measured: 2026-11-26, 264, ent-sb0 scratch build]. The metric
+4. After adding Case Metrics to a home page ([troubleshooting.md](troubleshooting.md)), a user who reads Case but not Dispute sees Open Billing Cases as a real 0 and the dispute
+   figures as "Unavailable" [Measured: 2026-11-26, 264, ent-sb0 scratch build]. The metric
    counts only open Cases of Type Billing.
 5. Run the same page as the admin only to compare totals; never as the check.
 

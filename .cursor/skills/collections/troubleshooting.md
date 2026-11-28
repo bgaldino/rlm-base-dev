@@ -10,7 +10,7 @@ Read this when something collections-related is empty, zero, refused or missing.
 | A permission set group fails to deploy and keeps its old content | A license-gated permission sits in a group and a holder lacks `BillingAdvancedPsl` [Repo: docs/references/revenue-cloud-permissions.md] | Move it to a standalone set |
 | Card shows "Variable does not exist: tmpVar1" | An inline USER_MODE query with a bind on a refused object (Case) [Measured: 2026-11-26, 264, ent-sb0 scratch build] | Catch `Exception` and show Unavailable |
 | "sObject type 'X' is not supported" | The user cannot read X [Measured: 2026-11-25 to 2026-11-26, 264, fresh scratch build] | Grant read or show Unavailable |
-| "No such column 'CurrencyIsoCode'" | Single-currency org: the field does not exist, not a refusal [Measured: date not recorded, 264, org kind not recorded] | Describe first; drop the currency filter |
+| "No such column 'CurrencyIsoCode'" | Single-currency org: the field does not exist, not a refusal [Open: is CurrencyIsoCode absent from Invoice and Payment on a single-currency org? Describe both on a single-currency 264 scratch org] | Describe first; drop the currency filter |
 | A total reads 0 but data exists | A refused read was coalesced to 0 | Show Unavailable; fix the controller |
 | Debit memos total missing | Reading `DebitMemo` needs Manage Debit Memos, not granted ([permissions-and-personas.md](permissions-and-personas.md)) | Label the total as excluding debit memos |
 | Dashboard says "Too many records" | A bounded read overflowed | Narrow by account or currency, as the message says |
@@ -19,7 +19,7 @@ Read this when something collections-related is empty, zero, refused or missing.
 | Plan Status is null | The picklist has no values on a fresh build ([object-model.md](object-model.md)) | Add values |
 | Write-off returns INVALID_API_INPUT | Reason Code picklist empty [Measured: 2026-11-27, 264, fresh scratch build, API 68.0]; with a value, the outcome is [Open: add a Reason Code value, rerun the write-off and read the invoice] | Add a value to the Credit Memo Reason Code |
 | Write-off API JSON_PARSER_ERROR "Unrecognized field" | The dev-guide example sends `description` [Dev guide: connect-resources-write-off-invoices]; the call rejects it and the field is `reason` [Measured: 2026-11-27, 264, fresh scratch build, API 68.0] | Send `reason` |
-| Late-fee flow creates nothing or errors | The Debit Memo create has no field values [Repo: unpackaged/post_collections/flows/RLM_Create_Late_Fee.flow-meta.xml] | [Open: confirm in the UI; fix the flow] |
+| Late-fee flow creates nothing or errors | The Debit Memo create has no field values [Repo: unpackaged/post_collections/flows/RLM_Create_Late_Fee.flow-meta.xml] | [Open: does the late-fee action create a DebitMemo? Run it as in setup-and-operate.md, Charge a late fee; fix the flow if not] |
 | Plan never closes | The close flow ships Draft [Repo: unpackaged/post_collections/flows/RLM_Close_Collection_Plan_and_Associated_Cases.flow-meta.xml] | Activate it or close by hand |
 | REST create of a plan with `Name` fails | `Name` is an auto-number [Measured: 2026-11-27, 264, fresh scratch build, API 68.0] | Omit it |
 | REST create of `PaymentScheduleItem` rejected | Missing `TargetPaymentProcessingDate` or Status "Pending" [Measured: 2026-11-27, 264, fresh scratch build, API 68.0] | Use `TargetPaymentProcessingDate` and Status Draft |

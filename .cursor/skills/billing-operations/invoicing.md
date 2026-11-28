@@ -60,8 +60,8 @@ recommends extending the standard definitions and using the extended copy
   related schedules with status Ready for Invoicing; it is on the Account layout by default
   and added by hand to Order [Help: ind.billing_invoice_generation_for_accounts_orders].
   That article says next billing date *before* the target date; the scheduler article says
-  *on or before* (see *Dates* below) [Open: whether a schedule due on the target date is
-  invoiced on demand; check it on the first run].
+  *on or before* (see *Dates* below) [Open: is a schedule due on the target date
+  invoiced on demand? Run an on-demand invoice with the target date equal to the due date].
 - **Ingestion.** A posted debit memo can be turned into a draft invoice; ingested lines
   with tax status Pending or Estimated get estimated tax
   [Help: ind.billing_invoice_creation].
@@ -86,7 +86,7 @@ Three controls on a scheduler [Help: ind.billing_understand_target_date_and_bill
 
 Decision: a fixed target date is simplest but bills schedules with earlier next billing
 dates for extra periods; a period count bills the same number of periods per schedule
-instead. Ask which the customer's contracts need [inferred from Help].
+instead. Ask which the customer's contracts need [inferred].
 
 Milestone and usage schedules differ. For milestones the target date picks which
 accomplished milestones invoice (the run date when none is set); usage schedules with
@@ -213,7 +213,7 @@ is out of scope here [Help: ind.billing_forecast_console].
 # shouldRecalculateAllForecastLn true overwrites existing forecast rows (full refresh);
 # false is the faster incremental run over PendingForecast schedules (unchecked by default
 # in the UI [Help: ind.billing_forecast_schedule]; the API default was not found in the
-# dev guide [inferred from its silence], so set it explicitly).
+# dev guide [inferred], so set it explicitly).
 cat > forecast.json <<'JSON'
 {"schedulerName":"<unique name>","jobType":"Forecast","status":"Active",
  "frequencyCadence":"Once","frequencyCadenceOptions":{"shouldStartRunImmediately":true},

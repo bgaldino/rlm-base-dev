@@ -57,8 +57,8 @@ From Setup, Billing Settings [Help: ind.billing_setup_payments_configure] [Help:
 - Apply Credits to Posted Invoices: automatic application of available credit balances,
   with the default flow used to apply the credit memo to invoices.
 - Credit, Payment and Refund Application Level: **Line Level** (default) or **Header
-  Level**. Decide this early: it changes where balances live and how header tax works
-  ([tax.md](tax.md)) [inferred] [Help: ind.billing_setup_header_tax_enable].
+  Level**. Decide this early [inferred]: it changes where balances live and how header tax works
+  ([tax.md](tax.md)) [Help: ind.billing_setup_header_tax_enable].
 - Rule-Based Credit and Payment Application, with an order and rules (below).
 - Level 2 and Level 3 data support, Share Payment Accounts.
 
@@ -286,7 +286,7 @@ Collections, dunning, disputes and the write-off and late-fee operations are in 
   debt); it updates write-off fields on the invoice, and afterwards no further credits or
   payments can be applied or unapplied. Use the Write-Off API or a flow action
   [Help: ind.billing_write_off_invoices_impact] [Help: ind.billing_write_off_invoices_invoke_action]. The Reason Code picklists are empty on a fresh
-  build, so the call returns INVALID_API_INPUT until you add a value ([collections](../collections/SKILL.md) →
+  build; the call returned INVALID_API_INPUT while the picklist was empty ([collections](../collections/SKILL.md) →
   `setup-and-operate.md`).
 - **Invoice aging** components show buckets and overdue counts on Account and Order pages
   [Help: ind.billing_invoice_aging]. The repo ships aging, dispute and collections

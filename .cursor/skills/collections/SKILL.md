@@ -27,8 +27,10 @@ Financial Services Cloud and Automotive Cloud, not Revenue Cloud
 [Help: ind.collections_editions_permissions]. Do not mix their articles.
 
 Tags: `[Help: <article>]` (264 Help snapshot, id without `.htm.md`, no backticks), `[Dev guide: <page>]`,
-`[Repo: <path>]`, `[Measured: <date>, <release>, <org shape>]` (an observation on that build;
-re-measure on the patch in hand before relying on it), `[Open: <check that would settle it>]`.
+`[Repo: <path>]`, `[Measured: <date>, <release>, <org kind>]` (an observation on that build, with
+optional trailing qualifiers such as API version, browser or sample size; re-measure on the patch
+in hand before relying on it), `[inferred]` and `[Core]` (reasoning or core-code reading, not
+measured), `[Open: <question and the check that settles it>]`.
 Anything untagged is a pointer to a sub-file.
 
 ## Quick Rules
@@ -75,7 +77,7 @@ Anything untagged is a pointer to a sub-file.
 - **DO NOT** read `Case.Description` in bulk or in a for loop for a list view; a list of 200 cases at the
   32,000-character maximum can exceed the 6 MB heap ([building-collections-uis.md](building-collections-uis.md)).
 - **DO NOT** treat every "No such column" as a refusal: a single-currency org has no
-  `CurrencyIsoCode` on Invoice or Payment [Measured: date not recorded, 264, org kind not recorded].
+  `CurrencyIsoCode` on Invoice or Payment [Open: is CurrencyIsoCode absent from Invoice and Payment on a single-currency org? Describe both on a single-currency 264 scratch org].
 - **DO NOT** use a filtered `SUM` as a per-currency total in a multi-currency org; it returns the
   corporate-converted amount [Measured: 2026-11-26, 264, fresh scratch build].
 - **DO NOT** verify app navigation with a Minimum Access persona

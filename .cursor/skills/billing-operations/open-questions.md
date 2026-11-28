@@ -36,8 +36,8 @@ then move it into the sub-file for its stage with a `[Measured: ...]` tag.
 - **Credit memo addresses** reported to need tax strategy Calculate, and a change to voiding a
   zero-amount memo. [Open: void a zero-amount memo and create a memo with a tax strategy other than Calculate, then read the results]
 - **Card fee as a debit memo** created by a flow on Payment. [Open: build and run the flow]
-- **The late-fee action** reported reverted and hidden in 264; the shipped late-fee flow is covered
-  in [collections](../collections/setup-and-operate.md). [Open: check the quick action in a 264 org]
+- **A platform late-fee action** (not the repo's `RLM_Charge_Late_Fee`, covered in
+  [collections](../collections/setup-and-operate.md)). [Open: is a platform late-fee action hidden in 264? Read the CollectionPlan quick actions and layout on a fresh 264 build]
 - **Chargebacks and disputes.** [Open: record a card chargeback against a payment and read the payment and invoice]
 
 ## Payments
