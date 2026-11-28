@@ -28,7 +28,7 @@ roadblock table).
 | SESSION scope (`SessionScopeContext` via `ContextServicePilot`) and/or "Runtime Context Instance Reuse" (`ContextReuse`) | The REST scripts / multi-call REST — `contextId` survives across calls | pilot / reuse setting |
 
 **With SESSION scope (measured on a `ContextServicePilot` org, 262 / v67.0), the REST path
-completes end-to-end** [Measured: 262 v67.0, date and org not recorded]:
+completes end-to-end** [Measured: date not recorded, 262, org kind not recorded]:
 
 | REST step | Status | Notes |
 |-----------|--------|-------|
@@ -47,7 +47,7 @@ completes end-to-end** [Measured: 262 v67.0, date and org not recorded]:
 | REST step | Status without SESSION (262) | Reason |
 |-----------|----------------------|--------|
 | `POST /contexts` (create) | ✅ works | GA |
-| `query-record` / `query-tags` | ❌ `API_DISABLED_FOR_ORG` | gated on that org (`ContextServicePilot`) [Measured: 262 v67.0, date and org not recorded] |
+| `query-record` / `query-tags` | ❌ `API_DISABLED_FOR_ORG` | gated on that org (`ContextServicePilot`) [Measured: date not recorded, 262, org kind not recorded] |
 | `persist-records` (and the PATCHes) | ❌ `RECORD_NOT_FOUND` | GA endpoint, but the REQUEST-scoped `contextId` from the create call is already gone by the next `sf api request` — surviving it needs **SESSION scope** |
 
 **264 re-measure.** On a 264 org where no permission set carried `SessionScopeContext`,
@@ -58,9 +58,8 @@ default REQUEST scope failed `query-record` with `RECORD_NOT_FOUND` ("Context wi
 doesn't exist or expired"), not `API_DISABLED_FOR_ORG`: the instance was gone before the next
 call. So on that 264 org the `--query` failure was the REQUEST default, not a gate;
 `context_session.py` selects SESSION whenever `--query`, `--persist`, `--update-attr`,
-`--write-tag` or `--keep` is given (pass `--context-scope REQUEST` to force the old behavior). The
-`API_DISABLED_FOR_ORG` rows above were measured on 262; whether a given 264 org still gates
-SESSION is [Open: settle by running context_session.py --persist on a second 264 org].
+`--write-tag` or `--keep` is given (pass `--context-scope REQUEST` to force REQUEST scope). The
+`API_DISABLED_FOR_ORG` rows above were measured on 262; whether other 264 orgs gate SESSION is not settled [Open: do other 264 orgs also allow SESSION? Settle by running context_session.py --query --persist on a second 264 org].
 
 Where SESSION is gated and Instance Reuse is off, **Apex (or a single Flow)
 is the working path** — it needs no SESSION permission, only GA
@@ -187,17 +186,15 @@ This is governed by **`metadata.contextScope`** on the create body
 - **`SESSION`** — the instance survives across separate calls (subject to
   `contextTtl`). SESSION may be gated on some orgs: sending `contextScope:"SESSION"`
   there returned `API_DISABLED_FOR_ORG` *"you don't have permission to call Session Scope"*
-  [Measured: 262 v67.0, date and org not recorded]. The user permission is
+  [Measured: date not recorded, 262, org kind not recorded]. The user permission is
   **`SessionScopeContext`**, shipped with `ContextServicePilot`; Instance Reuse is a separate
   setting. REQUEST is the recommended scope for customer use cases.
 
 A `REQUEST`-scope context is never written to the shared cache, so its id resolves only inside
-the request that built it; only `SESSION` contexts are stored. `[Platform behaviour, traced]`
+the request that built it; only `SESSION` contexts are stored. [Platform behaviour, traced]
 The supported way to hold a context across calls is the Place Sales Transaction input
 `contextDetails` (`{contextId, scope: "SESSION"}`), which the line editor sends when context
-reuse is enabled for the org (the reuse setting below, or a large deal). `[Platform behaviour,
-traced in part]` Not established: whether a direct API call with `SESSION` scope needs a specific
-permission beyond the gate measured above (the check was not found where the build runs).
+reuse is enabled for the org (the reuse setting below, or a large deal). [Platform behaviour, traced in part] Not established [Open: does a direct API call with SESSION scope need a specific permission beyond the gate measured above? Check the Session Scope permission check in core source].
 A cached context also expires (`contextTtl`), so it is not durable. This is consistent with the
 rule to chain create, query and persist inside one Apex or Flow transaction otherwise.
 
@@ -248,7 +245,7 @@ Endpoint map (v67.0, platform-wide — the same on scratch and production/demo):
   `metadata` accepts **`contextScope`** (`REQUEST` | `SESSION`) — **this is the
   knob that governs cross-call survival, and it defaults to `REQUEST`.**
 - **`contextScope: SESSION` may be gated on some orgs** (`API_DISABLED_FOR_ORG`,
-  user permission `SessionScopeContext` via `ContextServicePilot`) [Measured: 262 v67.0, date and org not recorded]. SESSION scope is
+  user permission `SessionScopeContext` via `ContextServicePilot`) [Measured: date not recorded, 262, org kind not recorded]. SESSION scope is
   what lets a `contextId` survive
   across separate HTTP calls; default REQUEST scope is request-local (~15 s
   guardrail TTL), so a REQUEST `contextId` is `RECORD_NOT_FOUND` on any *separate*
@@ -261,7 +258,7 @@ Endpoint map (v67.0, platform-wide — the same on scratch and production/demo):
 - **`POST /connect/contexts/query-record` and `query-tags[-leaner]` were gated on the
   262 orgs measured** — `API_DISABLED_FOR_ORG` *"…call Query Record"*, even on a fresh
   in-TTL contextId, on scratch and production alike (`ContextServicePilot`; the
-  write endpoints are GA) [Measured: 262 v67.0, date and org not recorded]. The 264 re-measure above found no such error at SESSION scope.
+  write endpoints are GA) [Measured: date not recorded, 262, org kind not recorded]. The 264 re-measure above found no such error at SESSION scope.
 - **`PATCH /connect/contexts/attributes`, `PATCH …/write-through-tags`, and
   `POST …/persist-records` all resolve and reach contextId validation** (400
   `RECORD_NOT_FOUND` on a dead REQUEST id) — i.e. they are **implemented and
@@ -280,8 +277,8 @@ not by chaining outbound `/connect/contexts/*` calls.
 
 ### The invocable-actions path (fourth surface) — same request-scope wall
 
-Context Service also ships **standard invocable actions** (Flow-/REST-invocable,
-[doc](https://developer.salesforce.com/docs/industries/industries-common-dev/guide/context-service-invocable-actions-parent.html)).
+Context Service also ships **standard invocable actions** (Flow-/REST-invocable)
+[Dev guide: Context Service Invocable Actions].
 Action names on the org (`GET /services/data/v68.0/actions/standard`, filtered):
 **`buildContext`**, **`updateContextAttributes`**, **`persistContextData`**,
 **`queryContextTags`**, **`deleteContextCache`**, plus `addContextRecords` /
@@ -465,7 +462,7 @@ GA. But it's bounded by the `contextId`'s scope.
 process," each step shells out to a *separate* `sf api request`, so a
 REQUEST-scoped contextId minted by create is already `RECORD_NOT_FOUND` by the
 persist call (and `--update-attr` PATCH hits the same wall). The script selects
-SESSION for those steps; persist under SESSION was not re-run [Open: settle by running context_session.py --persist on a second 264 org]. **The persist path
+SESSION for those steps; persist under SESSION was not re-run [Open: does persist complete under SESSION on 264? Settle by running context_session.py --persist on a 264 org]. **The persist path
 that works where SESSION is gated is the Apex bridge:** `Context.IndustriesContext` doing
 build → (`updateContextAttributes`) → `persistContext` in **one Apex transaction**
 (`sf apex run --file`), which returns the `referenceId`. The REST `persist-records`
