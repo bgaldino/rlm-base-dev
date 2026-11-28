@@ -211,11 +211,11 @@ the directory `README.md` and `runtime-and-persistence.md`):
 | `delete_context.py` | **Destructive** | Deactivate (default) or hard-delete a definition / custom artifacts. Hard delete is opt-in (`--confirm-delete`); three pre-flight guards (inheritance / active-state / dependents) refuse a bad delete. Orchestration in `_delete.py`. No production delete task exists |
 | `mutate_context.py` | **Mutates** | One granular in-place edit to an existing definition: `--set-transient` / `--set-default-mapping` / `--add-tag` / `--add-mapping` / `--remove-tag`. Previews unless `--confirm`; op-specific inheritance + active-state guards (the pure inserts `--add-tag` / `--add-mapping` run on an active version). `--add-mapping` binds one attribute→field via SObject-REST POST (sibling-safe; the only clean root-node binding). Orchestration in `_mutate.py`. Prefer a plan via `manage_context_definition` for build work |
 
-Runtime instance scripts (`scripts/context_service/instance/` — verify-live, pilot
+Runtime instance scripts (`scripts/context_service/instance/` — verify-live, gate
 caveats; `context_session.py` sequences the lifecycle from one Python process, but
 a runtime `contextId` is request-scoped; its steps are separate calls, so it selects SESSION
 scope when a later step is requested (the standalone scripts need `--context-scope SESSION` or a reused `--context-id`), and
-SESSION scope may be gated on some orgs, else use Apex (rule 10).
+SESSION scope may be gated on some orgs; where it is gated, use Apex (rule 10).
 Shared logic in `_runtime.py` / `_resolve.py` / `_runtime_cli.py`):
 
 | Script | Org? | Purpose |
