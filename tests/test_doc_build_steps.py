@@ -24,7 +24,7 @@ Two directions are checked, because drift and omission are different failures:
    renumbering, a wrong substep, and a row pointing at a different task.
 2. **Every permission-assigning step in the flow is cited.** Catches the
    opposite failure: `prepare_payments`, `prepare_billing`, `prepare_prm_pricing`,
-   `prepare_inapp` and two `prepare_personas` assignments were **missing entirely**
+   a since-removed flow and two `prepare_personas` assignments were **missing entirely**
    from a table whose own preamble claims to list them all, so six permission
    sets were being granted by the build with no entry in the permissions
    reference. Scoped to that table (located by its heading), not to the file and

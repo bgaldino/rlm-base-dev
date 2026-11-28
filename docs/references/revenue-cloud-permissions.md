@@ -433,7 +433,6 @@ The following table shows the sequence of all permission-related steps across th
 | 29.12 | `prepare_personas` > `assign_permission_sets` | `RLM_RenewalQuotes` (salesrep user) — Generate Renewal Quote and Consolidate Renewals call `RLM_RenewalAssetLock`. Narrow: class access and Asset/Account/Contact read, changes nothing | `personas` + (`quantumbit` \| `tso`) |
 | 29.13 | `prepare_personas` > `assign_permission_sets` | `RLM_UsageDatatables` (salesrep user) — the Account page's View Usage tables (`RLM_UsageDataController`); the Usage (`TransactionJournal`) table stays empty for the persona, see *Record sharing*. Narrow: class access and read on usage objects | `personas` + (`quantumbit` \| `tso`) |
 | 29.14 | `prepare_personas` > `assign_permission_sets` | `RLM_UsageUploader` (salesrep user) — the Account page's Add Usage uploader (`RLM_UsageUploaderController`): user-mode `TransactionJournal` create. `RLM_UsageOrchestration` is not given to the persona | `personas` + (`quantumbit` \| `tso`) |
-| 31.2 | `prepare_inapp` > `assign_permission_sets` | `RLM_Learning` | `inapp` |
 | 36.3 | `prepare_mcp` > `assign_permission_sets` | `RLM_McpSalesTransactions` (running user) — class access to `RLM_CloneSalesTransaction` only, so a non-admin user authorized on the MCP server can call the CLASSIC-bound clone tool. Every other MCP user needs it assigned separately (`sf org assign permset --on-behalf-of`) | `mcp` + `mcp_custom_server` |
 
 ---
