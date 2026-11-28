@@ -154,7 +154,6 @@ project:
 
     # ── Deployment Options ─────────────────────────────────────────────────────
     personas: true            # Persona profiles and permission set groups (post_personas)
-    inapp: false              # In-App Learning navigation framework (post_inapp + datasets/sfdmu/inapp). Opt-in: overrides the org Home page.
     locale: en_US             # Default locale
 
 #------------------------------#
@@ -456,10 +455,6 @@ project:
       # Large STX-specific permission sets
       - RLM_LargeSalesTransaction
 
-    ps_inapp: &ps_inapp
-      # In-App Learning framework permission set
-      - RLM_Learning
-
     ps_persona_sales_rep: &ps_persona_sales_rep
       # Persona sales rep-specific permission sets
       - RLM_QuantumBit_Sales_Representative
@@ -675,7 +670,6 @@ project:
     quantumbit_guidedselling_products_dataset: &quantumbit_guidedselling_products_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling-products"   # QuantumBit guided selling Product2 field values
     quantumbit_clm_dataset: &quantumbit_clm_dataset "datasets/sfdmu/qb/en-US/qb-clm"                                 # QuantumBit CLM data
     quantumbit_prm_dataset: &quantumbit_prm_dataset "datasets/sfdmu/qb/en-US/qb-prm"                                 # QuantumBit PRM data
-    inapp_dataset: &inapp_dataset "datasets/sfdmu/inapp"                                                            # In-App Learning navigation content (Pages/Sections/Blocks/DynamicLinks)
     quantumbit_prm_pricing_dataset: &quantumbit_prm_pricing_dataset "datasets/sfdmu/qb/en-US/qb-prm-pricing"         # QuantumBit PRM pricing overlay data
     quantumbit_approvals_dataset: &quantumbit_approvals_dataset "datasets/sfdmu/qb/en-US/qb-approvals"               # QuantumBit approvals data
 
@@ -1771,20 +1765,6 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_guidedselling
-
-  deploy_post_inapp:
-    group: Revenue Lifecycle Management
-    description: Deploy the In-App Learning navigation framework (objects, LWC, Apex, flexipages, Learning Home app)
-    class_path: cumulusci.tasks.salesforce.Deploy
-    options:
-      path: unpackaged/post_inapp
-
-  load_inapp_dataset:
-    group: Revenue Lifecycle Management
-    description: Load In-App Learning navigation content (Pages/Sections/Blocks/DynamicLinks) via SFDMU
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *inapp_dataset
 
   assemble_and_deploy_ux:
     group: UX Personalization
@@ -3153,14 +3133,6 @@ tasks:
       pathtoexportjson: *quantumbit_prm_dataset
       use_extraction_roundtrip: false
 
-  test_inapp_idempotency:
-    group: Data Management - Idempotency
-    description: Idempotency test for inapp (In-App Learning navigation content). Every object is Upsert since todo 334.
-    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
-    options:
-      pathtoexportjson: *inapp_dataset
-      use_extraction_roundtrip: false
-
   test_qb_prm_pricing_idempotency:
     group: Data Management - Idempotency
     description: Idempotency test for qb-prm-pricing (PRM pricing overlay).
@@ -3728,8 +3700,9 @@ flows:
         flow: prepare_personas
       30:
         flow: prepare_ux
-      31:
-        flow: prepare_inapp
+      # There is no step 31: the In-App Learning framework that ran here was removed
+      # (owner decision, todo 429, 2026-11-28). The numbering gap keeps the later steps
+      # at the numbers docs cite.
       32:
         flow: prepare_scratch
       33:
@@ -4068,22 +4041,6 @@ flows:
         when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_ps_api_names
-
-  prepare_inapp:
-    group: Revenue Lifecycle Management
-    description: Deploy the In-App Learning framework, assign its permission set, and load the navigation content
-    steps:
-      1:
-        task: deploy_post_inapp
-        when: project_config.project__custom__inapp
-      2:
-        task: assign_permission_sets
-        when: project_config.project__custom__inapp
-        options:
-          api_names: *ps_inapp
-      3:
-        task: load_inapp_dataset
-        when: project_config.project__custom__inapp
 
   prepare_large_stx:
     group: Revenue Lifecycle Management
@@ -5068,8 +5025,6 @@ flows:
         task: extract_qb_prm_pricing_data
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb
 
-  # test_inapp_idempotency is not a step here or in run_q3_idempotency_tests: inapp is a
-  # standalone plan with its own load and test tasks (inapp-framework skill).
   run_qb_idempotency_tests:
     group: Data Management - Idempotency
     description: Run all QB data idempotency tests (load twice, assert no new records). Use --org to specify target org.

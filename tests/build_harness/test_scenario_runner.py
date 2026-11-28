@@ -448,11 +448,11 @@ def _preflight_failure(tmp_path, monkeypatch, *, is_resume, failure_class="deter
     run_dir = tmp_path / "runs" / "run-10"
     run_dir.mkdir(parents=True)
     project_root = run_dir / "scenarios" / "ent-default" / "cci_project"
-    monkeypatch.setattr(scenario_runner, "compose_flags", lambda _d, _o: {"inapp": True})
+    monkeypatch.setattr(scenario_runner, "compose_flags", lambda _d, _o: {"large_stx": True})
     monkeypatch.setattr(scenario_runner, "prepare_scenario_project_root", lambda **_k: project_root)
     monkeypatch.setattr(scenario_runner, "cleanup_scenario_project_root", lambda _r: None)
     monkeypatch.setattr(scenario_runner, "write_build_provenance", lambda **_k: None)
-    monkeypatch.setattr(scenario_runner, "verify_project_flags", lambda _root, _flags: PreflightFailure("CCI read inapp=False", failure_class))
+    monkeypatch.setattr(scenario_runner, "verify_project_flags", lambda _root, _flags: PreflightFailure("CCI read large_stx=False", failure_class))
     # Neither a CCI command nor the org probe may run when the flags do not reach CCI.
     monkeypatch.setattr(scenario_runner, "run_command", lambda *_a, **_k: pytest.fail("CCI command ran"))
     monkeypatch.setattr(scenario_runner, "probe_org", lambda *_a, **_k: pytest.fail("org probe ran"))
@@ -461,7 +461,7 @@ def _preflight_failure(tmp_path, monkeypatch, *, is_resume, failure_class="deter
         scenario=_base_scenario(),
         run_dir=run_dir,
         prepare_steps=[Step(step_number=1, target_type="task", target_name="first", when=None)],
-        default_flags={"inapp": False},
+        default_flags={"large_stx": False},
         base_cci={},
         skip_validate=False,
         keep_orgs=True,
@@ -481,7 +481,7 @@ def test_run_single_scenario_fails_loudly_when_cci_ignores_the_overrides(tmp_pat
     assert result["status"] == "failed"
     assert result["failed_target"] == "project_root_flags"
     assert result["failure_class"] == "deterministic"
-    assert "inapp=False" in result["failure_signature"]
+    assert "large_stx=False" in result["failure_signature"]
     assert result["can_resume"] is False
     rows = _read_step_results(tmp_path)
     assert len(rows) == 1
@@ -533,7 +533,7 @@ def _rerun_preflight(tmp_path, *, is_resume=True):
         scenario=_base_scenario(),
         run_dir=tmp_path / "runs" / "run-10",
         prepare_steps=[Step(step_number=1, target_type="task", target_name="first", when=None)],
-        default_flags={"inapp": False},
+        default_flags={"large_stx": False},
         base_cci={},
         skip_validate=False,
         keep_orgs=True,

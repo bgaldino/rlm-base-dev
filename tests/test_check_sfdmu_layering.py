@@ -899,7 +899,7 @@ INTRA_CASES = [
         "qb/ja/b": ([[P2_UPDATE]], {"Product2.csv": "StockKeepingUnit,Name\nQB-1,イ\n"})}, "Name")),
     ("two top-level plans' Updates meet on a record a shape creates (they load into its org)", True, intra({
         "qb/en-US/c": ([[P2]], {"Product2.csv": "StockKeepingUnit\nQB-1\n"}),
-        "inapp": ([[P2_UPDATE]], {"Product2.csv": "StockKeepingUnit,DisplayUrl\nQB-1,/a.png\n"}),
+        "procedure-plans": ([[P2_UPDATE]], {"Product2.csv": "StockKeepingUnit,DisplayUrl\nQB-1,/a.png\n"}),
         "scratch_data": ([[P2_UPDATE]], {"Product2.csv": "StockKeepingUnit,DisplayUrl\nQB-1,/b.png\n"})},
         "DisplayUrl")),
     ("a new intra-shape conflict fails the run", True, new_intra_conflict_fails()),

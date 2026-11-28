@@ -136,7 +136,7 @@ class SFDMUValidator:
 
     # Objects whose live `deleteOldData` is documented, one per declaration that still deletes
     # (todo 216; re-checked 2026-11-05 against every tracked export.json). Each is set to go:
-    # todo 331 found none needs to stay (mfg-dro FWI: todo 111; mfg-aaf: todo 327; inapp's went in
+    # todo 331 found none needs to stay (mfg-dro FWI: todo 111; mfg-aaf: todo 327; a third went in
     # todo 334). Remove an entry when its delete goes, so a delete reintroduced later is reported.
     DELETE_OLD_DATA_OBJECTS = {
         "FulfillmentWorkspaceItem",     # mfg-dro (qb-dro dropped its copy, #678)
