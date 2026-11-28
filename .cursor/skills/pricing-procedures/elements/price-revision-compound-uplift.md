@@ -82,7 +82,7 @@ Compounding math (in **percent units**, matching `UnitPriceUplift` / `ApplUnitPr
 `applied%(n) = [(1 + applied%(n-1)/100) x (1 + unitUplift%(n)/100) - 1] x 100`, and
 `NetUnitPrice(n) = base x (1 + applied%(n)/100)`. The `x 100` converts the compounded multiplier
 back to a percentage: uplifts 5% then 3% give `applied% = 8.15` (not `0.0815`), i.e.
-`NetUnitPrice = base x 1.0815`. [Live, 2026-10-28]. The shipped procedure uses the same multiplier arithmetic, seeded from PreviousSegmentMultiplier as a percent [Core].
+`NetUnitPrice = base x 1.0815`. [Live, 2026-10-28]. The pricing engine uses the same multiplier arithmetic, seeded from PreviousSegmentMultiplier as a percent [Core].
 
 **The uplifted price is not rounded to the cent.** A compound segment's `NetUnitPrice` carried
 more than two decimals (the base times the compounded multiplier, at full precision), and the line total followed it, so a

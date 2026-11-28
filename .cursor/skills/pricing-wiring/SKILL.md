@@ -157,7 +157,7 @@ Contract:
   unless the target org behavior confirms a `ContextAttrHydrationDetail` should
   exist.
 
-The failure signal `Invalid tag attribute name key: [<Attribute_API_Name>]` and its causes are in
+The failure signal `Invalid tag attribute name key: [<name>]` and its causes are in
 [`../context-service/SKILL.md`](../context-service/SKILL.md) (also
 [`../pricing-procedures/operations-and-troubleshooting.md`](../pricing-procedures/operations-and-troubleshooting.md)).
 

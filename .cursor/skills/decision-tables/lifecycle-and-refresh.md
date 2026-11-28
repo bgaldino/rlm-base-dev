@@ -530,7 +530,7 @@ Consequences:
   `Queued` on every attempt, including five back-to-back refreshes of the same table.
 - Because the fault case leaves no trace on the table, a flow that swallows the fault leaves
   the sync dates as the *only* evidence. That is by design, but it means the staleness check
-  above is the monitoring story, not an afterthought.
+  below is the monitoring story, not an afterthought.
 
 To tell whether a table is stale, compare **each** table against **its own** source object's
 newest `LastModifiedDate`. Two things make this easy to get wrong:

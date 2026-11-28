@@ -6,8 +6,8 @@
 
 ## Wrong-currency price returned (multicurrency orgs)
 
-A lookup step that does **not** pass `CurrencyIsoCode` does not match on currency. What an
-omitted required input does was not traced [inferred]. If the
+A lookup step that does **not** pass `CurrencyIsoCode` does not match on currency [inferred]. What an
+omitted required input does was not traced. If the
 table has rows for the product in more than one currency, a single-output lookup fails with a
 duplicate-value error; with output resolution on, a List Price or Price Tracking step picks the final
 row(s) from the candidates by its resolution strategy (for example minimum or maximum price

@@ -115,8 +115,8 @@ rate for the policy's Region on the line's date; the step's `Rate` output binds 
 - **Policy source at activation.** A new sale copies the policy from the order line; amendments and
   renewals read it from the current asset state period, when that period's policy field is in the
   context definition, so changing the policy on an amendment line doesn't change it on the asset
-  (traced in part, not measured) [Core]. Without that field in the context definition, the case was
-  not read.
+  (traced in part, not measured) [Core]. What happens without that field in the context definition was
+  not traced.
 - **CPI on ramps** is unsupported; see *Rules and limits* above.
 
 ## Runtime behavior [Core]

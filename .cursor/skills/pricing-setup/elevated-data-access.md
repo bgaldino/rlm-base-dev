@@ -55,7 +55,7 @@ when the field is 3 or more). All rows: [Measured: 2026-11-26, 264 (USA796), ent
   [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build, one org]
 - Why it fails silently [Core]: the context access check drops attributes the user cannot
   access, without an error.
-- Not run: order quotes, the line editor UI, the Apex hook itself, and whether a post-pricing hook
+- Not run: orders, the line editor UI, the Apex hook itself, and whether a post-pricing hook
   keeps the values out of the waterfall.
   [Open: does Elevated Data Access apply on amend, renew and cancel; settle by running each as a no-FLS rep with the setting on and off]
 
@@ -83,6 +83,6 @@ when the field is 3 or more). All rows: [Measured: 2026-11-26, 264 (USA796), ent
 | A rep sees a protected value in the waterfall | The waterfall lists the hydrated inputs of each step | Removing FLS does not hide a value a step consumes from the waterfall; decide who may open the waterfall [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build, one org] |
 | A procedure-written field is not updated for a rep | Setting off and no write access | Setting on; the write-back persists [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build, one org] |
 
-## Open
+## Gaps
 
 - No helper script builds the no-FLS rep and restores the org; the steps above are manual.

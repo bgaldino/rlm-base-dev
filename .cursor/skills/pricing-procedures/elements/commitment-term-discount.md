@@ -9,15 +9,15 @@
 > `ind.pricing_add_the_price_adjustment_matrix_element.htm`; dev guide
 > `actions-obj-run-salesforce-headless-pricing.md`; shipped `RLM_DefaultPricingProcedure`; a live
 > run on a 264 scratch org (QuantumBit build) on 2026-11-10; real quotes and headless runs on a
-> fresh 264 ent-sb0 scratch org on 2026-11-11; and a build on a 264 scratch org on 2026-11-16.
+> fresh 264 ent-sb0 scratch org on 2026-11-11; a build on a 264 scratch org on 2026-11-16; and a 264 (USA796) ent-sb0 harness build on 2026-11-26.
 >
 > Tags follow the skill's legend: Help, Dev guide and Repo name the source, and a Measured tag
 > gives the date, release and org kind of a live result: a headless pricing run (request and
 > response shapes in [runtime-and-observability.md](../runtime-and-observability.md)), a describe,
 > or a save. The 2026-11-10 run was on a scratch org. The 2026-11-11 run, on a fresh ent-sb0
 > scratch org, priced real quotes (Place Sales Transaction, configuration rules on, and a group
-> ramp built in the quote UI) as well as headless requests. The 2026-11-16 build was on a scratch
-> org and used one org.
+> ramp built in the quote UI) as well as headless requests. The 2026-11-16 build was on one scratch org.
+> The 2026-11-26 run was on one ent-sb0 harness build.
 
 A commitment-term discount gives an extra percentage off a subscription line because the customer
 commits to a long term. The rule modeled here: **annual Term Defined subscriptions committed for 48
@@ -53,7 +53,7 @@ All are standard tags on the `SalesTransactionItem` node of the sales transactio
 | `PricingTermUnit` | `PricingTermUnit` | The selling model's pricing term unit; `Annual` for an annual subscription |
 | `ItemSubscriptionTerm` | `SubscriptionTerm` | The line's subscription term, a number |
 | `ItemSubscriptionTermUnit` | `SubscriptionTermUnit` | The unit of that term. The `QuoteLineItem` picklist offers `Months`, `Quarterly`, `Semi-Annual`, `Weekly`, `Annual` [Measured: 2026-11-10, 264, field describe] |
-| `ItemPricingSource` | `PricingSource` | `LastTransaction` on lines priced from a prior transaction, set by the shipped filter Filterlineswithoutlasttransactionpricing [Repo: force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml] |
+| `ItemPricingSource` | `PricingSource` | `LastTransaction` on lines priced from a prior transaction; the shipped filter Filterlineswithoutlasttransactionpricing excludes those lines [Repo: force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml] |
 | `NetUnitPrice` | `NetUnitPrice` | The running net unit price after the standard discounts |
 
 The term is compared in its own unit, so the filter accepts either form of a 48-month commitment:
@@ -372,8 +372,8 @@ take 1,000.05 to 900.045 (x0.90) to 855.04275 (x0.95) to 803.74 (x0.94) [Measure
   filter]. The group runs after the ramp uplift, so each segment took the discount on its uplifted
   net.
 
-A header-level total-term gate works with a numeric header field mapped into the context. With the
-Quote Number mapped, the formula `IF(<field> >= 3, ROUND(ROUND(NetUnitPrice,2)*0.94,2), NetUnitPrice)`
+A header-level total-term gate works with a header field mapped into the context. The run mapped
+the Quote Number; the field type and how the comparison treated it were not recorded. The formula `IF(<field> >= 3, ROUND(ROUND(NetUnitPrice,2)*0.94,2), NetUnitPrice)`
 discounted a quote whose value was 3 and not one whose value was 2 [Measured: 2026-11-26, 264
 (USA796), ent-sb0 harness build, one org]. A rep without FLS on the field needs Elevated Data
 Access; see [Elevated Data Access](../../pricing-setup/elevated-data-access.md). The Order variant
