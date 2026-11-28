@@ -256,7 +256,7 @@ either a built-in CCI class or a custom class in `tasks/`.
 ### 6. Flows (`flows`)
 
 Flows are organized as a hierarchy. The main entry point is `prepare_rlm_org`
-(37 steps), which calls sub-flows:
+(36 steps, numbered 1-37; there is no step 31), which calls sub-flows:
 
 ```
 prepare_rlm_org
