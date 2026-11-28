@@ -24,7 +24,10 @@ Expected on a fresh build: 0 plans, 5 reasons, no active version of
 
 - After adding items: `TotalInvoiceBalance` equals the sum of the items' invoice balances.
 - After a promise: one schedule of Type PromiseToPay, 1 to 3 items from the flow, `PromiseToPayCount`
-  incremented, and the sum of requested amounts at most the invoice balance.
+  set to the plan's PromiseToPay schedule count,
+  and the items' requested amounts adding up to the schedule's `TotalRequestedAmount`.
+  The shipped flow does not cap that at a balance or tie it to an invoice
+  ([setup-and-operate.md](setup-and-operate.md) → Promise to pay).
 - After a write-off: the invoice's write-off fields set and a credit memo with the reason code
   [Open: complete a write-off per the setup steps and read the credit memo and the invoice] (see [setup-and-operate.md](setup-and-operate.md)).
 - After a payment: balances per `billing-operations` → `verification.md` (`cli verify`).

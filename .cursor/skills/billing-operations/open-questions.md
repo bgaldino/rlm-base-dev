@@ -48,7 +48,7 @@ then move it into the sub-file for its stage with a `[Measured: ...]` tag.
   configure a set and run a payment scheduler] [Dev guide: connect-resources-create-payment-scheduler]
 - **Reconciling a manual payment against a promise to pay**, and what a batch run does to a promise
   item on an already settled invoice (see [collections](../collections/object-model.md)).
-  [Open: create a promise, post a manual payment on its invoice, run the payment batch and read the items]
+  [Open: create a promise, post a manual payment on an invoice in its plan, run the payment batch and read the items]
 
 ## Accounting
 

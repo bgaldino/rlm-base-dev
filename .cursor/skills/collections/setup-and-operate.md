@@ -41,13 +41,18 @@ to the Revenue Transaction Error Logs [Help: ind.billing_collection_plans_and_pl
 Two items on two 250 invoices rolled `TotalInvoiceBalance` up to 500 at once; nothing set
 `DaysPastDue` or `InitialDueAmount`. Enter them yourself. [Measured: 2026-11-27, 264, fresh scratch build, API 68.0]
 
-**Promise to pay.** Launch Create Billing Promise to Pay from the plan: 1 to 3 partial payments, the
-sum at most the invoice balance [Help: ind.billing_collection_plan_payment_promise_collect]. The
-shipped flow makes a `PaymentSchedule` (Type PromiseToPay, Status Draft, UsageType CollectionPlan),
-the items, and increments `PromiseToPayCount` [Repo:
-unpackaged/post_collections/flows/RLM_Create_Promise_to_Pay.flow-meta.xml]. Where the three-item
-limit lives, and the field and status values for creating the records directly:
-[object-model.md](object-model.md).
+**Promise to pay.** Help describes Create Billing Promise to Pay as 1 to 3 partial payments whose
+sum is at most the invoice balance [Help: ind.billing_collection_plan_payment_promise_collect]. The
+repo's `RLM_Create_Promise_to_Pay` overrides the packaged `collection__CreatePromisetoPay` flow, not
+that Billing flow, and is plan-level: it defaults the promised amount to the plan's
+`TotalInvoiceBalance`, never selects an invoice or plan item, and its only amount check is that the
+installments add up to a positive promised amount (no upper bound). It makes a `PaymentSchedule`
+(Type PromiseToPay, Status Draft, UsageType CollectionPlan, `ReferenceEntityId` the plan) and its
+items, and sets `PromiseToPayCount` to the plan's PromiseToPay schedule count
+[Repo: unpackaged/post_collections/flows/RLM_Create_Promise_to_Pay.flow-meta.xml].
+Which invoice a promise payment settles: [Open: run the flow on a plan with two invoices, pay the
+first installment and read both invoice balances]. Where the three-item limit lives, and the field
+and status values for creating the records directly: [object-model.md](object-model.md).
 
 **Close a plan.** `RLM_Close_Collection_Plan_and_Associated_Cases` is a record-triggered flow on
 CollectionPlan update (IsClosed false, DaysPastDue 0) and **ships Draft**, so nothing closes plans
@@ -102,7 +107,8 @@ needs a UI run to count as measured.
 2. Create and post two invoices for one account (`txn-data-harness`); they are the receivables.
 3. As the specialist, create a plan and add both invoices; read `TotalInvoiceBalance`.
 4. Enter `DaysPastDue` and `Duedate`; set a Status value you added.
-5. Record a promise on one invoice; apply the payment (`billing-operations`); read the items.
+5. Record a promise on the plan (the shipped flow is plan-level, see Promise to pay); apply a
+   payment to one invoice (`billing-operations`); read the schedule items.
 6. Write the other invoice off; read its write-off fields and balance.
 7. Close the plan; read `IsClosed`.
 8. Open the dashboard as a collector persona and as a bare billing persona; compare

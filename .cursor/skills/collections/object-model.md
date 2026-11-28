@@ -68,7 +68,7 @@ Read this to map a collections concept to an object, field or picklist. Parent:
   needed, is [Open: as a user with the specialist set alone, query PaymentSchedule for a promise another user created].
 - Promise lifecycle after creation (item states on a settled invoice, batch cancel, reconciling a
   manual payment against a promised one): [Open: create a promise, post a payment on
-  the invoice, run the payment batch and read the items].
+  an invoice in its plan, run the payment batch and read the items].
 
 ## Invoice facts a collections figure rests on
 
