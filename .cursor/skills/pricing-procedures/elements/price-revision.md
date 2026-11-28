@@ -17,7 +17,7 @@ Policy, index-rate and region setup in any org: [`../../pricing-setup/price-revi
 - Renewal uplifts from a Price Revision Policy (Flat manual value, or Price Index = CPI-driven). [Help]
 - Compound (or standard) per-segment uplift on group ramp deals. [Help][Live, 2026-10-28]
 - Not for discounts or list-price changes; use Volume Discount / Attribute Discount elements.
-- Not supported for Partner/Customer Community users. [Help: `ind.pricing_apply_policy_driven_price_revisions.htm`]
+- Not supported for Partner/Customer Community users. [Help: ind.pricing_apply_policy_driven_price_revisions.htm]
 
 ## Configuration
 | Builder field | Parameter name | Type | Required | Notes |
@@ -54,7 +54,7 @@ dynamic input parameters. The Builder offers lookup, hide-waterfall and compound
   Cross-element order: `../procedure-anatomy-and-ordering.md`.
 - Repo places the renewal step under a ListGroup filtered to subscription lines without derived
   pricing, and the ramp step under a separate ListGroup for ramped amendments. [Repo]
-- Help: "If the pricing procedure uses delta pricing and you enable Compound Uplift, the Price Revision element reprices every line in the ramp group each time it runs, regardless of the delta pricing setting. This behavior applies only to lines that use Compound Uplift. Delta pricing behaves normally for lines that do not use it." [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure.htm`]
+- Help: "If the pricing procedure uses delta pricing and you enable Compound Uplift, the Price Revision element reprices every line in the ramp group each time it runs, regardless of the delta pricing setting. This behavior applies only to lines that use Compound Uplift. Delta pricing behaves normally for lines that do not use it." [Help: ind.pricing_use_the_price_revision_element_in_a_pricing_procedure.htm]
 - Delta pricing applies only under the conditions in [runtime and
   observability](../runtime-and-observability.md#delta-pricing); when it doesn't,
   every line reruns [Platform behaviour, traced]. Two Place PATCHes with System pricing re-applied
@@ -63,14 +63,14 @@ dynamic input parameters. The Builder offers lookup, hide-waterfall and compound
   unrounded, with `TotalPrice` unchanged. One changed `UnitPriceUplift` on four non-software lines
   (configuration method Force, rules on) [Measured: 2026-11-11, 264, scratch]. The other patched one
   line with no field change (configuration Skip), with delta pricing on (read from the org), and
-  changed no line's waterfall id [Measured: 2026-11-12, 264, scratch; one org]. In the second PATCH
+  changed no line's waterfall id [Measured: 2026-11-12, 264, scratch] (one org). In the second PATCH
   no line's waterfall id changed; that and the unchanged totals in both do not fit a full procedure
   rerun, and what moved `NetUnitPrice` on the stored net in these PATCHes is not traced. When Price
   Revision runs twice over the same lines in one execution (for example a procedure plan plus the
   default procedure, when Skip Default and Sales Transaction Type Pricing Procedures is off), the
   uplift applies twice [Platform behaviour, traced]. Reprice All restored correct prices [Measured:
   2026-11-11, 264, scratch]. Reprice All runs a full recalculation whatever the delta setting [Help:
-  `ind.qocal_reprice_all_quotes_and_orders.htm`]; it was not re-run after the 2026-11-12 PATCH, so
+  ind.qocal_reprice_all_quotes_and_orders.htm]; it was not re-run after the 2026-11-12 PATCH, so
   re-read every segment's `NetUnitPrice` against `TotalPrice` afterwards.
 
 ## Rules and limits
@@ -84,16 +84,40 @@ dynamic input parameters. The Builder offers lookup, hide-waterfall and compound
   Decision Tables. Refresh it if the waterfall looks wrong. [Help] See `../../decision-tables/SKILL.md`.
 - CPI-tied renewal uplifts are not supported on ramped products, and CPI can't be combined
   with compound uplift.
-  [Help: `ind.qocal_considerations_ramp_deals.htm`] Core enforces only the Price Index case (non-Flat
+  [Help: ind.qocal_considerations_ramp_deals.htm] Core enforces only the Price Index case (non-Flat
   `PolicyType` leaves the compound path); usage-based and derived-pricing exclusions are Help-only
   [Help]. Help also says usage-based and derived-pricing products don't support price uplifts, and CPI
-  renewal uplifts apply only to termed assets [Help: `ind.qocal_consumer_price_index_and_uplifts_important_considerations.htm`].
-   Measured ramp alternatives:
-  [`../../pricing-wiring/price-revision-cpi.md`](../../pricing-wiring/price-revision-cpi.md).
+  renewal uplifts apply only to termed assets [Help: ind.qocal_consumer_price_index_and_uplifts_important_considerations.htm].
+  On a ramp the compound waterfall falls back to standard pricing without an error: each segment
+  gets its own year's rate plus its uplift, no compounding. This was measured on a fresh build with
+  the quote procedure plan inactive [Measured: 2026-10-29, 264, org kind not recorded]. Compound ramp numbers and renewal
+  expected results: [`../../pricing-wiring/price-revision-cpi.md`](../../pricing-wiring/price-revision-cpi.md).
 - Enable Compound Uplift on a transaction without ramp segments falls back to standard
   calculation. Compound lines and standard lines can mix; standard ones don't compound. [Help]
 - Changing/removing the lookup table auto-clears `IsCompoundUpliftEnabled`. [Help]
 - With compound enabled, Policy Type and Formula no longer need values. [Help]
+
+## Renewal step in `RLM_DefaultPricingProcedure`
+The renewal step `AdjustNetUnitPriceandSubtotalbyusingpricerevision` runs only when all hold:
+`ItemPricingSource = LastTransaction`, the line is not a derived-price line, the action is `Renew`,
+the line has a policy formula, and the line is not in a ramp (`ItemRampIdentifier` null)
+[Repo: force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml].
+A blank lifecycle asset defaults to `LastTransaction`, set by a flow
+[Repo: force-app/main/default/flows/RLM_Update_Asset_Pricing_Source_if_Price_Revision.flow-meta.xml].
+Formula terms: `PolicyAdjustment` is the line's `UnitPriceUplift`; `PriceIndex` is the decision-table
+rate for the policy's Region on the line's date; the step's `Rate` output binds to
+`ItemConsumerPriceIndex__std`. [Repo: force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml]
+- **Per-lot uplift.** The policy applies only when the line's effective date is inside the policy's
+  window. On an as-is renewal each prior lot has its own detail line and the revision applies to that
+  lot's own price (traced, not measured) [Core]. On an as-is renewal the price sits on `QuoteLineDetail`
+  and the parent `NetUnitPrice` is null; read the detail lines (`rlm-business-apis/SKILL.md` -> *Where
+  an ARC line's price lives*).
+- **Policy source at activation.** A new sale copies the policy from the order line; amendments and
+  renewals read it from the current asset state period, when that period's policy field is in the
+  context definition, so changing the policy on an amendment line doesn't change it on the asset
+  (traced in part, not measured) [Core]. What happens without that field in the context definition was
+  not traced.
+- **CPI on ramps** is unsupported; see *Rules and limits* above.
 
 ## Runtime behavior [Core]
 - A line takes the compound path only when `UpliftMethod` equals `Compound` (case-insensitive),

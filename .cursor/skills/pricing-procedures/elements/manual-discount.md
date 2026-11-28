@@ -16,7 +16,7 @@ line-item values, with no decision table. [Help][Repo]
   [bundle-based-price.md](./bundle-based-price.md).
 - The Pricing Discount calendar (volume/attribute/bundle schedule view on the product)
   does not show manual discounts; it reports price adjustment schedule types only. [Help
-  `ind.pricing_pricing_discount_calendar.htm`]
+  ind.pricing_pricing_discount_calendar.htm]
 - Stacking and waterfall rules: see "Placement" in
   [volume-and-tier-discount.md](./volume-and-tier-discount.md#placement-and-ordering).
 

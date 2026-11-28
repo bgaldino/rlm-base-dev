@@ -14,7 +14,7 @@ writes these variables.
 ## When to use it
 
 - Always. It is the first element of every pricing procedure. [Help]
-- Discovery procedures use **Discovery Settings** (`DiscoverySettings`) instead, not this element. [Help: `ind.pricing_map_line_item_element.htm`]
+- Discovery procedures use **Discovery Settings** (`DiscoverySettings`) instead, not this element. [Help: ind.pricing_map_line_item_element.htm]
 - Rating procedures use `RatingSetting` (different element, different variables).
 
 ## Configuration
@@ -23,7 +23,7 @@ writes these variables.
 |---|---|---|---|---|
 | Line Item (input) | `LineItemId` | Parameter (input) | Yes [Core] | Variable usually named `LineItem` [Help]. `RLM_ProductDiscoveryPricingProcedure` binds a `PricingId` variable instead [Repo] |
 | Currency (input) | `CurrencyIsoCode` | Parameter (input) | Optional | Exposed only in multicurrency orgs [Core]; not in the Help walkthrough; mapped in 3 of the 5 shipped procedures (not `RLM_PRM_DISTI_Pricing_Procedure` or `RLM_ProductDiscoveryPricingProcedure`) [Repo]. Downstream lookups read this variable |
-| Is Derived (input) | `IsDerived` | Parameter (input, Boolean) | Derived pricing only | Exposed only for users with derived-pricing access [Core]. Variable `DerivedPricingAttribute` [Help: `ind.pricing_calculate_the_derived_price_of_product.htm`, Repo] |
+| Is Derived (input) | `IsDerived` | Parameter (input, Boolean) | Derived pricing only | Exposed only for users with derived-pricing access [Core]. Variable `DerivedPricingAttribute` [Help: ind.pricing_calculate_the_derived_price_of_product.htm] [Repo] |
 | Contract (input) | `ContractId` | Parameter (input) | Optional | Variable `ItemContract` [Repo] |
 | Price Waterfall (output) | `PriceWaterfall` | Parameter (output, Text) | Optional [Core] | Variable `price_water_fall` [Help]; needed for the waterfall to show |
 | Net Unit Price (output) | `NetUnitPrice` | Parameter (output, Currency) | Yes [Core] | Variable `NetUnitPrice` [Help] |
@@ -44,7 +44,7 @@ to context tags").
 
 - First top-level step (`sequenceNumber` 1) in every shipped pricing procedure. [Repo]
 - Enforced at save time: a missing or late Pricing Settings step is rejected with `Add Pricing Setting as the first element in the pricing procedure.` and a second one with `You can only add one Pricing Setting element in a pricing procedure.` [Core: message text read in the label file]. The exemption for a procedure made only of Discount Distribution Service (optionally with Rounding and Aggregate) steps, and for a lone Commerce step, is [Core] (see [the anatomy table](../procedure-anatomy-and-ordering.md)); the walk order (steps sorted by parent and sequence) was not re-read, so treat the exact boundary as [inferred].
-- The repo's offline validator also requires the first top-level step to be `PricingSettings`. [Repo: `tasks/expression_set_schema.py`]
+- The repo's offline validator also requires the first top-level step to be `PricingSettings`. [Repo: tasks/expression_set_schema.py]
 - Core also uses the first Pricing Settings step's `LineItemId` binding to check that group-by/line-item tags share the line item's hierarchy. [Core] Keep it first: every element depends on its variables, and the Builder and Help require it. [Help]
 - Help: "serves as the initial element for any pricing procedure". [Help]
 - [Map Line Item](./map-line-item.md), when used, goes second, immediately after this element. [Help]
@@ -54,8 +54,8 @@ to context tags").
 
 - Variable names above are conventions; the Help examples and the shipped pricing procedures use the same names (the discovery pricing procedure binds `PricingId` and `SubTotal`, see the table), and downstream elements (List Price, Manual Discount, Aggregate Price) are wired to them. Renaming forces re-mapping everywhere. [Help, Repo]
 - `IsDerived` and `ContractId` mappings are only needed when the procedure uses [derived pricing](./derived-price.md) or contract-based [List Price](./list-price.md). Shipped RLM_DefaultPricingProcedure maps both even though it omits derived pricing. [Repo]
-- The Derived Price element cannot be used in a procedure that has Promotion Execution, Price Propagation or Discount Distribution Service. [Help: `ind.pricing_get_ready_to_calculate_the_derived_price.htm`] Keep `IsPropagationEnabled=false` when using derived pricing.
-- When price waterfall is enabled, `price_water_fall` must be mapped in both Pricing Setting and Map Line Item (when used). [Help: `ind.pricing_map_context_tags_in_pricing_procedures.htm`]
+- The Derived Price element cannot be used in a procedure that has Promotion Execution, Price Propagation or Discount Distribution Service. [Help: ind.pricing_get_ready_to_calculate_the_derived_price.htm] Keep `IsPropagationEnabled=false` when using derived pricing.
+- When price waterfall is enabled, `price_water_fall` must be mapped in both Pricing Setting and Map Line Item (when used). [Help: ind.pricing_map_context_tags_in_pricing_procedures.htm]
 
 ## Metadata shape
 

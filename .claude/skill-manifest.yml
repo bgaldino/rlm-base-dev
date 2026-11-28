@@ -326,9 +326,34 @@ foundations:
         - .cursor/skills/pricing-procedures/discovery-procedures.md
         - .cursor/skills/pricing-procedures/operations-and-troubleshooting.md
         - .cursor/skills/pricing-procedures/runtime-and-observability.md
+        - .cursor/skills/pricing-procedures/elements/aggregate-price.md
+        - .cursor/skills/pricing-procedures/elements/assignment.md
+        - .cursor/skills/pricing-procedures/elements/attribute-adjustment-matrix.md
+        - .cursor/skills/pricing-procedures/elements/attribute-based-price.md
+        - .cursor/skills/pricing-procedures/elements/bundle-based-price.md
+        - .cursor/skills/pricing-procedures/elements/commitment-term-discount.md
+        - .cursor/skills/pricing-procedures/elements/decision-table-lookups.md
+        - .cursor/skills/pricing-procedures/elements/derived-price.md
+        - .cursor/skills/pricing-procedures/elements/discount-distribution-service.md
+        - .cursor/skills/pricing-procedures/elements/formula-based-pricing.md
+        - .cursor/skills/pricing-procedures/elements/list-group-and-list-operation.md
+        - .cursor/skills/pricing-procedures/elements/list-price.md
+        - .cursor/skills/pricing-procedures/elements/manual-discount.md
+        - .cursor/skills/pricing-procedures/elements/map-line-item.md
+        - .cursor/skills/pricing-procedures/elements/price-adjustment-matrix.md
+        - .cursor/skills/pricing-procedures/elements/price-propagation.md
         - .cursor/skills/pricing-procedures/elements/price-revision-compound-uplift.md
+        - .cursor/skills/pricing-procedures/elements/price-revision.md
+        - .cursor/skills/pricing-procedures/elements/price-tracking.md
+        - .cursor/skills/pricing-procedures/elements/pricing-setting.md
+        - .cursor/skills/pricing-procedures/elements/promotion-execution.md
+        - .cursor/skills/pricing-procedures/elements/proration-and-subscription.md
+        - .cursor/skills/pricing-procedures/elements/root-answer-child-price.md
+        - .cursor/skills/pricing-procedures/elements/rounding-values.md
+        - .cursor/skills/pricing-procedures/elements/stop-pricing.md
+        - .cursor/skills/pricing-procedures/elements/volume-and-tier-discount.md
       caveats:
-        - "Element parameter names and rules are pinned to 264; claims are tagged [Help]/[Dev guide]/[Repo]/[Core] — only [Live]-tagged ones were exercised against an org"
+        - "Element parameter names and rules are pinned to 264; claims are tagged [Help]/[Dev guide]/[Repo]/[Core] — only [Live]- and [Measured]-tagged ones were exercised against an org"
         - "Step graph CRUD and activation lifecycle stay in expression-sets; build sequencing stays in pricing-wiring"
 
     - id: pricing-setup
@@ -346,13 +371,18 @@ foundations:
         - .cursor/skills/pricing-setup/proration-and-selling-models.md
         - .cursor/skills/pricing-setup/price-revision-policies.md
         - .cursor/skills/pricing-setup/pricing-actions.md
+        - .cursor/skills/pricing-setup/multicurrency.md
+        - .cursor/skills/pricing-setup/elevated-data-access.md
+        - .cursor/skills/pricing-setup/contract-pricing.md
         - .cursor/skills/pricing-setup/scenarios/README.md
         - .cursor/skills/pricing-setup/scenarios/simple-pricing-procedure.md
         - .cursor/skills/pricing-setup/scenarios/lowest-price-across-price-books.md
         - .cursor/skills/pricing-setup/scenarios/sequential-discounts.md
         - .cursor/skills/pricing-setup/scenarios/pricing-action-button.md
+        - .cursor/skills/pricing-setup/scenarios/cost-and-margin.md
+        - .cursor/skills/pricing-setup/scenarios/full-term-value.md
       caveats:
-        - "Pinned to 264; claims are tagged [Help]/[Repo]/[Core]; only the [Repo, measured] items (sync scope, schedule activation) come from a live org"
+        - "Pinned to 264; claims are tagged [Help]/[Repo]/[Core]; measurements are tagged [Measured: date, release, org kind] where they appear (including contract pricing on bundles), and everything else is Help, Repo or Core"
         - "Help states cost books are tracking-only; this repo reads them through a decision table and List Price, which is custom wiring"
         - "Element configuration stays in pricing-procedures; this repo's build order and data loads stay in pricing-wiring"
 
@@ -419,8 +449,12 @@ foundations:
       purpose: "Setup order and layering for pricing that spans recipes, recipe table mappings, pricing procedures (Expression Sets), procedure plans and plan overlays — written generically so a feature pack can reuse the pattern without redesigning the order"
       consumed_by_pmos: []
       provenance: hand-authored from the PRM pricing layering work
+      sub_skills:
+        - .cursor/skills/pricing-wiring/procedure-plans-and-overlays.md
+        - .cursor/skills/pricing-wiring/multicurrency-build.md
+        - .cursor/skills/pricing-wiring/price-revision-cpi.md
       caveats:
-        - "Endpoints target 264 / v68.0; behavior was live-verified on 262 / v67.0 and is NOT yet re-verified on 264"
+        - "Endpoints target 264 / v68.0; plan overlay, order-plan and price revision behavior was measured on 264 (tagged [Measured]); other claims are not re-verified beyond that"
         - "A decision-table-backed lookup must be refreshed when its source CRITERIA become true, not when the triggering row is written — see decision-tables"
 
     - id: build-harness

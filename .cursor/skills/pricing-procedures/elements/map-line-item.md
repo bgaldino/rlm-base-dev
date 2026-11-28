@@ -19,7 +19,7 @@ priced and persisted. Used for Advanced Detail Line Pricing.
 - Do not use for general-purpose calculation or just to persist values: it degrades pricing performance. [Help limits]
 - Do not combine with delta pricing in the same use case. [Help limits]
 - Help's rule above conflicts with this repo's default: Foundations-built orgs turn delta pricing on
-  [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`], so a procedure using this
+  [Repo: unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml], so a procedure using this
   element runs with it on unless the setting is turned off. What the element does under delta
   pricing was not established (not measured); turn the setting off for that use case, or compare
   against a Force reprice before relying on it. Conditions: [runtime and

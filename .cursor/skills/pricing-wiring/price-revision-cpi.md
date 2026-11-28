@@ -4,8 +4,7 @@
 > regions in any org (Help): `.cursor/skills/pricing-setup/price-revision-policies.md`.
 
 How a **Price Revision Policy** changes a price in `RLM_DefaultPricingProcedure`, how CPI data is
-seeded, and how to check a result. Measured 2026-10-29 on a fresh 264 build with the quote
-procedure plan inactive.
+seeded, and how to check a result. The figures here come from a fresh build with the quote procedure plan inactive [Measured: 2026-10-29, 264, org kind not recorded].
 
 ## What's involved
 
@@ -17,18 +16,9 @@ procedure plan inactive.
 | Renewal step `AdjustNetUnitPriceandSubtotalbyusingpricerevision` | `RLM_DefaultPricingProcedure` |
 | Ramp step `Uplift` (a PriceRevision element) | `RLM_DefaultPricingProcedure` |
 
-**The renewal step runs** only when all of these hold:
-- `ItemPricingSource = LastTransaction`;
-- the line isn't a derived-price line;
-- the action is `Renew`;
-- the line has a policy formula;
-- the line isn't in a ramp (`ItemRampIdentifier` is null).
-
-A blank lifecycle asset defaults to `LastTransaction` (PR #647).
-
-**Formula terms:** `PolicyAdjustment` is the line's `UnitPriceUplift`. `PriceIndex` is the
-decision-table rate for the policy's Region on the line's date. The step's `Rate` output is bound to
-`ItemConsumerPriceIndex__std`, as in the 264 template (PR #646).
+The renewal step's run conditions, formula terms, per-lot behavior and the CPI-on-ramps fallback are element
+facts: [`../pricing-procedures/elements/price-revision.md`](../pricing-procedures/elements/price-revision.md)
+-> *Renewal step in RLM_DefaultPricingProcedure*.
 
 ## Use it
 
@@ -58,29 +48,8 @@ decision-table rate for the policy's Region on the line's date. The step's `Rate
 | Compound group ramp, list 3,240, segment uplift 0 / 10 / 10, CPI policy | 3,337.20 / 3,654.72 / 3,648.24 (applied 3 / 12.8 / 12.6) |
 | Same ramp, Flat policy | 3,240 / 3,564 / 3,920.40 (applied 0 / 10 / 21) |
 
-**CPI on ramps is a documented limitation.** Help (264, *Considerations for Ramp Deals*) says:
-- "You can't use compound uplift with Consumer Price Index (CPI) uplifts";
-- "You can't apply renewal price uplifts tied to the Consumer Price Index (CPI) to ramped products".
-
-The platform doesn't error; it falls back to standard pricing. That is deliberate: the compound
-waterfall does standard pricing when the policy type is `PriceIndex`, so compounding is allowed only
-with a Flat policy or no policy [Core].
-
-So the CPI ramp row above is the fallback, measured: each segment gets its own year's rate plus its
-uplift, with no compounding. It isn't a supported demo path.
-
-**Per-lot uplift.** The policy applies to an item only when the line's effective date falls
-inside the policy's effective window. On an as-is renewal each prior lot has its own detail line,
-the revision is applied separately on each lot's detail line, and the uplift applies to that
-lot's own price, not to a combined price [Platform behaviour, traced]. At activation a new sale
-copies the policy from the order line; amendments and renewals read it from the current asset
-state period, when that period's policy field is in the context definition, so changing the policy
-on an amendment line doesn't change it on the asset [Platform behaviour, traced in part; not
-measured]. Without that field in the context definition, the case was not read.
-
-On an as-is renewal the price sits on the detail line (`QuoteLineDetail`), and the parent
-`NetUnitPrice` is null. Read the detail lines (see `rlm-business-apis/SKILL.md` → *Where an ARC
-line's price lives*).
+CPI on ramps is a documented Help limitation; the CPI ramp row above is the fallback (each segment gets its
+own year's rate plus its uplift, no compounding), not a supported demo path (see the element file).
 
 ## Verify
 
@@ -101,16 +70,4 @@ rate) and `PolicyAdjustment`, and it should **appear once**.
   active, the Revenue Settings default procedure runs again after the plan, and the revision
   compounds: 2,400 → 2,544 → 2,696.64 for 4% + 2. The plan is built inactive by default
   (`procedureplans_active: false`); see `datasets/sfdmu/procedure-plans/README.md` → *Activation*.
-- **Region** on `IndexRate` and `PriceRevisionPolicy` has no defined values, and it behaves
-  differently from org to org (cause unknown, not found in source; details in the plan README):
-  - on two `ent-r1` orgs it's restricted but accepts `US`;
-  - on an `ent-sb0` org it accepts anything.
-
-  Use `US`. Adding another value through Setup on a restricted org hasn't been tried. Whether
-  `IndexRate` rows are gated on an active flag when the decision table is built was not established.
-- **Index rate ranges for one Region can't overlap.** Policies of the same PolicyType and Region
-  can't overlap either ("The selected effective dates are already in use"; probed on one org). A
-  hand-made policy of the same type and Region for the same years makes the plan's rows fail;
-  remove or re-date it first.
-- **Stale table.** After adding or changing an `IndexRate`, refresh `Index_Rate_Decision_Table`.
-  Until then, CPI prices with the old rates, or with no rate at all.
+- **Region, overlap, stale table.** See [`../pricing-setup/price-revision-policies.md`](../pricing-setup/price-revision-policies.md) -> *Troubleshooting*.

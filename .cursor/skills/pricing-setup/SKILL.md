@@ -26,14 +26,13 @@ The neighbouring skills own the rest:
 | Expression Set CRUD, overlays, activation mechanics | [`../expression-sets/SKILL.md`](../expression-sets/SKILL.md) |
 | Context definitions, tags, mappings | [`../context-service/SKILL.md`](../context-service/SKILL.md) |
 | SFDMU plan keys and operations for pricing data | [`../sfdmu-data-plans/SKILL.md`](../sfdmu-data-plans/SKILL.md) |
-| Contract pricing | [`docs/guides/contract-pricing.md`](../../../docs/guides/contract-pricing.md) |
+| Contract pricing | [`contract-pricing.md`](contract-pricing.md) (bundles and activation refresh); the full guide is [`docs/guides/contract-pricing.md`](../../../docs/guides/contract-pricing.md) |
 
-> **Pinned to Release 264 / API v68.0.** Claims are tagged **[Help]** (the 264 Help
-> snapshot, `docs/salesforce/264/help/articles/ind.pricing_*`), **[Repo]** (shipped data or
-> metadata), **[Core]** (Salesforce source behavior). Nothing here is live-verified yet beyond the measurements tagged [Repo, measured] (sync scope, schedule activation)
-> and **[Measured]** (2026-11-11, a fresh 264 `ent-sb0` scratch org: cost lookup inputs, term-line cost, margin units,
-> default term counts, partial-year proration, full-term values);
-> a live org of the target release beats every other source. Treat "inferred" claims and
+> **Pinned to Release 264 / API v68.0.** Claims are tagged [Help] (the 264 Help
+> snapshot, docs/salesforce/264/help/articles/ind.pricing_*), [Repo] (shipped data or
+> metadata), [Core] (Salesforce source behavior), [Dev guide], [Measured: date, release, org kind]
+> for a live result, or [Open] for an unsettled claim with the check that would settle it. A live
+> org of the target release beats every other source. Treat "inferred" claims and
 > unconfirmed API names as hypotheses and describe the object before you rely on them.
 
 ## Quick Rules
@@ -85,11 +84,13 @@ The neighbouring skills own the rest:
 | A full-term (commitment) value, cost or margin next to the quote total | [`scenarios/full-term-value.md`](scenarios/full-term-value.md) |
 | Volume, tier, attribute or bundle adjustments; tiers; schedule migration | [`price-adjustment-schedules.md`](price-adjustment-schedules.md) |
 | Viewing, syncing, exporting/importing or bulk-loading pricing data | [`import-export-and-bulk-data.md`](import-export-and-bulk-data.md) |
-| Adding a second currency: what to enable, which records need a row per currency | [`import-export-and-bulk-data.md` → Adding a currency](import-export-and-bulk-data.md#adding-a-currency) |
 | Recipes: which tables a procedure may read; subtype; sync | [`pricing-recipes.md`](pricing-recipes.md) |
 | One-time / term / evergreen selling models; proration settings and policies | [`proration-and-selling-models.md`](proration-and-selling-models.md) |
 | Uplift and CPI: revision policies, index rates, regions, renewal math | [`price-revision-policies.md`](price-revision-policies.md) |
 | A Calculate Price button; action parameters; constant resources | [`pricing-actions.md`](pricing-actions.md) |
+| A second currency: what to enable, which records need a row per currency, rules and wrong-currency prices | [`import-export-and-bulk-data.md` → Adding a currency](import-export-and-bulk-data.md#adding-a-currency), [`multicurrency.md`](multicurrency.md) |
+| Reps without field access to a pricing input; Elevated Data Access | [`elevated-data-access.md`](elevated-data-access.md) |
+| Contract prices on bundles; contract activation refresh | [`contract-pricing.md`](contract-pricing.md) |
 | An end-to-end Help example to follow | [`scenarios/README.md`](scenarios/README.md) |
 | An element's fields, ordering, errors | [`../pricing-procedures/SKILL.md`](../pricing-procedures/SKILL.md) |
 | How this repo builds recipes, plans and pricing data | [`../pricing-wiring/SKILL.md`](../pricing-wiring/SKILL.md) |
@@ -199,6 +200,12 @@ worktree, `.venv` lives in the main checkout):
   policies, index rates, regions, overlap rules, renewal math.
 - [`pricing-actions.md`](pricing-actions.md) — Calculate Price actions, action parameters,
   button or LWC placement, constant resources, how an action picks its procedure.
+- [`multicurrency.md`](multicurrency.md) — currency rules, lookup `CurrencyIsoCode`, wrong-currency
+  symptoms; this repo's currency flows are in `../pricing-wiring/multicurrency-build.md`.
+- [`elevated-data-access.md`](elevated-data-access.md) — pricing for reps without FLS on an input,
+  the setting, measured behavior and how to test with a no-FLS rep.
+- [`contract-pricing.md`](contract-pricing.md) — what a contract price does to a bundle root and its children, and when its
+  decision tables refresh.
 - [`scenarios/README.md`](scenarios/README.md) — index of Help end-to-end walkthroughs:
   - [`scenarios/simple-pricing-procedure.md`](scenarios/simple-pricing-procedure.md) — list
     price, volume and manual discount, aggregate.

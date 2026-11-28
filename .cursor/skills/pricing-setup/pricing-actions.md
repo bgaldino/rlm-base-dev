@@ -20,7 +20,7 @@ path (see Limits).
 
 ## Set it up
 
-Prerequisites ("get ready") [Help `ind.pricing_get_ready_to_create_pricing_actions.htm`]:
+Prerequisites ("get ready") [Help: ind.pricing_get_ready_to_create_pricing_actions.htm]:
 
 1. An **extended** context definition with nodes, attributes, tags and a mapping to the target object.
    The base `SalesTransactionContext__stdctx` does not work directly; extend it. See
@@ -54,7 +54,7 @@ Order parameter created through the API works]
 ## Fields and rules
 
 Object `PricingActionParameters` (metadata type and setup entity, API 60.0+) [Dev guide:
-`meta-pricingactionparameters.md`, `sforce-api-objects-pricingactionparameters.md`]. Core exposes
+meta-pricingactionparameters.md, sforce-api-objects-pricingactionparameters.md]. Core exposes
 it in the Tooling family, so query it with the Tooling API. Create, edit and delete need Pricing
 Design Time User, Pricing Manager or Pricing Admin. [Core]
 
@@ -89,7 +89,7 @@ custom-built button acting on persisted data).
 ## Constant resources
 
 Constants hold fixed values for variables that lack context tags (for example the resolution
-strategy text for output resolution). [Help `ind.pricing_create_constant_resource.htm`]
+strategy text for output resolution). [Help: ind.pricing_create_constant_resource.htm]
 
 1. Open the procedure in the builder; click the resource icon > Resource Manager > Add Resource.
 2. Set type (Constant is the only supported type), name, data type, default value; save.

@@ -29,14 +29,14 @@ The neighbouring skills own the mechanics this one builds on:
 | Constraint (CML) procedures | [`../constraint-models/SKILL.md`](../constraint-models/SKILL.md) |
 
 > **Pinned to Release 264 / API v68.0.** Each element file tags its claims with a
-> source: **[Help]** (the 264 Help snapshot under `docs/salesforce/264/help/`),
+> source: **[Help]** (the 264 Help snapshot under docs/salesforce/264/help/),
 > **[Dev guide]**, **[Repo]** (shipped XML in this repo), **[Core]** (Salesforce source
 > behavior), **[Live]** (verified on an org). A qualifier narrows a tag, for example
-> `[Repo, measured]` (a live measurement recorded in a repo README) or
-> `[Live, repo owner]` (observed on an org by the repo owner, no recorded run).
-> `[Measured: <date>, <release>]` is a live result with the run recorded in the file. A live org of the
-> target release beats every other source. Treat untagged or "inferred" claims as
-> hypotheses until you have verified them.
+> [Repo, measured] (a live measurement recorded in a repo README) or
+> [Live, repo owner] (observed on an org by the repo owner, no recorded run).
+> A live result with its run recorded in the file is tagged [Measured: date, release, org kind].
+> A live org of the target release beats every other source. Treat untagged or "inferred" claims
+> as hypotheses until you have verified them.
 
 ## Quick Rules
 

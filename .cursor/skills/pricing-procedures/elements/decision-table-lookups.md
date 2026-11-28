@@ -12,7 +12,7 @@ columns into procedure variables. Not pricing-specific; no price waterfall entry
 
 - Use when you need a plain lookup (tax code, region, tier label, rate) that no dedicated element covers. [inferred]
 - Do not use for base price: use [List Price](./list-price.md) (waterfall, currency, contract handling).
-- Do not use for matrix-driven price adjustment: use the Price Adjustment Matrix element. [Help: `ind.pricing_add_the_price_adjustment_matrix_element.htm`]
+- Do not use for matrix-driven price adjustment: use the Price Adjustment Matrix element. [Help: ind.pricing_add_the_price_adjustment_matrix_element.htm]
 - `DecisionTable` = Salesforce decision table (refreshable object); `DecisionMatrix` = Business Rules Engine decision matrix. Both enumerated as actionTypes and as variable `dataType`/`lookupType`. [Dev guide]
 
 ## Configuration

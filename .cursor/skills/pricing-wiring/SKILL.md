@@ -2,23 +2,26 @@
 name: pricing-wiring
 description: >-
   Wire Revenue Cloud pricing recipes, recipe-table mappings, procedure plans, and
-  feature overlays in dependency order. Use when pricing changes span these layers; use
+  feature overlays in dependency order in this repo's build (CCI tasks, flows, datasets).
+  Use when pricing changes span these layers; use pricing-setup for pricing setup in any org,
   expression-sets for procedure authoring, pricing-procedures for element configuration,
   and decision-tables for lookup definition or refresh work.
 ---
 
 # Pricing Dependency and Layering Skill
 
-Use this skill when adding or changing pricing behavior that spans:
+Use this skill when adding or changing pricing behavior **in this repo's build** that spans:
 
 - pricing recipes and recipe table mappings
-- pricing procedures (Expression Set Definitions) — authored via Metadata API
+- pricing procedures (Expression Set Definitions), authored via Metadata API
   (source-controlled) or CRUD'd at runtime via the Connect API (section E)
 - procedure plans and plan overlays
 - layered feature patches on top of core pricing
 
 This guide is intentionally generic so future feature packs can reuse the same
-pattern as PRM pricing without redesigning setup order each time.
+pattern as PRM pricing without redesigning setup order each time. Pricing setup
+that applies to any org (books, schedules, recipes as a concept, settings, multicurrency
+rules) is [`pricing-setup`](../pricing-setup/SKILL.md).
 
 ## Quick Rules
 
@@ -31,13 +34,8 @@ pattern as PRM pricing without redesigning setup order each time.
 5. Validate on a clean org, then re-run for idempotency.
 6. Prefer `LookUpApiName` for decision table references; add `LookUpId` only when
    a known org/runtime issue requires it.
-7. For **authoring or CRUD'ing pricing procedures themselves** (Connect vs
-   Metadata API, overlays, dependency capture, the activation lifecycle), use the
-   **Expression Sets skill** (`.cursor/skills/expression-sets/SKILL.md`). To
-   configure the **elements** inside a procedure (Aggregate Price, discounts,
-   Price Revision, DDS, element ordering), use the **Pricing Procedures skill**
-   (`.cursor/skills/pricing-procedures/SKILL.md`). This skill (section E) covers
-   only where that work slots into the pricing layering model.
+7. Procedure authoring/CRUD: `expression-sets`; element configuration: `pricing-procedures`.
+   Section E covers only where that work slots into the layering model.
 
 ## DO NOT
 
@@ -53,12 +51,7 @@ pattern as PRM pricing without redesigning setup order each time.
 - **DO NOT** insert a procedure-plan section into an occupied sequence before moving the existing section out of that sequence.
 - **DO NOT** duplicate `LookUpId` parameters within a single expression-set step;
   this can produce a generic Metadata API "unexpected error" at deploy time.
-- **DO NOT** mutate the real shipped `RLM_DefaultPricingProcedure` (or any shipped
-  procedure) to experiment — test CRUD against a disposable clone, except for an
-  intentional, approved change. (For the full set of Expression Set CRUD safety
-  rules — HTML-entity normalization, version-id handling,
-  `resourceInitializationType` immutability, structural-vs-functional removal,
-  the three dependency scopes — see `.cursor/skills/expression-sets/SKILL.md`.)
+- **DO NOT** mutate the shipped `RLM_DefaultPricingProcedure` to experiment; use a disposable clone.
 
 ---
 
@@ -66,15 +59,12 @@ pattern as PRM pricing without redesigning setup order each time.
 
 Use three explicit layers for any pricing customization:
 
-1. **Core Layer**
-   - Global defaults needed by most orgs/features.
-   - Example: baseline recipe mapping for costbook list pricing.
-2. **Feature Layer**
-   - Additive prerequisites and metadata for one feature pack.
-   - Example: PRM-specific decision table mappings and procedures.
-3. **Overlay Layer**
-   - Data/plan adjustments that alter behavior after metadata is deployed.
-   - Example: procedure plan option/section overlays and context extensions.
+1. **Core Layer**: global defaults needed by most orgs/features, for example the baseline
+   recipe mapping for costbook list pricing.
+2. **Feature Layer**: additive prerequisites and metadata for one feature pack, for example
+   PRM-specific decision table mappings and procedures.
+3. **Overlay Layer**: data/plan adjustments that alter behavior after metadata is deployed,
+   for example procedure plan option/section overlays and context extensions.
 
 Design goal: each layer can run independently where possible, and reruns should
 be no-op safe.
@@ -89,9 +79,7 @@ A `ListPrice`/lookup-driven procedure step can fail even if the decision table
 exists and is Active, if the recipe table mapping row is absent. Recipe concept,
 subtype and the Setup UI: `.cursor/skills/pricing-setup/pricing-recipes.md`.
 
-Typical failure:
-
-- `Ensure that the lookup table in the ListPrice step is valid and try again.`
+Typical failure: `Ensure that the lookup table in the ListPrice step is valid and try again.`
 
 Repo implementation pattern:
 
@@ -101,8 +89,7 @@ Repo implementation pattern:
   - `datasets/tooling/PricingRecipeTableMappings/prm_ngp_default.json`
 - Core task: `configure_core_pricing_recipe_table_mappings`
   - Runs in `prepare_expression_sets` before `deploy_expression_sets`
-  - Ensures `NGPDefaultRecipe` is mapped to `RLM_CostBookEntries` as
-    `ListPrice`
+  - Ensures `NGPDefaultRecipe` is mapped to `RLM_CostBookEntries` as `ListPrice`
 - Feature task: `configure_pricing_recipe_table_mappings`
   - Runs in `deploy_post_prm_pricing` behind `prm` + `prm_pricing`
   - Ensures PRM-specific table mappings, plus idempotent coverage for shared
@@ -126,9 +113,8 @@ Lookup reference strategy:
 
 - Default to `LookUpApiName` when the target `DecisionTable.DeveloperName` is
   stable and verified in setup/flows.
-- Add `LookUpId` placeholders only when needed; do not add both casually.
-- If both are present in a step, verify there is exactly one `LookUpId`
-  parameter block per step.
+- Add `LookUpId` placeholders only when needed; do not add both casually. If both
+  are present in a step, verify there is exactly one `LookUpId` parameter block per step.
 - Keep source metadata org-agnostic: never commit real record IDs.
 
 When altering calculation logic, prefer minimal additive deltas on top of stable
@@ -136,60 +122,15 @@ baseline structure.
 
 ### C) Procedure Plans and Overlays
 
-Procedure-plan overlays should be JSON-driven and reusable across feature
-packs. Treat the JSON as the behavioral contract and keep the task generic.
+Plan overlays are JSON-driven, and the JSON is the behavioral contract. The overlay task runs
+deactivate, create/patch sections, resequence through a collision-safe range, create/patch options and
+criteria, verify, and reactivate in a guarded `finally`. Placement is declared by anchor
+(`placement.afterSubSectionType`), not by a hard-coded sequence. Contract, verification rules, ordering
+between independent overlays, how to test your own Quote plan, and why an Order plan can fail every
+Place order: [`procedure-plans-and-overlays.md`](procedure-plans-and-overlays.md).
 
-Runtime contract:
-
-1. deactivate plan version inside the same task that applies the overlay
-2. create or patch declared sections
-3. compute final section order from the current org state
-4. resequence sections through a collision-safe temporary range
-5. resolve parent IDs with SOQL instead of relying on traversal upsert keys
-6. create or patch options, then criteria if present
-7. verify exact overlay invariants
-8. in a guarded `finally` path, reactivate the plan version if it was active before, or activate it if `activate_after_apply` is true
-
-When an overlay changes section order and adds a new section into an existing
-sequence, declare placement by anchor (`placement.afterSubSectionType`) rather
-than hard-coding the final numeric sequence:
-
-```json
-{
-  "subSectionType": "MyFeatureSection",
-  "placement": {
-    "afterSubSectionType": "DefaultPricing"
-  }
-}
-```
-
-The task verifies dynamically from the JSON:
-
-- sections: exactly one row per declared `subSectionType`
-- placement: placed sections appear immediately after their declared anchor
-- options: exactly one row per resolved section ID plus `priority`, with the
-  expected expression set
-- criteria: exactly one row per resolved option ID plus `sequence`, `fieldPath`,
-  and `operator`
-
-Criteria are optional. Omit the `criteria` array, or set it to `[]`, for
-overlays that only add sections/options.
-
-Avoid SFDMU relationship-traversal upserts for procedure-plan children unless
-that exact traversal key has already been validated as idempotent in target
-orgs.
-
-Independent overlays that target the same anchor still need an ordering
-convention if their relative order matters. Without a shared ordering key or a
-single combined overlay declaration, run order is the only available signal.
-If order matters across independently shipped overlays, add a stable ordering
-model before relying on arbitrary execution order.
-
-Repo examples:
-
-- `tasks/rlm_create_procedure_plan_def.py`
-- `tasks/rlm_apply_procedure_plan_overlay.py`
-- `datasets/procedure_plan_overlays/`
+Repo examples: `tasks/rlm_create_procedure_plan_def.py`, `tasks/rlm_apply_procedure_plan_overlay.py`,
+`datasets/procedure_plan_overlays/`.
 
 ### D) Context Definitions and Context Plans
 
@@ -202,10 +143,6 @@ Repo implementation pattern:
 - Context plan assets under `datasets/context_plans/`
 - Context application task: `tasks/rlm_context_service.py` (`manage_context_definition`)
 - Feature-specific context apply tasks (example): `apply_context_prm_pricing`
-
-Runtime failure signal (example):
-
-- `Invalid tag attribute name key: [<Attribute_API_Name>]`
 
 Contract:
 
@@ -220,47 +157,24 @@ Contract:
   unless the target org behavior confirms a `ContextAttrHydrationDetail` should
   exist.
 
+The failure signal `Invalid tag attribute name key: [<name>]` and its causes are in
+[`../context-service/SKILL.md`](../context-service/SKILL.md) (also
+[`../pricing-procedures/operations-and-troubleshooting.md`](../pricing-procedures/operations-and-troubleshooting.md)).
+
 ### E) Programmatic Procedure CRUD (Expression Sets)
 
-A pricing procedure **is** an Expression Set, so authoring or CRUD'ing the
-procedure itself — Connect API vs Metadata API, overlays, dependency capture,
-the deactivate→modify→reactivate lifecycle, HTML-entity normalization, version-id
-rules — is owned by a dedicated skill:
+A pricing procedure **is** an Expression Set; CRUD, overlays, dependency capture and the error register
+are in [`../expression-sets/SKILL.md`](../expression-sets/SKILL.md), element configuration in
+[`../pricing-procedures/SKILL.md`](../pricing-procedures/SKILL.md). Pricing facts kept here:
 
-> **Expression Sets skill:** `.cursor/skills/expression-sets/SKILL.md`
-> (task-level entry point). **Exhaustive reference:**
-> `docs/references/expression-set-connect-api-reference.md` (object/ID model,
-> OAS-confirmed schema enums, every known error + resolution, verification
-> checklist). Both pinned to **Release 264 / API v68.0**.
->
-> **Pricing Procedures skill:** `.cursor/skills/pricing-procedures/SKILL.md` —
-> what each pricing element does, its parameters, element ordering rules and
-> day-2 operations (one sub-file per element under `elements/`).
+- **`usageType: DefaultPricing`** (vs `Bre`); a wrong value hides the procedure from pricing UIs.
+- **Plan cascade.** An ES version referenced by an active `ProcedurePlanDefinitionVersion` cannot be
+  deactivated until the plan version is (section C).
+- **Placeholders** (`__LOOKUPID_*__`, `__ATTRIBUTEPasID__`) resolve via `find_replace` at deploy (B).
+- **Recipe mappings and context definitions** (A, D) are prerequisites the ES engine does not know about.
 
-**What stays a pricing concern (this section):** *where* that CRUD slots into the
-pricing layering and flow order, and the pricing-specific facts the Expression
-Sets skill defers back here:
-
-- **`usageType: DefaultPricing`** for a pricing procedure (vs `Bre`); a wrong
-  value means the procedure won't surface in pricing UIs or be invocable.
-- **Procedure-plan cascade.** A pricing procedure referenced by an active
-  `ProcedurePlanDefinitionVersion` cannot have its ES version deactivated until
-  the plan version is deactivated first (the cascade the tasks perform). This is
-  the same lock described in **C) Procedure Plans and Overlays** above — keep
-  plan-version deactivation paired with any procedure mutation.
-- **Lookup placeholders.** Pricing-procedure steps carry `__LOOKUPID_*__` /
-  `__ATTRIBUTEPasID__` placeholders resolved by `find_replace` transforms at
-  deploy (see **B) Pricing Procedures** above) — keep source org-agnostic.
-- **Recipe-table mappings + context definitions** (sections A and D) are
-  pricing-procedure prerequisites the Expression Set engine does not know about;
-  satisfy them before deploying/activating the procedure.
-
-The shipped overlays under `datasets/expression_set_overlays/` are generally
-applicable pricing examples (`map_line_item`, `discount_distribution`). More
-environment-specific reference overlays live under
-`docs/references/expression-set-overlay-examples/`; the Expression Sets skill
-walks through both categories. Always test procedure CRUD against a
-**disposable clone**, never the shipped `RLM_DefaultPricingProcedure`.
+Shipped overlays: `datasets/expression_set_overlays/`; environment-specific:
+`docs/references/expression-set-overlay-examples/`. Test CRUD against a **disposable clone**.
 
 ---
 
@@ -277,123 +191,26 @@ Use this generic sequencing rule:
 7. apply procedure-plan/data overlays
 8. run verification tasks
 
-In this repo today:
-
-- Core mapping runs in `prepare_expression_sets` before core pricing procedure
-  deploy.
-- Feature mapping runs in `deploy_post_prm_pricing` before PRM pricing
-  procedure deploy.
-
-Future feature packs should mirror this split.
+In this repo today: core mapping runs in `prepare_expression_sets` before core pricing procedure
+deploy; feature mapping runs in `deploy_post_prm_pricing` before PRM pricing procedure deploy. Future
+feature packs should mirror this split.
 
 ---
 
 ## Runtime-created pricing rows
 
-A decision table goes stale the moment its source object gains or changes a row, and
-pricing then prices from the table as last refreshed, as if that row did not exist. A changed
-source row prices at its old value until the refresh. A lookup with no matching row returns no
-match: an adjustment or tier step leaves the price from earlier steps unchanged, and a list-price
-step sets no list price (one set by an earlier step is kept, not zeroed [Core, via
-`pricing-procedures/elements/list-price.md`]; a new line has none to keep); no error is raised in
-the traced path [Platform behaviour, traced: procedure lookup path only; for a List Price or Price Tracking step with output resolution on, Help says
-the line stops instead]. Most
-pricing sources in this repo are loaded once at org build and never touched again, so in
-practice the tables stay correct. The ones that bite are the sources normal selling
-writes to *after* the build.
+A decision table goes stale the moment its source object gains or changes a row, and pricing then
+prices from the table as last refreshed, as if that row did not exist; the miss is silent. Most
+pricing sources in this repo are loaded once at org build and never touched again. The ones that
+bite are rows normal selling writes afterwards, above all `ContractItemPrice` and
+`ContractItemPriceAdjTier`: `RLM_Contract_Activation_Refresh_Pricing_Tables` refreshes the three
+`Contract_Pricing_*` tables when a contract becomes **Activated**, and a bulk load of contract
+prices needs `cci task run refresh_dt_default_pricing` by hand.
 
-`ContractItemPrice` / `ContractItemPriceAdjTier` are the case that bites: selling a contract
-with contract prices writes rows that the three `Contract_Pricing_*` tables have not seen.
-`RLM_Contract_Activation_Refresh_Pricing_Tables` (record-triggered on `Contract`) refreshes
-all three when a contract becomes **Activated**, which covers every path — the UI Activate
-button, REST/SOAP, Apex, another flow — because they all end in the same status change.
-
-**Refresh on activation, not on creation.** The two tier tables filter their source on
-`ContractItemPriceId.ContractId.StatusCode = 'Activated'` (inspect any table's filter via
-`DecisionTableSourceCriteria`). A contract is created **Draft**, so a refresh fired at
-creation time excludes that contract's tier rows and *still* stamps `LastSyncDate` — leaving
-a table that reads fresh while holding nothing, which is worse than leaving it visibly stale.
-`Contract_Pricing_Entries_Decision_Table` has no such filter, so only two of the three tables
-show the symptom, which makes it easy to half-test and conclude the wrong thing.
-
-A refresh is still needed by hand after a **bulk data load** of contract prices that does not
-end in an activation:
-
-```bash
-cci task run refresh_dt_default_pricing
-```
-
-(`refresh_dt_*` tasks accept `--org` as of 2026-07-27 — `RefreshDecisionTable` now sets
-`salesforce_task = True`. Before that they silently ran against the CCI **default** org.
-`manage_expression_sets` accepts `--org` too, and `tests/test_cci_task_org_option.py` fails the
-gate for any task that reads `self.org_config` without `salesforce_task = True`.)
-
-**Use the table's latest sync — the later of `LastSyncDate` and `LastIncrementalSyncDate`
-— to decide whether a refresh happened.** Release 264 can run a full request as
-incremental, which moves only `LastIncrementalSyncDate` (see the decision-tables skill,
-`lifecycle-and-refresh.md` → *Release 264 chooses the refresh type*). A sync date only
-advances on a refresh that actually ran, so the staleness comparison above is the one check that holds for every
-failure shape. Do not rely on `DecisionTable.RefreshStatus` / `RefreshFailureReason` as the
-detector: they live *on a table record*, so they only tell you anything once a refresh has
-been accepted for a table that exists.
-
-Two failure shapes, measured against a live org — the difference matters before you add
-error handling to a flow that calls `refreshDecisionTable`:
-
-| Shape | What you get | Where it shows |
-|---|---|---|
-| Invalid or inactive `DecisionTableApiName` | **A Flow fault** (*"The decision table API Name is invalid…"*), not a `Failed` status | Nowhere on `DecisionTable` — an unresolvable name identifies no table record to stamp. Only the flow's own fault handling sees it. |
-| Accepted refresh that then fails | `status = Queued`, async job result | `RefreshStatus` (observed on a live org going `Initiated` then `Completed`; not traced) and `RefreshFailureReason` |
-
-Consequences:
-
-- A flow calling this action needs a `faultConnector`, and in a **record-triggered
-  after-save** flow it needs one urgently: an unhandled fault rolls back the triggering DML,
-  so a refresh problem would block the very save that should have caused the refresh.
-- The documented `status = Failed` output could not be provoked — a valid table returned
-  `Queued` on every attempt, including five back-to-back refreshes of the same table.
-- Because the fault case leaves no trace on the table, a flow that swallows the fault leaves
-  the sync dates as the *only* evidence. That is by design, but it means the staleness check
-  above is the monitoring story, not an afterthought.
-
-To tell whether a table is stale, compare **each** table against **its own** source object's
-newest `LastModifiedDate`. Two things make this easy to get wrong:
-
-- The three tables do **not** share one source, so a single source query proves nothing about
-  the other two: `Contract_Pricing_Entries_Decision_Table` ← `ContractItemPrice`, while
-  `Contract_Pricing_Adjustment_Tiers` and `Contract_Pricing_Volume_Tiers` ←
-  `ContractItemPriceAdjTier`.
-- Use `LastModifiedDate`, not `CreatedDate`. An **edited** price row invalidates the table
-  exactly as a new one does, and `CreatedDate` cannot see it.
-
-The source query must also **reproduce the table's own source criteria**, or it reports rows
-the table deliberately excludes. The tier tables only admit rows whose contract is Activated,
-so an unfiltered `MAX` over a Draft contract's tiers would report them stale forever:
-
-```bash
-sf data query -q "SELECT DeveloperName, LastSyncDate, LastIncrementalSyncDate FROM DecisionTable WHERE DeveloperName LIKE 'Contract_Pricing%' ORDER BY DeveloperName" --target-org <sf_alias>
-
-# Entries <- ContractItemPrice, which has NO source criteria: no filter here.
-sf data query -q "SELECT MAX(LastModifiedDate) newest FROM ContractItemPrice" --target-org <sf_alias>
-
-# Both tier tables <- ContractItemPriceAdjTier, filtered to activated contracts.
-# Note the SOQL relationship names differ from the criteria field path stored in
-# DecisionTableSourceCriteria: ContractItemPriceId.ContractId -> ContractItemPrice.Contract
-sf data query -q "SELECT MAX(LastModifiedDate) newest FROM ContractItemPriceAdjTier WHERE ContractItemPrice.Contract.StatusCode = 'Activated'" --target-org <sf_alias>
-```
-
-A table whose latest sync (the later of the two dates) is **earlier** than its own source's `newest` is stale, and the
-contract's negotiated price is not being applied. A `null` `newest` means that source has no
-qualifying rows, so its tables cannot be stale.
-
-Generalising: read the table's real filter out of the org rather than assuming it has none —
-
-```bash
-sf data query -q "SELECT DecisionTable.DeveloperName, SourceFieldName, Operator, Value FROM DecisionTableSourceCriteria WHERE DecisionTable.DeveloperName = '<table>'" --target-org <sf_alias>
-```
-
-Never generalise one source's timestamp to a sibling table, and never compare against rows the
-table would have excluded anyway.
+The full section (refresh on activation, not creation; which sync date to read; the two failure
+shapes of `refreshDecisionTable`; the per-table staleness query) is in
+[`../decision-tables/lifecycle-and-refresh.md`](../decision-tables/lifecycle-and-refresh.md#runtime-created-pricing-rows) →
+*Runtime-created pricing rows*.
 
 ---
 
@@ -432,10 +249,8 @@ cci flow run prepare_expression_sets --org <cci_alias>
 sf project deploy start --metadata ExpressionSetDefinition:RLM_DefaultPricingProcedure --target-org rlm-base__<cci_alias> --dry-run --test-level NoTestRun --json
 ```
 
-Expected idempotency:
-
-- mapping task reports `No change` for existing rows
-- procedure deploy path remains successful on rerun
+Expected idempotency: the mapping task reports `No change` for existing rows, and the procedure
+deploy path remains successful on rerun.
 
 ---
 
@@ -452,106 +267,33 @@ Check in order:
 
 ### Wrong-currency price returned (multicurrency orgs)
 
-A lookup step that does **not** pass `CurrencyIsoCode` does not match on currency [inferred: what
-an omitted required input does was not traced]. If the
-table has rows for the product in more than one currency, a single-output lookup fails with a
-duplicate-value error; with output resolution on, a List Price or Price Tracking step picks the final
-row(s) from the candidates by its resolution strategy (for example minimum or maximum price
-[Help]) and candidate priority [Platform behaviour, traced: priority resolution, procedure lookup
-path only], and the chosen row can be another currency's [inferred: the lookup returns every currency's row]. A Price
-Adjustment Matrix with Stack or Sequence resolution applies every matched row [Core, via
-`price-adjustment-matrix.md`]; if its Use As List column stays unique with per-currency rows,
-every currency's row may apply [inferred, not traced], which usually gives a visibly wrong
-price. A Volume Discount lookup has no output resolution, so several currency rows give the
-duplicate-value error [Core]; a Tier Discount lookup returns the overlapping bands and logs
-`OVERLAPPING_ADJUSTMENT_TIERS` [Core; table shape inferred]. If the only row is in another
-currency, the line prices from it [inferred]. In the resolution-pick and lone-row cases the
-symptom is a *plausible* price, not an error.
+Cause (a lookup step that does not pass `CurrencyIsoCode`), symptoms and the fix:
+[`../pricing-setup/multicurrency.md`](../pricing-setup/multicurrency.md). This repo's currency
+inheritance flows and the exchange-rate refresh: [`multicurrency-build.md`](multicurrency-build.md).
 
-Where the step does pass `CurrencyIsoCode` (the shipped recipe tables take it as a required
-Equals input) and the table has no row for that currency, the lookup returns no match: an
-adjustment or tier step leaves the earlier price unchanged, a list-price step sets no list price
-(a new line then has none), no error is raised in the traced path, and there is no conversion from the corporate currency [Platform behaviour, traced:
-procedure lookup path only; for a List Price or Price Tracking step with output resolution on,
-Help says the line stops instead].
+### Active version update failures
 
-**Fix:** add `CurrencyIsoCode` as an input on **every** lookup step that resolves a
-currency-denominated value — list price, adjustment schedule, and adjustment tier
-lookups alike. Missing it on the tier step alone still breaks tier pricing: with rows in several currencies, a
-duplicate-value error on Volume or overlapping bands logged on Tier; with one row in another
-currency, that row's values.
+Confirm the deactivate step runs before deploy and targets the correct versions. There are two
+distinct deactivation gates:
 
-Currency must also *reach* the record for the step to filter on it. Records created
-by quick actions and flows default to the **running user's** currency, not the
-account's, so wire currency inheritance explicitly. Two before-save flows show the
-pattern — note their **placement differs by scope**:
-
-| Flow | Lives in | Why |
-|------|----------|-----|
-| `RLM_Default_AssetRateCard_Currency` | `force-app/main/default/flows/` | Foundational. An `AssetRateCardEntry` whose currency differs from its Asset is *always* wrong; the platform defaults it to USD and never inherits (262, no config remedy). Every multicurrency build needs this. |
-| `RLM_Default_Opportunity_Currency` | `unpackaged/post_quantumbit/flows/` | Feature-specific. It **enforces** account currency, so a deliberately cross-currency Opportunity cannot be created while it is active — acceptable for the QB demo, not something to impose on every build. Gated behind the `quantumbit` flag. |
-
-The distinction generalises: a flow that corrects an always-wrong platform default is
-foundational; one that removes a legitimate user choice to suit a demo belongs in
-that demo's feature bundle.
-
-Offline guard: `python tests/test_qb_multicurrency_data.py`.
-Live guard: `cci task run validate_multicurrency_rates`.
-
-**Refreshing exchange rates in the plans.** qb/en-US qb-pricing's `CurrencyType.csv` is the rate table for
-the USD-corporate shapes that share a currency with qb (q3 shares it), so refresh it there and copy
-the shared rates. qb/ja's is JPY-corporate (USD 0.00663): never point the task's `csv_path` at it, as it
-would write USD-based rates into a JPY-based table.
-
-1. `cci task run update_currency_rates_csv` (preview with `-o dry_run true`; restrict with `-o iso_codes EUR,GBP`).
-   It writes qb-pricing's CSV by default; pass `-o csv_path` for another plan's.
-2. Regenerate qb's converted prices: `python scripts/expand_currency_pricing_data.py --apply`.
-3. Copy the six shared rates into `q3-pricing/CurrencyType.csv`, then
-   `python scripts/expand_currency_pricing_data.py --plan datasets/sfdmu/q3/en-US/q3-pricing --currencies AUD,CAD,CHF,EUR,GBP,JPY --apply`.
-   Review the diff: the script also creates six-currency rows for q3's six USD-only entries and for
-   its adjustment, tier and derived-price rows, which carry USD only today.
-4. To bring a built org in line, reload the regenerated plans (`CurrencyType` and `PricebookEntry` are
-   `Upsert`, so the rows update in place), then refresh the pricing decision tables:
-   `cci task run refresh_dt_default_pricing --org <cci_alias>` and
-   `cci task run refresh_dt_pricing_discovery --org <cci_alias>` (or `cci flow run
-   refresh_all_decision_tables --org <cci_alias>`, which runs both). Pricing reads their snapshots, not
-   the entries, so until the refresh the org keeps quoting the old prices. The refresh only queues the
-   tables; once the queue drains, confirm with `cci task run check_decision_table_freshness --org
-   <cci_alias>`: no pricing table should be Stale (a "Not comparable" table isn't a failure). `cci task run update_currency_rates` changes only the org's
-   `CurrencyType` rates (fetched live again, not read from the CSV) and leaves its prices stale; without
-   `-o iso_codes` it patches every active non-corporate currency, including q3's own and mfg's.
-
-Prices in a currency follow its rate, so never change one without the other. mfg keeps its own rates
-until it is aligned separately.
-
-### active version update failures
-
-Confirm deactivate step runs before deploy and targets correct versions.
-Note: there are two distinct deactivation gates:
-
-1. **ExpressionSetVersion** — the `deactivate_expression_sets` task handles this
-2. **ProcedurePlanDefinitionVersion** — if the expression set is referenced by an
-   active plan version, that plan version must also be deactivated before deploy.
-   The plan version lock produces a generic "unexpected error" distinct from the
-   expression set version lock.
+1. **ExpressionSetVersion**: the `deactivate_expression_sets` task handles this.
+2. **ProcedurePlanDefinitionVersion**: if the expression set is referenced by an active plan
+   version, that plan version must also be deactivated before deploy. The plan version lock
+   produces a generic "unexpected error" distinct from the expression set version lock.
 
 ### Connect API mutation errors (`Error processing JSON`, `resourceInitializationType`, version-id)
 
-These are Expression Set CRUD mechanics, not pricing-layering issues — the full
-error register (HTML-entity parsing failures, opaque-error bisection, immutable
-`resourceInitializationType`, version-id handling, `contextDefinitions[].id`,
-admin permission) lives in **`.cursor/skills/expression-sets/SKILL.md`** and its
-reference's *Known errors & conditions* table. Come back here for the
-pricing-specific deploy error below.
+These are Expression Set CRUD mechanics, not layering issues; the error register is in
+[`../expression-sets/SKILL.md`](../expression-sets/SKILL.md) and the reference's *Known errors &
+conditions* table.
 
 ### `ExpressionSetDefinition ... unexpected error occurred`
 
 When the deploy error is generic and points at a single expression set:
 
-1. check whether an active `ProcedurePlanDefinitionVersion` references the
-   expression set — an active plan version locks the expression set from
-   metadata API updates. Deactivate the plan version first, deploy, then
-   reactivate.
+1. check whether an active `ProcedurePlanDefinitionVersion` references the expression set — an
+   active plan version locks the expression set from metadata API updates. Deactivate the plan
+   version first, deploy, then reactivate.
 2. run a targeted dry-run deploy for that expression set only
 3. diff against last known-good version
 4. inspect changed steps for duplicate parameter names (especially `LookUpId`)
@@ -559,86 +301,46 @@ When the deploy error is generic and points at a single expression set:
 
 ### Expression sets fail deploy via raw `sf project deploy`
 
-Expression sets containing `__LOOKUPID_*__` placeholder tokens cannot deploy
-via `sf project deploy start` — placeholders are not valid Salesforce record
-IDs and the metadata API rejects them. Always use `cci task run
-deploy_expression_sets` (or `activate_and_deploy_expression_sets`), which
-applies `find_replace` transforms from `cumulusci.yml` to resolve placeholders
-to real DecisionTable IDs via SOQL before deploying.
+Expression sets containing `__LOOKUPID_*__` placeholder tokens cannot deploy via
+`sf project deploy start`: the placeholders are not valid record IDs and the metadata API rejects
+them. Use `cci task run deploy_expression_sets` (or `activate_and_deploy_expression_sets`), which
+applies `find_replace` transforms from `cumulusci.yml` to resolve placeholders to real DecisionTable
+IDs via SOQL before deploying.
 
-### procedure-plan overlay succeeds only on rerun
+### Procedure-plan overlay succeeds only on rerun
 
-Check whether the overlay is still using fixed numeric sequences or separate
-manual move steps. Rework it to use `placement.afterSubSectionType` so the task
-creates/patches sections first, computes the full target order from the org, and
-resequences with a temporary high-sequence pass. A first run that partially moves
-sections and only succeeds on rerun usually means sequencing is not owned by the
-overlay task.
+The overlay still uses fixed sequences or manual move steps; use `placement.afterSubSectionType` so the
+task owns sequencing (see `procedure-plans-and-overlays.md`).
 
-### feature flow fails before mapping step
+### Every Place order fails once a custom Order plan is active
 
-Treat as unrelated until proven otherwise (missing metadata/field dependencies can
-mask mapping validation).
-
-### `Invalid tag attribute name key`
-
-Usually indicates context definition drift:
-
-1. required context attribute/tag was not applied in target org
-2. feature context plan was not wired/run in the flow
-3. context plan points to wrong context definition/mapping
+See *An Order plan* in [`procedure-plans-and-overlays.md`](procedure-plans-and-overlays.md).
 
 ---
 
-## Context Update Checklist
+## Context and Best Practices
 
-Use this quick checklist whenever pricing changes add or consume new context keys:
-
-- [ ] Context attribute/tag additions are captured in `datasets/context_plans/<Feature>/`.
-- [ ] A context apply task is wired in the corresponding feature flow (not only in ad hoc/manual runs).
-- [ ] Context apply runs before pricing validation and quote/pricing runtime tests.
-- [ ] At least one verification step confirms required context keys are present in the target context definition.
-- [ ] Re-run is idempotent (no duplicate nodes, no destructive replacement unless explicitly intended).
-
----
-
-## Best Practices
-
-- Use data-driven JSON payloads for mapping declarations.
-- Separate core vs feature mapping payloads.
-- Keep setup additive; avoid replacing stable baseline wiring.
-- Verify clean-org behavior and rerun behavior before merge.
-- After `cumulusci.yml` updates, regenerate references:
-  - `python scripts/ai/generate_cci_reference.py`
+When pricing adds or consumes context keys, capture them in `datasets/context_plans/<Feature>/`, wire the
+apply task in the feature flow before pricing validation, verify the keys exist, and keep it idempotent.
+Keep mapping payloads data-driven, setup additive; verify clean-org and rerun behavior. After
+`cumulusci.yml` edits run `python scripts/ai/generate_cci_reference.py`.
 
 ---
 
 ## Sub-files
 
-- `price-revision-cpi.md` — Price Revision Policies and CPI (Price Index): the seeded data, when the
-  renewal and ramp steps run, expected prices, and how to verify. Read it when setting up or checking a
+- [`procedure-plans-and-overlays.md`](procedure-plans-and-overlays.md): the overlay task contract and
+  verification, how to test your own Quote plan, and the Order-plan hydration rule. Read it when
+  adding or changing a plan overlay.
+- [`multicurrency-build.md`](multicurrency-build.md): the repo's currency inheritance flows and the
+  exchange-rate refresh across the data plans. Read it when adding a currency to a plan.
+- [`price-revision-cpi.md`](price-revision-cpi.md): this repo's CPI (Price Index) data load, how to
+  run and verify a renewal revision, and the build gotchas. Read it when setting up or checking a
   price revision on a renewal or ramp.
 
 ## Related References
 
-- **Expression Sets skill (CRUD, overlays, dependency capture):**
-  `.cursor/skills/expression-sets/SKILL.md` — the task-level entry point for
-  authoring/mutating procedures themselves (the work §E points to).
-- **Pricing Procedures skill (element configuration, ordering, operations):**
-  `.cursor/skills/pricing-procedures/SKILL.md` — one sub-file per pricing element
-  under `elements/`.
-- **Expression Set reference (exhaustive):**
-  `docs/references/expression-set-connect-api-reference.md` — object/ID model,
-  OAS-confirmed schema enums, every known error + resolution, Metadata API
-  authoring path, and the verification checklist.
-- **Connect CRUD tasks:** `tasks/rlm_expression_set_connect.py`; pre-flight
-  validator `tasks/expression_set_schema.py`; tests `tests/test_expression_set_schema.py`.
-- **External doc link index:**
-  `docs/salesforce/262/dev-guide/expression-set-business-apis-links.md` (262 capture;
-  not in the 264 snapshot).
-- CCI orchestration skill: `.cursor/skills/cci-orchestration/SKILL.md`
-- Repository integration skill: `.cursor/skills/repo-integration/SKILL.md`
-- SFDMU data plans skill: `.cursor/skills/sfdmu-data-plans/SKILL.md`
-- Dynamic UX assembly: `docs/features/dynamic-ux-assembly.md`
-- SFDMU known matching constraints:
-  - [SFDX-Data-Move-Utility issue #781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781)
+- Skills (`.cursor/skills/`): `expression-sets`, `pricing-procedures`, `pricing-setup`, `cci-orchestration`, `repo-integration`, `sfdmu-data-plans`.
+- Expression Set reference: `docs/references/expression-set-connect-api-reference.md`; Connect CRUD
+  tasks `tasks/rlm_expression_set_connect.py`.
+- Dynamic UX assembly: `docs/features/dynamic-ux-assembly.md`; SFDMU matching constraints: [SFDX-Data-Move-Utility issue #781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781)

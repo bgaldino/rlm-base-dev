@@ -34,14 +34,14 @@ the context, prices it and returns `pricingResult` in the same request, so the d
 scope is enough (`businessObjectType` in `pricingData` must be the SObject the mapping uses). Or
 use one Flow that builds the context, runs `runSalesforcePricing` (Flow-only) with its
 `contextInstanceId` and `pricingProcedureName`, and reads the tags in the same transaction
-[Dev guide `pricing-invocable-actions-parent.md`, `actions-obj-run-salesforce-headless-pricing.md`,
-`actions-obj-run-salesforce-pricing.md`]. The multi-call REST path works only with
+[Dev guide: pricing-invocable-actions-parent.md, actions-obj-run-salesforce-headless-pricing.md,
+actions-obj-run-salesforce-pricing.md]. The multi-call REST path works only with
 SESSION scope or context reuse enabled, plus the query pilot. Which path fits which org:
 [`../context-service/runtime-and-persistence.md`](../context-service/runtime-and-persistence.md).
 
 **Measured: `runSalesforceHeadlessPricing` against a named procedure** [Measured: 2026-11-10, 264,
-QuantumBit scratch org; worked example in
-[`elements/commitment-term-discount.md`](elements/commitment-term-discount.md)]:
+scratch]; worked example in
+[elements/commitment-term-discount.md](elements/commitment-term-discount.md):
 
 - Request: `POST /services/data/v68.0/actions/standard/runSalesforceHeadlessPricing` with
   `{"inputs":[{"contextDefinitionId":"<RLM_SalesTransactionContext 11O…>","contextMappingId":"<QuoteEntitiesMapping 11j…>","pricingProcedureId":"<procedure API name>","pricingData":"<JSON string>","skipDiscovery":true,"isSkipWaterfall":true,"persistContext":false,"useSessionScopedContext":false,"displayContext":false,"taggedData":false}]}`.
@@ -56,7 +56,7 @@ QuantumBit scratch org; worked example in
   `Discount`, `SubscriptionTerm`, `SubscriptionTermUnit`, `SellingModelType`, `PricingTermUnit`,
   `SalesTransactionItemSource`, …). Values passed inline price the line without any record:
   `ListPrice` still came from the price book entry, and `UnitPrice` was used as the input unit price.
-- Line inputs that failed pricing when missing or malformed [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]:
+- Line inputs that failed pricing when missing or malformed [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]:
   - `SalesTransactionItemSource` missing: the first step fails with `nulltagName = LineItem`. A
     per-line string such as `PROBE_LINE_1` worked.
   - `PeriodBoundary` missing: `INVALID_PERIOD_BOUNDARY`. `Anniversary` worked.
@@ -67,7 +67,7 @@ QuantumBit scratch org; worked example in
   `SalesTransaction` mapping) failed both ways tried (a root object without `id` keys, and a root array with `id` keys):
   `INTERNAL_ERROR: We couldn’t fetch the data for RLM_SalesTransactionContext context definition.
   Try again later or contact your Salesforce admin for help.` [Dev guide:
-  `actions-obj-run-salesforce-headless-pricing.md` shows that sample].
+  actions-obj-run-salesforce-headless-pricing.md shows that sample].
 - Response: `outputValues.pricingResult` (and `contextDetails`, `pricingProcessErrors`) come back
   as **JSON strings**, not the nested objects the dev guide sample shows. `pricingResult` is keyed
   by context attribute name (`NetUnitPrice`, `NetTotalPrice`, `PricingTermCount`, `TotalAmount`,
@@ -80,12 +80,21 @@ QuantumBit scratch org; worked example in
 - With `persistContext: false` and inline values, no context is stored and no quote record is
   changed. The run is still recorded as a pricing API execution log (table below).
 
-**Measured: reading a saved line's waterfall** [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch
+**Measured: reading a saved line's waterfall** [Measured: 2026-11-11, 264, fresh ent-sb0 scratch
 org]. For a priced quote line, read `QuoteLineItem.PriceWaterfallIdentifier`, a `<ref>:<executionId>`
 pair, split it at the last colon, and call `GET /connect/core-pricing/waterfall/<ref>/<executionId>`.
 The response lists each step with its `pricingElement` and output values. Calls built from the
 line's record id and from a `PricingAPIExecution.ExecutionKey` returned
 `FETCH_EXPLAINABILITY_LOG_ERROR`.
+
+Each step's input parameters carry the hydrated input values it consumed, including a field the
+quote's rep cannot read (Elevated Data Access); anyone who can open the line can read it in the
+waterfall [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build, one org]. See
+[`../pricing-setup/elevated-data-access.md`](../pricing-setup/elevated-data-access.md).
+
+An order whose custom Order plan is active can fail every Place with a generic context message; see
+[`../pricing-wiring/procedure-plans-and-overlays.md`](../pricing-wiring/procedure-plans-and-overlays.md)
+-> *An Order plan*. [Open: does an Order waterfall error body name the failing criterion; settle by reading the waterfall of a failed Order Place on an active Order plan]
 
 | Capability | Enable / find | Notes |
 |---|---|---|
@@ -204,10 +213,10 @@ deleted lines in discovery, and Asset Discovery runs only when a derived line or
 updated or deleted [Platform behaviour, traced]. Help: delta pricing recalculates modified lines and
 their dependents, applies automatically to updates with no validation errors that follow a
 successful pricing run (otherwise a full reprice), and can't be used with Dual Persistence mode
-[Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`]. Reprice All runs a full recalculation
-whatever the delta setting [Help: `ind.qocal_reprice_all_quotes_and_orders`]. Compound Uplift lines
+[Help: ind.qocal_use_delta_pricing_for_quotes_and_orders]. Reprice All runs a full recalculation
+whatever the delta setting [Help: ind.qocal_reprice_all_quotes_and_orders]. Compound Uplift lines
 in a ramp group reprice on every run regardless of delta pricing [Help:
-`ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`]; what System PATCHes did to
+ind.pricing_use_the_price_revision_element_in_a_pricing_procedure]; what System PATCHes did to
 compound ramp lines when measured is in [Price Revision](elements/price-revision.md).
 
 ### Pricing limits

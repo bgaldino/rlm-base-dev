@@ -4,7 +4,7 @@
 > `ind.pricing_define_costs_in_cost_books.htm`, `ind.pricing_price_books_and_cost_books.htm`,
 > `ind.pricing_calculate_margin_by_using_a_standard_cost_book.htm`;
 > `datasets/sfdmu/qb/en-US/qb-pricing/README.md`, `.cursor/skills/pricing-wiring/SKILL.md`. Not live-verified except
-> where tagged [Measured] (2026-11-11, a fresh 264 `ent-sb0` scratch org).
+> where tagged [Measured] (2026-11-11, a fresh 264 ent-sb0 scratch org).
 
 A cost book records what a product costs you; each cost book entry is a cost factor stored against a
 product record. It is optional and independent of selling price.
@@ -24,7 +24,7 @@ Cost Book Entries decision table (output `ItemUnitCost__std`), then a List Group
 for you and no direct reference exists, but a decision table over the cost entries, read by List Price, works.
 Since 264 Help also carries an illustrative worked example of that custom wiring, which says it is not a packaged feature or a supported
 configuration path: custom cost and margin fields on the quote line, context attributes and mapping for the cost, a decision table
-that looks up the cost, and a procedure lookup element [Help: `ind.pricing_calculate_margin_by_using_a_standard_cost_book.htm`]. It computes margin in a formula
+that looks up the cost, and a procedure lookup element [Help: ind.pricing_calculate_margin_by_using_a_standard_cost_book.htm]. It computes margin in a formula
 field, where the repo computes it in the procedure. Treat cost-based pricing as custom wiring, not a supported-by-default feature: the default pricing usage type has no cost book element and the pricing runtime reads no cost book entries. [Core]
 
 ## Set it up
@@ -48,11 +48,11 @@ Creating an entry from the cost book record pre-fills the book; from the Cost Bo
 
 ## How pricing uses it
 
-- Not read by default tables; requires a decision table on `CostBookEntry` (shipped `RLM_CostBookEntries`, mapped to `NGPDefaultRecipe` as a recipe table mapping). [Repo: `../pricing-wiring/SKILL.md`]
+- Not read by default tables; requires a decision table on `CostBookEntry` (shipped `RLM_CostBookEntries`, mapped to `NGPDefaultRecipe` as a recipe table mapping). [Repo: ../pricing-wiring/SKILL.md]
 - The List Price step outputs the cost to a cost variable (`ItemUnitCost__std` in the shipped default procedure), not to `ListPrice`. [Repo]
 - The shipped Cost Book Entries table has only two inputs, `ProductId` and `CurrencyIsoCode` [Repo:
-  `unpackaged/pre/5_decisiontables/RLM_CostBookEntries.decisionTable-meta.xml`; the cost step
-  `Getunitcostfromcostbook` also passes `Quantity`, which the table doesn't read]. [Measured] So the lookup has
+  unpackaged/pre/5_decisiontables/RLM_CostBookEntries.decisionTable-meta.xml; the cost step
+  Getunitcostfromcostbook also passes Quantity, which the table doesn't read]. [Measured: 2026-11-11, 264, scratch] So the lookup has
   **no book and no date filter**: an entry in a non-default cost book priced, and `EffectiveFrom` and `EffectiveTo`
   don't select the entry.
 - [Platform behaviour, traced] In the discount lookup path a single-output lookup with several matches raises a duplicate-value error rather than picking a winner (multiple-output lookups resolve candidates by priority). The cost step's path was not separately traced and its mode is unknown, so which of the two a product with several entries gets is not established. So keep one current entry per product and currency across every book the table reads. Retire an old cost by

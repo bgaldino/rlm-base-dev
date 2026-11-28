@@ -8,6 +8,10 @@
 Prices a bundle component using Bundle Based Adjustment records keyed on root bundle,
 parent product and product. Also zeroes components flagged as inclusive.
 
+It acts on components only, never the root line, and gives a shared child a different net price under each
+parent, with or without a contract [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build, one org].
+Contract price on a bundle's root and children: [`../../pricing-setup/contract-pricing.md`](../../pricing-setup/contract-pricing.md).
+
 ## When to use it
 - A product's price changes when sold inside a specific root bundle/parent. [Help]
 - Not for quantity or attribute rules: see
@@ -55,7 +59,7 @@ as shipped. [inferred]
   `RootProductSellingModelId`: both are create-only, and a row without them never matched
   ([`root-answer-child-price.md`](root-answer-child-price.md)) [Measured: 2026-11-16, 264, scratch].
 - A `BundleBasedAdjustment` row inserted while its schedule was **active** succeeded, and after
-  a decision-table refresh it priced the component [Measured: 2026-11-11, 264, fresh `ent-sb0`
+  a decision-table refresh it priced the component [Measured: 2026-11-11, 264, fresh ent-sb0
   scratch org]. The adjustment validation has no check on the schedule's active flag, whereas adding or removing a tier and bound edits are refused while the schedule is active [Platform behaviour, traced]; do not treat this as a supported way to change an active schedule. Volume tiers behave differently: adding or removing a tier, or changing its bounds, fails while its schedule is active
   ([`volume-and-tier-discount.md`](volume-and-tier-discount.md) → Rules and limits, [Repo,
   measured]). Help still says to deactivate a

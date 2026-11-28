@@ -23,16 +23,16 @@ Permission for all steps: Salesforce Pricing Design Time. [Help]
 
 **View / select the active recipe**
 1. Setup > Quick Find > `Salesforce Pricing` > Salesforce Pricing Setup.
-2. In **Select a Pricing Recipe**, choose the recipe. Only one is active at a time. [Help: `ind.pricing_view_pricing_recipes.htm`]
+2. In **Select a Pricing Recipe**, choose the recipe. Only one is active at a time. [Help: ind.pricing_view_pricing_recipes.htm]
 3. Activating Salesforce Pricing creates the predefined recipe `NGPDefaultRecipe`, mapped to all predefined decision tables. [Help]
 
-**Create a recipe** (when the predefined one is not enough; decision tables must already exist) [Help: `ind.pricing_create_new_pricing_recipe.htm`]
+**Create a recipe** (when the predefined one is not enough; decision tables must already exist) [Help: ind.pricing_create_new_pricing_recipe.htm]
 1. Setup > Quick Find > `Pricing Recipes`.
 2. New: enter a name and pick a **Subtype**. The list shows only clouds matching your active licenses. Each subtype may have several recipes, one of them the default (changeable).
 3. Save, open the recipe, go to the **Price Adjustment Matrix** tab, click **Modify**, select the decision tables to map, save.
 4. New procedures with usage type Pricing then offer the predefined tables plus the ones you mapped.
 
-**Sync a recipe's decision tables**: Setup > Pricing Recipes > row action **Sync**. [Help: `ind.pricing_sync_decision_tables_in_a_pricing_recipe.htm`]
+**Sync a recipe's decision tables**: Setup > Pricing Recipes > row action **Sync**. [Help: ind.pricing_sync_decision_tables_in_a_pricing_recipe.htm]
 
 ## Fields and rules
 
@@ -40,7 +40,7 @@ Permission for all steps: Salesforce Pricing Design Time. [Help]
 |---|---|---|
 | Pricing Recipe | `PricingRecipe` (Tooling API) [Repo] | One active per org. `NGPDefaultRecipe` is the shipped developer name [Help, Repo]. Not in the offline ERD; confirm by describe. |
 | Subtype | not confirmed | Settable on create and clone, not on edit. Procedures created before Winter '27 default to the Revenue Cloud subtype. [Help] |
-| Recipe-table mapping | `PricingRecipeTableMapping` (Tooling API) [Repo] | Links a recipe to a `DecisionTable` with a `PricingComponentType` (for example `ListPrice`) [Repo: `../pricing-wiring/SKILL.md` section A]. UI path is the Price Adjustment Matrix tab. |
+| Recipe-table mapping | `PricingRecipeTableMapping` (Tooling API) [Repo] | Links a recipe to a `DecisionTable` with a `PricingComponentType` (for example `ListPrice`) (see [pricing-wiring](../pricing-wiring/SKILL.md), section A) [Repo]. UI path is the Price Adjustment Matrix tab. |
 
 Element lookups show only tables linked to the **default recipe of the procedure's subtype**. [Help]
 
@@ -56,7 +56,7 @@ Element lookups show only tables linked to the **default recipe of the procedure
 - Repo build of recipe-table mappings (tasks, JSON payloads, flow order, idempotency): [`../pricing-wiring/SKILL.md`](../pricing-wiring/SKILL.md) section A and [`datasets/tooling/PricingRecipeTableMappings/README.md`](../../../datasets/tooling/PricingRecipeTableMappings/README.md). Not repeated here.
 - Refresh mechanics, freshness and ordering after data changes: [`../decision-tables/SKILL.md`](../decision-tables/SKILL.md).
 - Three Help refresh paths [Help]: recipe **Sync** action; **Sync Pricing Data** button in Salesforce Pricing Setup; a schedule-triggered Flow calling the **Refresh Decision Table** action (one action per table).
-- Scheduled flow cautions [Help: `ind.pricing_automate_pricing_data_sync.htm`]: run off-peak;
+- Scheduled flow cautions [Help: ind.pricing_automate_pricing_data_sync.htm]: run off-peak;
   deactivate during bulk loads and run a manual sync after; add a fault path or enable flow error
   emails (failures are silent otherwise, e.g. deactivated table or hourly limit); confirm via
   Decision Tables > Last Refreshed. Permissions, with Help's purposes: Manage Flow to create and

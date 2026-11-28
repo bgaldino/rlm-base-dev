@@ -5,9 +5,9 @@ How negotiated prices stored on a Contract reach quote lines through
 contract price does not appear. Written for SEs and builders setting up or
 demonstrating contract pricing on QuantumBit.
 
-Adapted from the contract-pricing reference built in the TAT-264 org, and
+Adapted from the contract-pricing reference built in a reference org, and
 updated to what this repository deploys. Where the two differ, see
-[Coming from the TAT-264 reference org](#coming-from-the-tat-264-reference-org).
+[Coming from the reference org](#coming-from-the-reference-org).
 
 ## The two things to know first
 
@@ -74,7 +74,10 @@ tiers are dated differently (see [Known limits](#known-limits)).
    less, so a credit keeps the prices the units were sold at.
 4. **Sales Price.** *Set input unit price for lines with contract pricing*
    copies the contract price into Sales Price when Sales Price is empty, still
-   equals List Price, or still equals the contract price it last applied. On
+   equals List Price, or still equals the contract price it last applied. A
+   Sales Price sent equal to list price when the line is created through the
+   Place API, before pricing has set List Price, suppressed the contract price
+   in a measured case; omit Sales Price there. On
    lines still tagged `LastTransaction` (amendment and renewal lines) it always
    does. Each time, it records the price in
    `RLM_Contract_Applied_Unit_Price__c`. When a new-sale line no longer has a
@@ -160,8 +163,8 @@ instead.
    Compare the table's `LastSyncDate` and `LastIncrementalSyncDate` with your
    last `ContractItemPrice` change: a refresh can land as an incremental sync
    that leaves `LastSyncDate` unchanged. The per-table source queries are in
-   the pricing-wiring skill, under
-   [Runtime-created pricing rows](../../.cursor/skills/pricing-wiring/SKILL.md#runtime-created-pricing-rows).
+   the decision-tables skill, under
+   [Runtime-created pricing rows](../../.cursor/skills/decision-tables/lifecycle-and-refresh.md#runtime-created-pricing-rows).
    Refresh by hand with `scripts/decision_tables/refresh_decision_table.py`.
    Rows added to an activated contract, or edited on a draft one, need a
    refresh too.
@@ -196,13 +199,13 @@ source quote are not carried over as tier rows.
   an exact match, so a row without one never matches. Generate one row per
   product and selling model instead.
 - **Volume tier rows are not generated** when a contract is created from a
-  quote (observed in the TAT-264 org). Create `ContractItemPriceAdjTier` rows
+  quote (observed in the reference org). Create `ContractItemPriceAdjTier` rows
   yourself.
 - **The volume-tier lookup is dated by `PricingDate`**, not each line's
   `StartDate`. The procedure sets `PricingDate` from `EffectiveFrom` (procedure step 7),
   and from `EffectiveDate` on contracted lines where it is still empty (procedure step 9),
   so on a multi-year quote the tier rows may not follow each line's contract
-  year. In the TAT-264 org a contract with no tiers also
+  year. In the reference org a contract with no tiers also
   reset `IsContracted` to false. Neither is verified in this repository yet.
 - **Lines contract-priced before `RLM_Contract_Applied_Unit_Price__c` existed
   are not tracked.** On an org upgraded from an earlier build, their contract
@@ -225,10 +228,11 @@ source quote are not carried over as tier rows.
   `apply_context_contract_pricing`, then redeploy the expression sets.
   `prepare_rlm_org` runs them in that order.
 - **Not exercised live in this repository:** amount discounts, volume tiers,
-  bundle children, and amendment lines with no quantity change. The contract
-  lookups skip quantity 0, so those lines should keep the asset price.
+  and amendment lines with no quantity change. The contract
+  lookups skip quantity 0, so those lines should keep the asset price. Root and child contract prices
+  on bundles were measured; see [contract pricing on bundles](../../.cursor/skills/pricing-setup/contract-pricing.md).
 
-## Coming from the TAT-264 reference org
+## Coming from the reference org
 
 That org applied the V2 migration runbook as a second procedure version. This
 repository folds the same intent into `RLM_DefaultPricingProcedure_V1`, with

@@ -27,6 +27,10 @@ Salesforce uses **three separate selections**; they are not the same setting.
 python scripts/expression_sets/list_expression_sets.py --target-org <sf_alias> --type PricingProcedure --versions
 ```
 
+- The Revenue Settings default is set in the Setup UI (Help documents no API). For a build with no
+  browser step, the Robot task `configure_revenue_settings` (`-o pricing_procedure "<name>"`; see
+  `tasks/rlm_configure_revenue_settings.py`) drives the same page. [Repo: tasks/rlm_configure_revenue_settings.py]
+  [Open: does a Metadata, Tooling or Connect path set the default procedure; settle by searching those APIs for the Revenue Settings default]
 - Salesforce ships a **template, not an executable procedure**. Clone from App Launcher >
   Expression Set Templates > pick template > Save As (new procedure or new version); for quotes
   and orders clone the "Revenue Management Default Pricing Procedure" template. [Help]
@@ -157,8 +161,8 @@ Prompt Template User) suggests mappings with a confidence score; unsupported on 
 Distribution Service, Formula Based Pricing, Stop Pricing. Context definition authoring and
 tag lifecycle: [`../context-service/SKILL.md`](../context-service/SKILL.md). An
 `Invalid tag attribute name key` error ([Live, repo owner]; string not found in core labels) means a tag name being used isn't defined on the context
-definition. Either the tag was never applied (`../pricing-wiring/SKILL.md` → *`Invalid tag
-attribute name key`*, e.g. a context plan the build didn't run), or an attribute name was used
+definition. Either the tag was never applied (for example a context plan the build didn't run; see
+[`../context-service/SKILL.md`](../context-service/SKILL.md) rule 11), or an attribute name was used
 where the tag name is required
 ([`../context-service/runtime-and-persistence.md`](../context-service/runtime-and-persistence.md)
 → *Tag names are a distinct namespace from attribute names*).
@@ -204,7 +208,7 @@ Element-specific errors are in the element files under [`elements/`](./elements/
 | Save error "Add Pricing Setting as the first element…" or "You can only add one Pricing Setting element…" [Core] | Pricing Setting missing or duplicated | Keep exactly one (see save-time table in procedure-anatomy) |
 | Save error `Ensure that the lookup table in the <name> step is valid and try again.` [Core] | Lookup id cannot be resolved from the step; or the element type has no table mapped in the pricing recipe for the procedure's usage subtype (the message then reads "The pricing element type isn’t valid. Use elements that are associated with lookup tables and try again."; Discount Distribution Service is exempt from this check); or the step's table is not among the tables mapped for that type. The recipe check is skipped during package install; Minimum Price has its own table checks | Map the table in the pricing recipe for the procedure's usage subtype (pricing-wiring section A) |
 | Bulk price change not reflected | Decision tables not refreshed | Refresh (section 8) |
-| Amend/cancel/renew with Order output, or a plain reprice of an existing order, fails with UNKNOWN_EXCEPTION "We couldn't fetch the data for RLM_SalesTransactionContext context definition"; Quote output works | A stock tag the procedure declares with a Quote-lens attribute row and no Order-lens row [Measured: 2026-11-12, 264, scratch, one org; found by bisection] (a custom tag with the same gap is untested); or a custom attribute the procedure reads mapped on `QuoteEntitiesMapping` but not `OrderEntitiesMapping` [Repo]. On that org a plain order reprice (Place with System or Force) failed the same way while Skip and order creation succeeded | Query the procedure's declared tags on the Order lens, halving the set to find the offender, and add a field-less Order-lens row for it. Also map custom attributes on both lenses; `validate_context_plan.py` flags those. Details: [`../rlm-business-apis/backdated-asset-lifecycle.md`](../rlm-business-apis/backdated-asset-lifecycle.md); mappings: [`../context-service/authoring-and-lifecycle.md`](../context-service/authoring-and-lifecycle.md) → *Populate an attribute from org data* |
+| Amend/cancel/renew with Order output, or a plain reprice of an existing order, fails with UNKNOWN_EXCEPTION "We couldn't fetch the data for RLM_SalesTransactionContext context definition"; Quote output works | A stock tag the procedure declares with a Quote-lens attribute row and no Order-lens row [Measured: 2026-11-12, 264, scratch] (one org; found by bisection) (a custom tag with the same gap is untested); or a custom attribute the procedure reads mapped on `QuoteEntitiesMapping` but not `OrderEntitiesMapping` [Repo]. On that org a plain order reprice (Place with System or Force) failed the same way while Skip and order creation succeeded | Query the procedure's declared tags on the Order lens, halving the set to find the offender, and add a field-less Order-lens row for it. Also map custom attributes on both lenses; `validate_context_plan.py` flags those. Details: [`../rlm-business-apis/backdated-asset-lifecycle.md`](../rlm-business-apis/backdated-asset-lifecycle.md); mappings: [`../context-service/authoring-and-lifecycle.md`](../context-service/authoring-and-lifecycle.md) → *Populate an attribute from org data* |
 
 ## Open questions
 

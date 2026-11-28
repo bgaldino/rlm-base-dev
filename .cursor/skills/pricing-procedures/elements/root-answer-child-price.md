@@ -7,7 +7,7 @@
 > `ind.pricing_attribute_based_pricing_limits.htm`,
 > `ind.pricing_add_the_price_adjustment_matrix_element.htm`; shipped
 > `RLM_PRM_DISTI_Pricing_Procedure` and `datasets/context_plans/PartnerAccount/contexts/partner_account.json`.
-> Route 1 was built and measured end to end on a fresh 264 `ent-sb0` scratch org on 2026-11-11,
+> Route 1 was built and measured end to end on a fresh 264 ent-sb0 scratch org on 2026-11-11,
 > configuration rules on, and again on another on 2026-11-16 with more children, selling models
 > and answer values; routes 2 and 3 were not built.
 
@@ -22,16 +22,16 @@ line itself, or onto the header. Route 1 works live; routes 2 and 3 are [open](#
   `parent(<attribute>, <level>)` an ancestor further up. Reusing the parent's variable name on the
   child is the documented way to cascade a bundle-level choice to every child; the dev guide's
   example does exactly that and notes the inherited value can affect price
-  [Dev guide: `cml-using-proxy-variables-constraints.md`, *Parent*]. For the example, the child
+  [Dev guide: cml-using-proxy-variables-constraints.md]. For the example, the child
   type declares `string ClimateZone = parent(ClimateZone);`. Under a Product Component Group the group is an
   intermediate parent, so reach the root with `parent(ClimateZone, 1)` or dot notation from the bundle
-  [Dev guide: `cml-best-practice-parent-products.md`]; the dev guide contradicts itself here, see
+  [Dev guide: cml-best-practice-parent-products.md]; the dev guide contradicts itself here, see
   [`../../constraint-models/quantities-from-attributes.md`](../../constraint-models/quantities-from-attributes.md)
   → Scope. Live, `parent(ClimateZone)` with no level reached the root in a model that declares no
   group types ([Route 1 measured](#route-1-measured)). Authoring and deployment: [`../../constraint-models/SKILL.md`](../../constraint-models/SKILL.md).
 - **Pricing side.** Make `ClimateZone` a price-impacting attribute on the child product's own
   classification, not an inherited one, and do not override it in the bundle context: the override
-  stops the adjustment applying [Help: `ind.pricing_attribute_based_pricing_limits.htm`]. Then add
+  stops the adjustment applying [Help: ind.pricing_attribute_based_pricing_limits.htm]. Then add
   an Attribute Based Adjustment per ClimateZone value on the child products. Matching, the
   whole-attribute-set rule and schedule setup are in [`attribute-based-price.md`](attribute-based-price.md);
   attribute placement in
@@ -41,7 +41,7 @@ line itself, or onto the header. Route 1 works live; routes 2 and 3 are [open](#
 
 Built on a Place Sales Transaction quote (`configurationMethod: Force`,
 `configurationOptions.executeConfigurationRules: true` in `configurationPref`) and in the configurator UI [Measured: 2026-11-11, 264, fresh
-`ent-sb0` scratch org; attribute names illustrative]:
+ent-sb0 scratch org; attribute names illustrative]:
 
 - **Only the root carries the answer.** The request set ClimateZone on the root line alone. The model
   wrote the child's `QuoteLineItemAttribute`, and Attribute-Based Price priced the child from it. So the value is saved on the line and
@@ -52,8 +52,8 @@ Built on a Place Sales Transaction quote (`configurationMethod: Force`,
   types needs the level argument was not measured.
 - **Top-level lines.** A top-level line held by a virtual `Quote` container relation received the
   root's answer through `parent()`; on a quote with no bundle the line kept the attribute default, and a child
-  under a root outside the model kept its default [Measured: 2026-11-11, 264, scratch; one org, attribute
-  illustrative]. In a build whose top-level support line sat in that container (the line's product based on
+  under a root outside the model kept its default [Measured: 2026-11-11, 264, scratch] (one org, attribute
+  illustrative). In a build whose top-level support line sat in that container (the line's product based on
   the regional classification, the region taken from the root's answer through `parent()`), that line's own net
   unit price took the regional adjustment in each of two regions and matched its expected value [Measured:
   2026-11-11, 264, scratch, one org]. That is consistent with a held top-level line being priced from the
@@ -75,8 +75,8 @@ Built on a Place Sales Transaction quote (`configurationMethod: Force`,
 - **Editing the root answer reprices.** A Place PATCH of only the root's `QuoteLineItemAttribute`
   (rules on) re-derived the child's attribute and repriced the child lines.
 
-Measured again with a wider set-up [Measured: 2026-11-16, 264, scratch, one org; names and
-values illustrative]:
+Measured again with a wider set-up [Measured: 2026-11-16, 264, scratch] (one org; names and
+values illustrative):
 
 - **Three children on two selling models.** Three children (one Term Defined Annual, two
   Evergreen Monthly) sat in one product component group, each with `string <Attr> =
@@ -109,10 +109,10 @@ values illustrative]:
 
 - A line formula reads the line's tags and the tags of its parent context nodes, header tags
   included ([`formula-based-pricing.md`](formula-based-pricing.md) → Placement, a [Core] note). The
-  Help article for the element does not cover header tags [Help: `ind.pricing_formula_based_pricing.htm`, checked].
+  Help article for the element does not cover header tags [Help: ind.pricing_formula_based_pricing.htm].
 - The answer has to be a header field mapped to a `SalesTransaction` node tag, the shape the shipped
   `PartnerAccount__c` tag uses (mapped from `Quote.PartnerAccountId`)
-  [Repo: `datasets/context_plans/PartnerAccount/contexts/partner_account.json`]. A custom field must
+  [Repo: datasets/context_plans/PartnerAccount/contexts/partner_account.json]. A custom field must
   also be mapped into the context definition before a formula can read it
   ([`formula-based-pricing.md`](formula-based-pricing.md) → Rules and limits).
 - Put the formula in a List Group whose filter keeps only the affected lines
@@ -123,11 +123,11 @@ values illustrative]:
 
 - The element applies adjustments from custom decision tables whose criteria can be quote details,
   customer info or product attributes, linked to quote fields
-  [Help: `ind.pricing_add_the_price_adjustment_matrix_element.htm`]. Recipe registration,
+  [Help: ind.pricing_add_the_price_adjustment_matrix_element.htm]. Recipe registration,
   single-row matching and refresh are in [`price-adjustment-matrix.md`](price-adjustment-matrix.md). Key the table on the
   climate zone and the product, so only the affected children match.
 - The shipped PRM procedure already runs a Price Adjustment Matrix per line keyed on a header tag
-  (`PartnerAccount__c`) [Repo: `RLM_PRM_DISTI_Pricing_Procedure`, `partner_account.json`], so the
+  (`PartnerAccount__c`) [Repo: unpackaged/post_prm_pricing/expressionSetDefinition/RLM_PRM_DISTI_Pricing_Procedure.expressionSetDefinition-meta.xml] [Repo: datasets/context_plans/PartnerAccount/contexts/partner_account.json], so the
   climate zone can come from the header as in route 2. Keying on a line tag such as route 1's child
   attribute is marked [inferred] in that file.
 - Choose this route when business users must maintain the uplifts as data.

@@ -21,7 +21,7 @@ data written to context by a discovery procedure.
 - Not for plain discounts: use Manual or Volume Discount.
 - Not allowed with Promotion Execution, Price Propagation, or Discount Distribution Service elements in the same procedure. [Help]
 - Not supported with compound ramp uplift. [Help]; see [price-revision-compound-uplift.md](./price-revision-compound-uplift.md)
-- Derived pricing products do not support price uplifts [Help: `ind.qocal_consumer_price_index_and_uplifts_important_considerations.htm`]. Derived products added to a ramp deal for groups do not price correctly [Help: `ind.qocal_considerations_ramp_deals.htm`].
+- Derived pricing products do not support price uplifts [Help: ind.qocal_consumer_price_index_and_uplifts_important_considerations.htm]. Derived products added to a ramp deal for groups do not price correctly [Help: ind.qocal_considerations_ramp_deals.htm].
 
 ## Prerequisite chain (all required)
 
@@ -62,7 +62,7 @@ select Include in Output.
 ## Placement and ordering
 
 - After the base [List Price](./list-price.md) steps and [Pricing Setting](./pricing-setting.md) (which must map `IsDerived` to `DerivedPricingAttribute`). Shipped DISTI order: Pricing Setting (1), cost List Price (2), price book List Price (3), Derived Price (4). [Repo]
-- Place [Aggregate Price](./aggregate-price.md) after Derived Price and add a Where condition targeting only the contributing lines; this keeps it consistent with Map Line Item in derived-pricing discovery procedures. [Help: `ind.pricing_add_aggregate_price_element.htm`]
+- Place [Aggregate Price](./aggregate-price.md) after Derived Price and add a Where condition targeting only the contributing lines; this keeps it consistent with Map Line Item in derived-pricing discovery procedures. [Help: ind.pricing_add_aggregate_price_element.htm]
 - Downstream steps typically gate on `DerivedPricingAttribute`: shipped filters use `isNotNull` and `isFalse` conditions on `DerivedPricingAttribute` so non-derived lines get the normal discount stack, and a ListGroup "Set the net unit price for lines with derived pricing" assigns the derived result onward. [Repo]
 - Cross-element ordering and the save-time combination rules (exact error text): [procedure anatomy and ordering](../procedure-anatomy-and-ordering.md#save-time-procedure-rules-core-enforces).
 
@@ -70,8 +70,8 @@ select Include in Output.
 
 - Discount distribution cannot be applied to a procedure used for derived price. [Help]
 - Map Line Item: the limits page says it "doesn't support derived pricing"; the advanced-detail article does document Map Line Item in a derived-pricing **discovery** procedure. See [Map Line Item](./map-line-item.md). [Help]
-- Advanced Detail Line Pricing (Revenue Settings toggle) with derived pricing: besides the pricing procedure's Map Line Item (second element, after Pricing Setting), the discovery procedure needs a Discovery Settings element (Line Item to `LineItem`) and a Map Line Item mapping `SalesTransactionItem` to `SalesTransactionItemDetail`, plus `LineItem`, `EffectiveFrom`, `EffectiveTo` and `DerivedPricingAttribute` to their item-detail tags. This is required to find valid contributing and derived products. [Help: `ind.qocal_advanced_detail_line_pricing_for_custom_and_derived_products.htm`]
-- Revenue Settings "Add Derived Pricing Assets to a Quote or Order" adds derived-product assets when contributing products are added. Future-dated amendments or renewals include contributing products but add derived products only if the request names them. [Help: `ind.qocal_set_up_add_derived_pricing_assets_to_a_quote_or_order.htm`]
+- Advanced Detail Line Pricing (Revenue Settings toggle) with derived pricing: besides the pricing procedure's Map Line Item (second element, after Pricing Setting), the discovery procedure needs a Discovery Settings element (Line Item to `LineItem`) and a Map Line Item mapping `SalesTransactionItem` to `SalesTransactionItemDetail`, plus `LineItem`, `EffectiveFrom`, `EffectiveTo` and `DerivedPricingAttribute` to their item-detail tags. This is required to find valid contributing and derived products. [Help: ind.qocal_advanced_detail_line_pricing_for_custom_and_derived_products.htm]
+- Revenue Settings "Add Derived Pricing Assets to a Quote or Order" adds derived-product assets when contributing products are added. Future-dated amendments or renewals include contributing products but add derived products only if the request names them. [Help: ind.qocal_set_up_add_derived_pricing_assets_to_a_quote_or_order.htm]
 - Derived and source products must share a price book. [Help]
 - Header source needs no source product. [Help]
 - Discovery output is not shown in the waterfall; simulate discovery only to write contributors to context. [Help]
@@ -97,7 +97,7 @@ select Include in Output.
 - The 264 Help limits page publishes "products associated with a contributing product" as 40 default,
   1 minimum, 50 maximum. Its note says this is the total number of contributors for a derived product
   (transactional and non-transactional). It publishes assets per contributing asset as 50 maximum
-  [Help: `ind.pricing_limits.htm`]. The same page caps a discovery procedure at 50 elements by default
+  [Help: ind.pricing_limits.htm]. The same page caps a discovery procedure at 50 elements by default
   (100 maximum) and a discovery run at 10 seconds by default (60 maximum).
 - Core's platform defaults are larger: contributing products 500, min 1, up to 2000; assets per
   product 100, up to 1000; source products per price book entry 3, up to 5 [Core].
@@ -113,7 +113,7 @@ select Include in Output.
 - Parallel execution: core has a general pricing-element parallel executor and a
   per-request override, but no Derived Price specific restriction was found.
 - Cross-procedure: contributor prices reflect only the procedure the Derived Price
-  step runs in. [Help `ind.pricing_procedure_plan_limits.htm`]
+  step runs in. [Help: ind.pricing_procedure_plan_limits.htm]
 - Aggregate Price does not support derived products on quote lines [Help]: aggregate the contributing lines and exclude the derived ones (the Where conditions above).
 
 ## Metadata shape

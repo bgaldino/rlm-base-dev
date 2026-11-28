@@ -23,7 +23,7 @@ own local placement notes and links back here.
   the tags carry values from one element to the next [Help].
   Changes a procedure makes to the `ProductSellingModel` and `PricebookEntry` tags apply only
   to that pricing run; they are not saved to the quote line, which keeps its original price
-  book entry [Help: `ind.pricing_configure_pricing_procedure`].
+  book entry [Help: ind.pricing_configure_pricing_procedure].
 - **Scope comes from placement and tags.** An element at the top level runs for every line
   unless a List Group filter narrows it; whether a result is per line or per header depends on
   the context node of the tags it reads and writes, not on placement [Core]. An element inside a **List Group** runs only on the lines that the
