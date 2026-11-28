@@ -91,6 +91,11 @@ TRIAGED_VALUES: Dict[Tuple[str, str, str, str], frozenset] = {}
 # (plan, object, check, field): why it stands. Each entry is a finding the 264 audit triaged and
 # kept (todo 321); a fix removes its entry, and an entry that no longer matches is reported stale.
 KNOWN_FINDINGS: Dict[Tuple[str, str, str, str], str] = {
+    # AttributePicklist.Code is absent on default builds (no B2B Commerce), where SFDMU drops the
+    # column, and required on TSO builds, which can't insert a picklist without it. Kept.
+    **{(plan, "AttributePicklist", "unknown-field", "Code"):
+       "absent on default builds (no B2B Commerce), SFDMU drops it; required on TSO builds"
+       for plan in ("qb/en-US/qb-pcm", "qb/ja/qb-pcm", "q3/en-US/q3-pcm", "mfg/en-US/mfg-pcm")},
     # Deployed by deploy_post_prm, which runs only with prm_exp_bundle and tso. Kept on purpose
     # (todo 345): those builds load the plans' values into them (Gold - Reseller: 60 days, 20000),
     # and nothing a default build deploys reads them. Without the fields SFDMU drops the columns.
