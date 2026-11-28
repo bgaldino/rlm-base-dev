@@ -412,8 +412,11 @@ def main():
                                None, True, True, False)
     diff = validator.ObjectDiff("Quote", "x", rels_in_org_not_erd=[poly])
     first = validator.patch_erd(sample, [diff])
+    # An object missing from the ERD is left to --add-objects.
+    absent = validator.ObjectDiff("NotInErd", "x", rels_in_org_not_erd=[poly])
     check("patch_links_every_polymorphic_target_once",
-          first == (1, 1, 0) and validator.patch_erd(sample, [diff]) == (0, 0, 0)
+          first == (1, 1, 0) and validator.patch_erd(sample, [diff, absent]) == (0, 0, 0)
+          and validator.link_new_objects(sample, {"Quote"}) == 0 and "NotInErd" not in sample["objects"]
           and sample["objects"]["Quote"]["fields"]["ZzWhatId"]["refersTo"] == "Quote, NotInErd"
           and sample["stats"]["totalRelationships"] == 1)
 
