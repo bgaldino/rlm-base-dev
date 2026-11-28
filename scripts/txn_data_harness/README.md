@@ -407,10 +407,10 @@ a fresh batch with a new run id (by design).
 - **Standalone credit memo: measured on a one-line invoice at Line Level.**
   `cli credit-memo` applies the memo to the invoice by its id; how the platform
   spreads it over several lines, and Header Level, were not measured (verify
-  checks whatever it wrote). A memo left open by a failed post or apply is not
-  retried or recorded in a manifest: the output names it; apply it with
-  `cli apply-rules` or by hand. Posting another invoice on the account while it
-  is open may absorb it.
+  checks whatever it wrote). A memo left open by a failed step is not retried
+  or recorded in a manifest: the output names it. A memo still in Draft must be
+  posted first; a Posted memo can be placed with `cli apply-rules` or by hand.
+  Posting another invoice on the account while it is open may absorb it.
 - **Negative invoice lines: conversion is the platform's.** Posting converts
   them when Billing Settings has the conversion on (as this repo's billing
   build does); the harness does not wrap the convert action, and `cli verify`

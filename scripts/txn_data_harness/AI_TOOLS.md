@@ -197,7 +197,7 @@ the `verify` checks on the invoice and the memo. Prints `GENERATED:`,
 when the invoice is not Posted or the amount is not above 0 and up to its
 balance. Exit 0 when every step passed and a balance was checked with none
 failing, 1 when a step after the generate failed (the memo is named and keeps
-its balance; `apply-rules` can place it) or a check failed or nothing was
+its balance; post it first if it is still Draft, then `apply-rules` can place it) or a check failed or nothing was
 checked, 2 when nothing was written, the generate call failed (a lost answer
 may still have made the memo: look for the printed description first) or the
 verify could not report. It writes no manifest. Measurements: `docs/contracts-billing-settlement.md` →
