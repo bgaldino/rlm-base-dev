@@ -22,17 +22,17 @@ decisions; loading the result is `sfdmu-data-plans`, the field-level schema is
 Every product claim carries its source: `[Help: <article>]` (the 264 Help snapshot under
 `docs/salesforce/264/help/articles/`), `[Dev guide: <article>]` (`docs/salesforce/264/dev-guide/articles/`),
 `[Repo: <file>]`, or `[Measured: <date>, 264]` (a live 264 build; `[Measured: <date>, 264, fresh ent-sb0 scratch org]`
-names the org: a newly built scratch org of the repo's `ent-sb0` shape; `[Measured: <date>, 264, existing org]` is an org built earlier, not evidence about fresh builds; `[Measured: <date>, 264, scratch]` is a scratch org whose build history was not recorded; `[Measured: <date>, 264.12, ent-sb0 harness build]` is a scratch org built by the build harness on the same shape, with the release detail recorded; `[Measured: <date>, 264, full QuantumBit build, org kind not recorded]` is an org with the full QuantumBit build whose kind was not noted), `[Platform behaviour, traced]` (a platform mechanism read in source), `[Platform behaviour, traced in part]` (mechanism read in source, but scope, path or consequence not established), or `[inferred]` (a conclusion drawn from the cited evidence that no source states and no measurement shows). A claim only a live
+names the org: a newly built scratch org of the repo's `ent-sb0` shape; `[Measured: <date>, 264, existing org]` is an org built earlier, not evidence about fresh builds; `[Measured: <date>, 264, scratch]` is a scratch org whose build history was not recorded; `[Measured: <date>, 264, ent-sb0 harness build]` is a scratch org built by the build harness on the same shape; `[Measured: <date>, 264, org kind not recorded]` is a 264 org whose kind was not noted, so it is not evidence about fresh builds), `[Platform behaviour, traced]` (a platform mechanism read in source), `[Platform behaviour, traced in part]` (mechanism read in source, but scope, path or consequence not established), or `[inferred]` (a conclusion drawn from the cited evidence that no source states and no measurement shows). A claim only a live
 org could settle is marked **Open, needs live verification** or `[Open: <the check that would settle it>]`. Help article ids below
 drop the `.md` suffix of the snapshot file name.
 
 ## Quick Rules
 
 1. **Decide `Product2.Type` first: Help says it cannot be changed after the record is created.**
-   Plan a wrong simple/bundle choice as a new product. One 264 article describes an exception, a
-   one-way conversion of a product with no type to Bundle; a blank-to-Bundle API update was accepted [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org] and
+   Plan a wrong simple/bundle choice as a new product. One 264 article describes an exception: a
+   simple product (blank `Type`) can be converted to Bundle, one way. A blank-to-Bundle API update was accepted [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org] and
    Bundle-to-blank was refused [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org] (see [Bundles and cardinality](bundles-and-cardinality.md)).
-   Static ↔ configurable *can* be converted later. [Help: ind.product_catalog_create_simple_products.htm; ind.product_catalog_conversion_of_bundle_products.htm; ind.product_catalog_convert_simple_product_to_bundle_product.htm]
+   Conversion can affect configuration, quotes, orders and assets. Static ↔ configurable *can* be converted later. [Help: ind.product_catalog_create_simple_products.htm; ind.product_catalog_conversion_of_bundle_products.htm; ind.product_catalog_convert_simple_product_to_bundle_product.htm]
 2. **A choice is an attribute unless something downstream needs it as its own record**:
    its own SKU, price book entry, selling model, asset, fulfillment line or category
    placement. Then it is a product (a component, or a variation product). See
@@ -51,17 +51,17 @@ drop the `.md` suffix of the snapshot file name.
    carry a `ProductSellingModelId`. [Help: ind.product_catalog_product_selling_model.htm] [Dev guide: sforce-api-objects-productsellingmodeloption.md] [Repo: scripts/ai/query_erd.py describe PricebookEntry, describe AttributeBasedAdjustment]
 6. **`IsAssetizable` on a bundle root governs every child**; it decides whether the sale
    leaves an asset that amend, renew and cancel can act on. [Help: ind.product_catalog_create_bundled_products.htm; ind.qocal_asset_lifecycle.htm]
-7. **Category codes must be unique across every level and every catalog a plan loads.** A plan keyed on
+7. **Category codes must be unique across the org, including codes loaded by other plans, compared case-insensitively.** A plan keyed on
    `ProductCategory.Code` resolves a parent by code, so a child that reuses its parent's
-   code becomes its own parent. [Measured: 2026-11, 264] [Repo: datasets/sfdmu/qb/en-US/qb-pcm/export.json]
+   code becomes its own parent. [Measured: 2026-11, 264, org kind not recorded] [Repo: datasets/sfdmu/qb/en-US/qb-pcm/export.json]
 8. **Load a PCM plan, run `scripts/check_classification_attrs.py` and follow `catalogs-and-loading.md` step 5 (a second pass only when it says so; extract only after exit 0)**: on the measured plan, the first insert left classification attributes'
-   `AttributeNameOverride` and `IsRequired` at the attribute definition's values rather than the plan's. [Measured: 2026-11, 264] See [Loading the model](#loading-the-model).
+   `AttributeNameOverride` and `IsRequired` at the attribute definition's values rather than the plan's. [Measured: 2026-11, 264, org kind not recorded] See [Loading the model](#loading-the-model).
 
 ## DO NOT
 
 - **DO NOT** model a simple product you may later need to bundle (or the reverse) on the
-  assumption you can flip `Type`. Help says you cannot; the one exception is a one-way
-  blank-type-to-Bundle conversion [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org].
+  assumption you can flip `Type`. Help says you cannot; the one exception is simple to Bundle,
+  which works one way (bundle to simple is refused) [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org].
   [Help: ind.product_catalog_create_simple_products.htm; ind.product_catalog_convert_simple_product_to_bundle_product.htm]
 - **DO NOT** put a configurable product (simple or bundle) under a **static** bundle, or
   leave a static bundle's child without *Include component by default*. [Help: ind.product_catalog_add_components_to_a_static_product_bundle.htm]
@@ -81,7 +81,8 @@ drop the `.md` suffix of the snapshot file name.
   [Family](catalogs-and-loading.md#product-family-is-a-contract).
 - **DO NOT** test a bundle in the configurator, or headlessly, with configuration rules
   off. Place the quote with rules **on**; a result with rules off says nothing about the
-  model. [Measured: 2026-11, 264]
+  model. [Measured: 2026-11, 264, org kind not recorded]
+- **DO NOT** expect a static kit's child to be quoted because its component row exists. With defaults, a static kit's Place added only children whose component row carries selling models; a row without models produced no child line, no message and a successful configure, so the child is not quoted [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]. A configurable root placed both children on their own models.
 - **DO NOT** hardcode the QuantumBit names in this skill as the model to build. They are
   a labelled worked example; discover your own instances first.
 - **DO NOT** cite or copy content from the private `.agents/artifacts/` tree, and do not name a real
@@ -139,14 +140,14 @@ the detail and the sources.
 | Choice | Pick A when… / B when… | Trade-off | Downstream effect |
 |---|---|---|---|
 | **Attribute vs product** | Attribute: a characteristic on one SKU, same price book entry. Product: needs its own SKU, price, selling model, asset or fulfillment line. | Attributes keep the catalog small; each product adds price book entries, options and category rows. | Attribute → no PBE of its own; priced through attribute-based adjustments (classification-bound) or a pricing element that reads attributes, such as a price adjustment matrix or a formula. Product → own PBE per selling model, own asset line. [Help: ind.product_catalog_plan_catalog.htm; ind.pricing_attribute_based_pricing_limits.htm; ind.pricing_add_the_price_adjustment_matrix_element.htm; ind.pricing_formula_based_pricing.htm] |
-| **Simple vs bundle** (`Type`) | Bundle when the thing sold is a set of priced/fulfilled parts. | Treat as irreversible (the one exception, blank to Bundle, is one-way [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]). | Only bundles carry groups, components and bundle-based adjustments. [Help: ind.product_catalog_create_simple_products.htm; ind.product_catalog_products.htm; ind.pricing_create_bundle_based_adjustments.htm] |
+| **Simple vs bundle** (`Type`) | Bundle when the thing sold is a set of priced/fulfilled parts. | Treat as fixed (simple to Bundle works one way, bundle to simple is refused [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]). | Only bundles carry groups, components and bundle-based adjustments. [Help: ind.product_catalog_create_simple_products.htm; ind.product_catalog_products.htm; ind.pricing_create_bundle_based_adjustments.htm] |
 | **Static vs configurable** (`ConfigureDuringSale`) | Static: a fixed kit. Configurable: the buyer picks parts, quantities or attributes. | Static needs a default for every attribute and fixes children and quantities; configurable needs groups and cardinality. Convertible both ways, but configurable → static also requires no classification components. | Configurable: buyers add or remove children, change quantities and attributes at run time, and CML bundle rules apply. Static: buyers change none of that at run time. [Help: ind.product_catalog_create_bundled_products.htm; ind.product_catalog_change_a_configurable_bundle_product_to_a_static_bundle_product.htm] [Repo: constraint-models/SKILL.md] |
 | **Component vs classification component** | One product per row vs "any product based on classification X". | Classification components grow with the catalog but cannot be required or default. | New products of that classification appear in the bundle without a PCM edit; CML sync does not pick up class membership changes. [Help: ind.product_catalog_creation_of_a_bundled_product_structure.htm; ind.product_catalog_local_cardinality.htm; ind.product_configurator_sync_cml_and_pcm.htm] |
 | **Cardinality** (group min/max, component min/max/default, required, default) | See [`bundles-and-cardinality.md`](bundles-and-cardinality.md). | Tight cardinality blocks bad quotes but can make a bundle unconfigurable. | CML sync carries component cardinality and *required*; group changes do not sync. [Help: ind.product_configurator_sync_cml_and_pcm.htm] |
 | **Where an attribute value is set** | Definition → classification attr → product attr → bundle override. | Lower levels are more specific but must be reviewed when a higher level changes. | Bundle overrides break attribute-based pricing. [Help: ind.product_catalog_attribute_fields.htm; ind.pricing_attribute_based_pricing_limits.htm] |
 | **Selling model** | One Time / Term-Defined / Evergreen from the pricing basis. | Each extra model adds a PBE and an option per product. | Proration, renewal and the Subscription price element read it. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md) |
 | **`IsAssetizable`** | True when the sale must leave something to amend, renew or cancel. | False keeps the asset table clean for consumables. | Root value overrides children. [Help: ind.product_catalog_create_bundled_products.htm] |
-| **`IsSoldOnlyWithOtherProds`** | True for add-ons that must not be sold alone. | The platform refuses it in a category assignment, on flipping it to true on a categorised product, and on a Product Set; no refusal was found as a bundle component or at sale time [Platform behaviour, traced in part], so offer it as a bundle component. | Search did not find it, but a quote placed by API with it alone was accepted, ordered and activated. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods) [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org] |
+| **`IsSoldOnlyWithOtherProds`** | True for add-ons that must not be sold alone. | The platform refuses it in a category assignment, on flipping it to true on a categorised product, and on a Product Set; no refusal was found as a bundle component or at sale time [Platform behaviour, traced in part], so offer it as a bundle component. | Search hid it because it had no category, not because of the flag; a quote placed by API with it alone was accepted, ordered and activated. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods) [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org] |
 | **Catalog / category placement** | Catalogs by audience or business unit; categories for browsing. | More catalogs means more category rows to keep coded uniquely. | Drives Product Discovery browsing; categories, not catalogs, hold products. [`catalogs-and-loading.md`](catalogs-and-loading.md) |
 | **Family** | A coarse product line other systems filter on. | A free picklist value becomes a contract. | Whatever keys on it (search facets, Apex, rules) breaks on a rename. [`catalogs-and-loading.md`](catalogs-and-loading.md#product-family-is-a-contract) |
 
@@ -187,11 +188,11 @@ general SFDMU behaviour, seen on a PCM plan):
 
 | # | Fact | What to do |
 |---|---|---|
-| a | On the measured PCM plan (the QuantumBit plan does not need it; see below), after the **first** SFDMU insert on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held the attribute definition's values rather than the plan's; a second, update pass applied the plan's values. [Measured: 2026-11, 264] Traced: an insert copies these from the attribute definition, an update does not. [Platform behaviour, traced] | Run the plan, run `scripts/check_classification_attrs.py` and follow `catalogs-and-loading.md` step 5 (one pass is enough for QuantumBit [Measured: 2026-11-23, 264]). Never extract an org before that check exits 0; the extract would bake the definition's values into the CSVs. |
-| b | A `Readonly` anchor reached through a `$$` composite lookup column, with no CSV for the anchor, left those lookups unresolved. [Measured: 2026-11, 264] Whether the lookup shape is the cause is open. Owned by `sfdmu-data-plans` -> *Where a plan's CSVs live*, with the open check; not restated here. | Keep that CSV with the `$$` column the children's lookup columns name. |
-| c | Repeating an object across object sets does not give pass 2 its own data unless the plan sets `useSeparatedCSVFiles: true`. [Measured: 2026-11, 264] Owned by `sfdmu-data-plans` -> *Where a plan's CSVs live*. | For fact (a)'s second pass, run the whole plan again: that is the measured fix. |
-| d | A generated category code that collided across levels made a category its own parent. [Measured: 2026-11, 264] | Generate codes from the full path, and check uniqueness across every level and catalog the plan loads. |
-| e | A configurator test of a bundle must place the quote with configuration rules on. [Measured: 2026-11, 264] | See `constraint-models`. |
+| a | On the measured PCM plan (the QuantumBit plan does not need it; see below), after the **first** SFDMU insert on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held the attribute definition's values rather than the plan's; a second, update pass applied the plan's values. [Measured: 2026-11, 264, org kind not recorded] Traced: an insert copies these from the attribute definition, an update does not. [Platform behaviour, traced] | Run the plan, run `scripts/check_classification_attrs.py` and follow `catalogs-and-loading.md` step 5 (one pass is enough for QuantumBit [Measured: 2026-11-23, 264, org kind not recorded]). Never extract an org before that check exits 0; the extract would bake the definition's values into the CSVs. |
+| b | A `Readonly` anchor reached through a `$$` composite lookup column, with no CSV for the anchor, left those lookups unresolved. [Measured: 2026-11, 264, org kind not recorded] Whether the lookup shape is the cause is open. Owned by `sfdmu-data-plans` -> *Where a plan's CSVs live*, with the open check; not restated here. | Keep that CSV with the `$$` column the children's lookup columns name. |
+| c | Repeating an object across object sets does not give pass 2 its own data unless the plan sets `useSeparatedCSVFiles: true`. [Measured: 2026-11, 264, org kind not recorded] Owned by `sfdmu-data-plans` -> *Where a plan's CSVs live*. | For fact (a)'s second pass, run the whole plan again: that is the measured fix. |
+| d | A generated category code that collided across levels made a category its own parent. [Measured: 2026-11, 264, org kind not recorded] | Generate codes from the full path, and check uniqueness across every level and catalog the plan loads. |
+| e | A configurator test of a bundle must place the quote with configuration rules on. [Measured: 2026-11, 264, org kind not recorded] | See `constraint-models`. |
 
 In this repo, `prepare_product_data` runs `insert_quantumbit_pcm_data` once. The
 `test_qb_pcm_idempotency` task loads the plan once, extracts the org, and reloads the
@@ -300,7 +301,7 @@ Review the CSVs for these, each a rule above:
   ([`bundles-and-cardinality.md`](bundles-and-cardinality.md#quantity-scaling-and-lifecycle)).
 - Every product has at most one `IsDefault` selling model option; term-defined and
   evergreen options carry a proration policy where proration is wanted.
-- Category codes are unique across all levels and catalogs; no row's `ParentCategory.Code` equals its own `Code`.
+- Category codes are unique across the org, case-insensitively; no row's `ParentCategory.Code` equals its own `Code`.
 - Price-impacting attributes sit on the classification the adjustment names and are not overridden in a bundle.
 
 After a load into an org: run `scripts/check_classification_attrs.py` and follow `catalogs-and-loading.md` step 5 for any second pass (fact a), then the `refresh_all_decision_tables` flow and
@@ -322,7 +323,7 @@ The main open items marked **Open, needs live verification** or `[Open: ...]` in
 - **Selling-model message on mixed bundles.** Whether the traced mismatch message blocks save or Place when it does
   show, whether the step runs on the Place path, and whether the shipped `CERT007` rows price, order and renew
   correctly. See [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md).
-- **The next release.** Re-run the measured results before relying on them there [Open: not run on the next release].
+- **The next release.** Re-run the measured results before relying on them there [Open: re-run the measured results on a scratch org of the next release and compare each].
 - **A `Readonly` anchor behind a `$$` lookup.** The open check and its owner are in `sfdmu-data-plans` ->
   *Where a plan's CSVs live*; until it runs, keep the CSV.
 - **Sort rules and the `language` parameter** with the gate or data translation on, and the Sort Settings tab

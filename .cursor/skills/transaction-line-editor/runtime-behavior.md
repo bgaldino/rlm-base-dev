@@ -87,7 +87,7 @@ Measured traps:
 - Needs **Enable Groups** in Revenue Settings (on in this repo). Once a transaction is grouped, every
   line must be in a group.
 - **Add Group** the first time moves all existing lines into one group; click again for more. Name
-  each group. **Move Selected Items** reassigns lines or groups; **load more** reveals more groups.
+  each group. **Move Selected Items** reassigns lines or groups; **load more** reveals more groups. Group order follows Sort Order on the Quote Line Groups related list; there is no drag-and-drop [Help: ind.qocal_view_and_edit_quotes].
 - Up to five levels of nested groups and lines in one table, with subtotals per level.
 - **Group By** on a groupable column groups automatically (Help's example is Location), in the
   **TLE only**; not in the STLE, and not on formula fields. Help doesn't list which columns are
@@ -322,7 +322,7 @@ Renewal and cancellation line display in the STLE was not measured; see the pare
    2026-11-05 build; a 2026-11-26 build kept them, see the amendment-line bullets above); explain blank parent prices as
    detail-row pricing if they appear.
 7. Don't count on Reprice All producing a visible change: on an already-priced quote with nothing
-   changed since, our run showed none. After changing a header field that pricing reads, do click it:
+   changed since, a measured run showed none. After changing a header field that pricing reads, do click it:
    a header-only Place PATCH left the lines' prices alone (section 4). After changing prices or the
    catalog, refresh the decision tables first [Help: ind.qocal_limitations_for_using_quote_and_order_capture]; Reprice All alone
    may not show the new price.

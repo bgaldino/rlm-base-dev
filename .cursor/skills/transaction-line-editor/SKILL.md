@@ -29,9 +29,9 @@ longer being enhanced" [Help: ind.qocal_customize_transaction_line_editor]. Help
 
 **Source tags.** `[Help: <article>]` is the 264 Help snapshot,
 `docs/salesforce/264/help/articles/<article>.htm.md`. `[Dev guide: <article>]` is the sibling `dev-guide/` snapshot.
-`[Repo: <file>]` is this repository. `[Measured: 2026-11, 264, demo org]` is behaviour observed on a 264
+`[Repo: <file>]` is this repository. `[Measured: <date>, 264, demo org]` is behaviour observed on a 264
 demo org; `[Measured: <date>, 264, scratch]` is a scratch org whose build history was not recorded; `[Measured: <date>, 264, fresh ent-sb0 scratch org]` on a scratch org freshly built from
-this repo with the `ent-sb0` shape; `[Measured: <date>, 264.12, ent-sb0 harness build]` on a scratch org built by the build harness on that shape, with the release detail recorded. `[Platform behaviour, traced]` is a platform mechanism read in source, `[Platform behaviour, traced in part]` a mechanism read in source whose scope, path or consequence is not established, and `[Open: <the check that would settle it>]` a claim only a live org can settle. **Open, needs live verification** marks the same.
+this repo with the `ent-sb0` shape; `[Measured: <date>, 264, ent-sb0 harness build]` on a scratch org built by the build harness on that shape. `[Platform behaviour, traced]` is a platform mechanism read in source, `[Platform behaviour, traced in part]` a mechanism read in source whose scope, path or consequence is not established, and `[Open: <the check that would settle it>]` a claim only a live org can settle. **Open, needs live verification** marks the same.
 Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
 
 ## Quick Rules

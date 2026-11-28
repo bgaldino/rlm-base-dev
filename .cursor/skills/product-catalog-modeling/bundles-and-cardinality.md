@@ -19,8 +19,8 @@ Help says `Type` cannot be changed after the product is created, and that you ca
 simple product to a bundle product [Help: ind.product_catalog_create_simple_products.htm,
 ind.product_catalog_conversion_of_bundle_products.htm]; a separate 264 article
 [Help: ind.product_catalog_convert_simple_product_to_bundle_product.htm] describes one
-exception, a one-way conversion of a product with no type to Bundle that "can't be undone"
-and can affect configuration, quotes, orders and assets. Plan as if `Type` is fixed: through the API a blank `Type` was updated to Bundle [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org], and Bundle back to blank was
+exception: a simple product (blank `Type`) can be converted to Bundle, and bundle to simple "can't be undone".
+Conversion can affect configuration, quotes, orders and assets. Simple to Bundle works one way and bundle to simple is refused. Plan as if `Type` is fixed: through the API a blank `Type` was updated to Bundle [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org], and Bundle back to blank was
 refused ("You can only update a product from Type simple to bundle.") [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org].
 A static bundle can become configurable and back.
 Configurable → static needs every attribute defaulted, every child Not Allowed/None,
@@ -41,7 +41,7 @@ subscription that must renew or bill on its own model) is not settled by the rul
   static bundle, select None as the parent selling model and no component selling model;
   for a configurable bundle, select no component selling model. The shipped q3 static
   bundle `CERT007` sets both (see the linked section). Children keep their own selling
-  model options. [Help: ind.product_catalog_add_components_to_a_static_product_bundle.htm; ind.product_catalog_product_relationships.htm; [selling-models-and-lifecycle.md](selling-models-and-lifecycle.md#selling-models-inside-bundles)]
+  model options. [Help: ind.product_catalog_add_components_to_a_static_product_bundle.htm; ind.product_catalog_product_relationships.htm] ([details](selling-models-and-lifecycle.md#selling-models-inside-bundles))
   What an insert accepted and rejected is measured in
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#measured-component-selling-model-rules).
 - **For a bundle's children, the run-time selling model choice Help documents is in the
@@ -51,11 +51,11 @@ subscription that must renew or bill on its own model) is not settled by the rul
   child is quoted on. In the 2026-11-24 static test bundle (Evergreen Monthly root), Place quoted a Term Defined
   (Term Annual) child
   on the child selling model its component row set, which was the child's only option
-  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org] ([details](selling-models-and-lifecycle.md#measured-component-selling-model-rules)). A row with no
-  selling models added no child line under Term, One-Time or Evergreen roots [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]; billing schedules followed each
+  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org] ([details](selling-models-and-lifecycle.md#measured-component-selling-model-rules)). On a static kit, Place with defaults added only children whose component row carries
+  selling models; a row without models produced no child line, no message and a successful configure, so that child is not quoted, under Term, One-Time and Evergreen roots [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]; billing schedules followed each
   line's own model [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]; and renewals were root 1 (Term), root 0 (One-Time), root 0 with Evergreen child 0 (Evergreen)
   [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org] ([details](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root)). A child with several options, and invoices
-  for each child: [Open: not run].
+  for each child: [Open: place a static kit child with several options and read its line's model, then invoice the kit and read each child's invoice lines].
 
 Until a child with several options and invoices for each child are measured, the shape to test against a static kit is a **locked configurable
 bundle**: `ConfigureDuringSale=Allowed`, every child under a group, each child with
@@ -78,7 +78,7 @@ So test the lock at order creation, or read the error log, not the save's result
 `bundlevalidation` messages are not measured this far: a CML rule that sets a locked child's
 quantity draws one (`constraint-models` run M16), and so does a group out of range (below);
 whether either blocks the order, how locked children amend, and whether the lock holds on the
-renewal quote: [Open: not run]. Renewal rules by selling model are in
+renewal quote: [Open: on a locked bundle, amend a child, set a child quantity from a CML rule, create the order, then renew and read the children]. Renewal rules by selling model are in
 [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
 
 ## Structure rules

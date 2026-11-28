@@ -30,7 +30,7 @@ Cloud, the Create Orders from Quotes permission set and Price and Tax Calculatio
 [Help: ind.qocal_configure_placement_of_action_buttons].
 
 The side panel shows up to 200 product attributes per line, alphabetically by definition name, and
-skips attributes marked hidden in Product Catalog Management [Help: ind.qocal_customize_transaction_line_editor].
+skips attributes marked hidden in Product Catalog Management [Help: ind.qocal_customize_transaction_line_editor]. The panel's Attributes tab is read-only (label and value text, no inputs); a change goes through the configurator or Place Sales Transaction [Help: ind.qocal_product_variation_use_in_transaction_management].
 
 ### In this repo
 
@@ -147,7 +147,7 @@ slots, 10 groups); in the STLE component the cap is global, 10 inline actions ac
 under a More menu, and below a width breakpoint only 2 inline [Platform behaviour, traced]. The measured bullets
 below are what the 264 editor does.
 
-**Header actions, measured.** Each bullet carries its own tag.
+**Header actions, measured.**
 
 - **Which UI:** on both RLM Quote and RLM Order record pages, selecting the line editor in Lightning App Builder
   shows the visual **Header Actions Configuration** editor (Add Button Group; each group has Desktop Action
@@ -172,7 +172,7 @@ below are what the 264 editor does.
   the title, not as header buttons; Import Lines, Generate Clauses, Estimate Taxes and the insurance Reprice
   All never rendered on that build [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]. At window width 1033 px or more all applicable actions were inline; at
   1025 px or less only the first group's first two stayed inline and the rest moved into menus [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org].
-  [Open: whether the run time caps at 10 needs an org where 11 or more actions apply]
+  [Open: on an org where 11 or more header actions apply, count the buttons rendered]
 - **Cache trap:** after deploying a changed page, Lightning served the old layout even after a hard reload;
   the new layout showed only after clearing the org origin's IndexedDB and local storage [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]. Clear it before
   concluding a deployed change did nothing. A builder save also added `isAutoAdvanceToNextWorkItem=false` to
@@ -246,7 +246,7 @@ group fields are selectable Display Columns and a custom field needs a context m
    (edit, for an editable cell). Don't reuse a line field's API name on the group: the editor can fail to detect
    Save when the group and the line share a custom field name [Open: untested risk; to settle it, give a group field and a line field the same API name and see whether Save is detected].
 2. Map the field in the sales transaction context definition (`context-service`). On an active version this is an
-   insert-only addition: it applied in place [Measured: 2026-11-26, 264.12, ent-sb0 harness build]. A describe diff confirmed the mapping [Measured: 2026-11-26, 264.12, ent-sb0 harness build].
+   insert-only addition: it applied in place [Measured: 2026-11-26, 264, ent-sb0 harness build]. A describe diff confirmed the mapping [Measured: 2026-11-26, 264, ent-sb0 harness build].
    Modifying or deleting an existing mapping needs the version deactivated first.
 3. In Lightning App Builder (or the page template) add `[Quote Line Group] <Field Label>` to Display Columns
    (template value syntax `QuoteLineItem.QuoteLineGroup.<Field>[QuoteLineGroup]`, section 1). Without it,
@@ -255,14 +255,13 @@ group fields are selectable Display Columns and a custom field needs a context m
 
 Measured result of this recipe, text and picklist group fields:
 
-- Both rendered as columns after the standard ones and as Editable cells on group rows [Measured: 2026-11-26, 264.12, ent-sb0 harness build].
+- Both rendered as columns after the standard ones and as Editable cells on group rows [Measured: 2026-11-26, 264, ent-sb0 harness build].
 - A text edit (double-click the cell, type, Enter) and a picklist edit (Enter opens the options) were saved with
-  Save and read back by SOQL [Measured: 2026-11-26, 264.12, ent-sb0 harness build]. Renaming a group on the same grid was a working positive control [Measured: 2026-11-26, 264.12, ent-sb0 harness build].
-- Clearing the text and choosing None on the picklist both saved as null [Measured: 2026-11-26, 264.12, ent-sb0 harness build].
-- A Place Sales Transaction patch of a group with both fields also persisted them [Measured: 2026-11-26, 264.12, ent-sb0 harness build].
-- The legacy editor and the side panel were not tested [Open: legacy TLE and the side panel for custom group fields].
-- Whether a custom group field merges with a same-named line field into one column was not run; section 2 lists the
-  standard pairs [Open: custom pair merge not run].
+  Save and read back by SOQL [Measured: 2026-11-26, 264, ent-sb0 harness build]. Renaming a group on the same grid was a working positive control [Measured: 2026-11-26, 264, ent-sb0 harness build].
+- Clearing the text and choosing None on the picklist both saved as null [Measured: 2026-11-26, 264, ent-sb0 harness build].
+- A Place Sales Transaction patch of a group with both fields also persisted them [Measured: 2026-11-26, 264, ent-sb0 harness build].
+- The legacy editor and the side panel were not tested [Open: add the custom group fields to the legacy editor and the side panel, edit a group, and read the result].
+- Merging applies to standard fields only (section 2); a custom group field did not merge with a line field in the runs above.
 
 A line Quantity edit used as a positive control fails on Save when the line's product is not set up for product
-discovery; use a group name edit instead [Measured: 2026-11-26, 264.12, ent-sb0 harness build].
+discovery; use a group name edit instead [Measured: 2026-11-26, 264, ent-sb0 harness build].
