@@ -804,6 +804,13 @@ TEST-SUB;Term Monthly;AUD,AUD,true,false,Standard Price Book;true,TEST-SUB,Term 
 TEST-SUB;Term Monthly;CAD,CAD,true,false,Standard Price Book;true,TEST-SUB,Term Monthly;TermDefined,42.5
 TEST-SUB;Term Monthly;CHF,CHF,true,false,Standard Price Book;true,TEST-SUB,Term Monthly;TermDefined,24.5
 TEST-SUB;Term Monthly;JPY,JPY,true,false,Standard Price Book;true,TEST-SUB,Term Monthly;TermDefined,4893
+TEST-SUB;Term Weekly;USD,USD,true,false,Standard Price Book;true,TEST-SUB,Term Weekly;TermDefined,7
+TEST-SUB;Term Weekly;GBP,GBP,true,false,Standard Price Book;true,TEST-SUB,Term Weekly;TermDefined,5
+TEST-SUB;Term Weekly;EUR,EUR,true,false,Standard Price Book;true,TEST-SUB,Term Weekly;TermDefined,6
+TEST-SUB;Term Weekly;AUD,AUD,true,false,Standard Price Book;true,TEST-SUB,Term Weekly;TermDefined,10
+TEST-SUB;Term Weekly;CAD,CAD,true,false,Standard Price Book;true,TEST-SUB,Term Weekly;TermDefined,10
+TEST-SUB;Term Weekly;CHF,CHF,true,false,Standard Price Book;true,TEST-SUB,Term Weekly;TermDefined,5.5
+TEST-SUB;Term Weekly;JPY,JPY,true,false,Standard Price Book;true,TEST-SUB,Term Weekly;TermDefined,1142
 PROD-1000281857;One-Time;USD,USD,true,false,Standard Price Book;true,PROD-1000281857,One-Time;OneTime,2500
 PROD-1000281857;One-Time;GBP,GBP,true,false,Standard Price Book;true,PROD-1000281857,One-Time;OneTime,1869.5
 PROD-1000281857;One-Time;EUR,EUR,true,false,Standard Price Book;true,PROD-1000281857,One-Time;OneTime,2191

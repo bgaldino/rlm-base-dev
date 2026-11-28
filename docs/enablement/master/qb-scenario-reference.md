@@ -99,7 +99,7 @@ Source: `datasets/sfdmu/qb/en-US/qb-pcm/ProductComponentGroup.csv` (27 rows)
 
 ## 2. Selling Models
 
-9 Product Selling Models loaded as standard:
+10 Product Selling Models loaded as standard:
 
 | Name | Type | Pricing Term |
 |---|---|---|
@@ -108,6 +108,7 @@ Source: `datasets/sfdmu/qb/en-US/qb-pcm/ProductComponentGroup.csv` (27 rows)
 | Term Monthly | TermDefined | 1 Months |
 | Term Based - Quarterly | TermDefined | 1 Quarterly |
 | Term Based - Semi-Annual | TermDefined | 1 Semi-Annual |
+| Term Weekly | TermDefined | 1 Weekly |
 | Evergreen Annual | Evergreen | 1 Annual |
 | Evergreen Monthly | Evergreen | 1 Months |
 | Evergreen - Quarterly | Evergreen | 1 Quarterly |

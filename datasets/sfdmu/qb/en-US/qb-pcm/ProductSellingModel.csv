@@ -8,3 +8,4 @@ Term Annual;TermDefined,false,Term Annual,1,Annual,TermDefined,Active
 Term Based - Quarterly;TermDefined,false,Term Based - Quarterly,1,Quarterly,TermDefined,Active
 Term Based - Semi-Annual;TermDefined,false,Term Based - Semi-Annual,1,Semi-Annual,TermDefined,Active
 Term Monthly;TermDefined,false,Term Monthly,1,Months,TermDefined,Active
+Term Weekly;TermDefined,false,Term Weekly,1,Weekly,TermDefined,Active

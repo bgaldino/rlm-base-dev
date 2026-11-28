@@ -253,11 +253,11 @@ Pre-256, a single product could only have **15 attributes**. **Spring '25 (256)*
 
 > **Version:** introduced foundational · available all · *Scenario step: Attributes 2*
 
-QuantumBit has **9 Selling Models** that define how products relate to time and how they're priced/billed:
+QuantumBit has **10 Selling Models** that define how products relate to time and how they're priced/billed:
 
 - **One-Time** — single price, single charge (Hardware, Professional Services)
 - **Term Annual** — annual price across a fixed term (3-year SaaS contract = 3 × annual price)
-- **Term Monthly / Quarterly / Semi-Annual** — same pattern with different cadence
+- **Term Monthly / Quarterly / Semi-Annual / Weekly** — same pattern with different cadence (Term Weekly is sold on one example product, QuantumBit Subscription)
 - **Evergreen Annual / Monthly / Quarterly / Semi-Annual** — same cadence, no defined end date
 
 Each Product2 has a `ProductSellingModelOption` for each applicable selling model — QB has **115 PSMO records** wiring products to their applicable models.

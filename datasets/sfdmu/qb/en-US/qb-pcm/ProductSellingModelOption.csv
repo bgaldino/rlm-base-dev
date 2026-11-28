@@ -115,6 +115,7 @@ TEST-SUB;Evergreen Annual;Evergreen,false,TEST-SUB,Evergreen Annual;Evergreen,De
 TEST-SUB;Evergreen Monthly;Evergreen,false,TEST-SUB,Evergreen Monthly;Evergreen,Default Proration Policy
 TEST-SUB;Term Annual;TermDefined,true,TEST-SUB,Term Annual;TermDefined,Default Proration Policy
 TEST-SUB;Term Monthly;TermDefined,false,TEST-SUB,Term Monthly;TermDefined,Default Proration Policy
+TEST-SUB;Term Weekly;TermDefined,false,TEST-SUB,Term Weekly;TermDefined,Default Proration Policy
 PROD-1000281857;One-Time;OneTime,true,PROD-1000281857,One-Time;OneTime,
 PROD-1002254785;One-Time;OneTime,true,PROD-1002254785,One-Time;OneTime,
 PROD-1008704562;One-Time;OneTime,true,PROD-1008704562,One-Time;OneTime,
