@@ -129,6 +129,10 @@ def main(argv=None) -> int:
                         help="Leave the version DEACTIVATED after apply.")
     parser.add_argument("--no-cascade", action="store_true",
                         help="Do NOT cascade-deactivate referencing procedure-plan versions.")
+    parser.add_argument("--no-wait", action="store_true",
+                        help="Submit and return without waiting for reactivation (exit 0); "
+                             "the output names the activate_expression_set.py --wait "
+                             "command that finishes it. Step labels are not restored.")
     parser.add_argument("--confirm", action="store_true",
                         help="Actually apply the overlay. Without it, only PREVIEWS.")
     parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
@@ -290,6 +294,7 @@ def main(argv=None) -> int:
         engine.run_mutation(
             es_def_id=es_def_id, esv=esv, mutate=mutate,
             activate_after=activate_after, cascade=cascade, verb="Overlay apply",
+            wait_reactivation=not args.no_wait,
         )
 
         # The Connect PATCH above clobbered labels; restore them now (a second
@@ -303,11 +308,14 @@ def main(argv=None) -> int:
         # --no-activate; the version the lifecycle toggled needs the reactivation.
         restore_result = restore_version_labels(
             engine, restore_maps, es_id=es_id, es_def_id=es_def_id, cascade=cascade,
-            skip_version_id=None if activate_after else esv.get("Id"),
+            skip_version_id=(None if activate_after and not engine.pending_wait
+                             else esv.get("Id")),
+            deferred_wait=bool(engine.pending_wait),
         )
         if restore_result.pop("skipped") and not preview:
-            eprint("Note: --no-activate set — the toggled version's labels were left "
-                   "un-restored; the relabel command printed above restores them.")
+            eprint(f"Note: {'--no-wait' if engine.pending_wait else '--no-activate'} set — "
+                   "the toggled version's labels were left un-restored; the relabel "
+                   "command printed above restores them.")
 
     except (ExpressionSetClientError, ResolveError, LifecycleError, OverlayError) as exc:
         eprint(f"\nFAILED: {exc}")
@@ -315,7 +323,7 @@ def main(argv=None) -> int:
 
     restore_ok = restore_result.get("ok", True)
     final_active = None
-    if not preview:
+    if not preview and not engine.pending_wait:
         # Report where the run left the version: a passed lifecycle is not proof it is on.
         try:
             rows = [v for v in list_versions(es_id, target_org=args.target_org,
@@ -341,6 +349,7 @@ def main(argv=None) -> int:
         print(json.dumps({"action": "apply_overlay", "expressionSet": es_api_name,
                           "expressionSetId": es_id, "dryRun": preview,
                           "finalIsActive": final_active,
+                          "pendingWait": engine.pending_wait,
                           "labelRestore": restore_result}, indent=2))
     if final_active is False and activate_after:
         return 1

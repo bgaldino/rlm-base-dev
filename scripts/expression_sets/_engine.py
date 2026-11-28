@@ -406,6 +406,37 @@ class LifecycleCore:
                 + "; ".join(failures)
             )
 
+    # -- Submit / wait split ---------------------------------------------------
+
+    pending_wait: Optional[dict] = None
+
+    def confirm_or_defer(self, es_def_id: Optional[str], esv: dict, *, active: bool,
+                         defer: bool, name: Optional[str] = None) -> None:
+        """After a version write: wait for ``IsActive=active``, or (``defer``, an
+        activation only) record and print the submit when it is not yet visible.
+
+        A version that already reads active is confirmed by the same check the poll
+        accepts, so it takes the normal path (no follow-up). Stale reads are false
+        reads, so a True read is trustworthy. ``name`` (the set's DeveloperName, when
+        the caller has it) saves a lookup of ``es_def_id`` for the printed command.
+        """
+        if self.dry_run:
+            return
+        if not (defer and active) or self._version_state(esv["Id"]) is True:
+            self.wait_for_version_state(esv["Id"], active)
+            return
+        name = (name or (self.definition_name(es_def_id) if es_def_id else None)
+                or "<expression set>")
+        org = self.command_target_org() or "<sf alias>"
+        cmd = (f"python scripts/expression_sets/activate_expression_set.py "
+               f"--target-org {org} --expression-set {name} "
+               f"--version {esv.get('ApiName') or esv['Id']} --wait --timeout 600")
+        self.pending_wait = {"versionId": esv["Id"], "version": esv.get("ApiName"),
+                             "command": cmd}
+        self.emit("info", f"Submitted: ExpressionSetVersion {esv['Id']} "
+                          f"({esv.get('ApiName')}) activation requested, not yet confirmed.")
+        self.emit("info", f"Wait for it with: {cmd}")
+
     # -- The deactivate → mutate → reactivate sequencer ----------------------
 
     def run_mutation(
@@ -418,6 +449,7 @@ class LifecycleCore:
         cascade: bool,
         verb: str = "mutation",
         reactivate_on_failure: bool = False,
+        wait_reactivation: bool = True,
     ) -> None:
         """Run the safety-critical deactivate → mutate → reactivate lifecycle.
 
@@ -443,6 +475,14 @@ class LifecycleCore:
         * After any failure, including a failed recovery, the version and every
           referencing plan are re-read and reported; records this run deactivated
           get a restore command.
+
+        * ``wait_reactivation=False`` (the CLIs' ``--no-wait``) submits the
+          reactivation and returns without polling it, unless the version already
+          reads active. The cascaded plans are still reactivated right away (an
+          active plan over a not-yet-active version fails loudly, an inactive one
+          silently falls back to the default procedure). Only a *successful*
+          mutation defers; every failure path still waits and restores as above.
+          :meth:`confirm_or_defer` prints the ``--wait`` command that confirms it.
 
         Re-raises the original failure (chaining a recovery failure onto it when
         both happen). Refuses, before any write, to cycle an active version with no
@@ -513,6 +553,7 @@ class LifecycleCore:
                 # The version and the plans are restored independently, so a
                 # failed version reactivation can't leave the plans offline.
                 # Errors are raised after the health report below.
+                defer = not wait_reactivation and mutate_succeeded and not failure
                 if was_active or not failed_before_mutate:
                     try:
                         # After an unconfirmed deactivation, a stale read could
@@ -521,8 +562,7 @@ class LifecycleCore:
                             esv_id, True,
                             force=failed_before_mutate and version_off_attempted,
                         )
-                        if not self.dry_run:
-                            self.wait_for_version_state(esv_id, True)
+                        self.confirm_or_defer(es_def_id, esv, active=True, defer=defer)
                     except Exception as reactivate_exc:
                         reactivate_error = reactivate_exc
                 if cascaded_ppvs:
