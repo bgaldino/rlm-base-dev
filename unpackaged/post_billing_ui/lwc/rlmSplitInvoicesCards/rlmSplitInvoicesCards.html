@@ -8,8 +8,8 @@
                 </div>
             </template>
 
-            <template if:true={error}>
-                <div class="slds-text-color_error slds-m-vertical_small">{errorMessage}</div>
+            <template if:true={isUnavailable}>
+                <div class="slds-text-color_error slds-m-vertical_small">{unavailableText}</div>
             </template>
 
             <template if:true={hasRows}>
@@ -50,12 +50,10 @@
                 </div>
             </template>
 
-            <template if:false={hasRows}>
-                <template if:false={isLoading}>
-                    <div class="slds-m-vertical_medium slds-align_absolute-center slds-text-color_weak">
-                        No split invoices found for this invoice.
-                    </div>
-                </template>
+            <template if:true={isEmpty}>
+                <div class="slds-m-vertical_medium slds-align_absolute-center slds-text-color_weak">
+                    No split invoices found for this invoice.
+                </div>
             </template>
         </div>
     </lightning-card>

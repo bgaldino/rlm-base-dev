@@ -64,6 +64,38 @@ dates through it. Each has a `*.timezones.test.js` suite that sets the browser's
 - "Today" is the browser's date, not the date in the user's Salesforce time zone.
 - A schedule with no end date (evergreen) is not charted in the BSG overview's period table.
 
+## Refused reads and record changes
+
+`rlmSplitInvoicesView`, `rlmSplitInvoicesCards`, `rlmDisputeDetails` and
+`rlmBillingScheduleGroupHierarchy` share one state model (todo 509):
+
+- Each read (a wire or an Apex call) has its own state: loading until its reply, then ready or
+  unavailable. A reply sets only its own read's state, so one read's success never clears another's
+  failure.
+- An unavailable read shows only a fixed sentence ("Unable to read ... Contact your administrator.").
+  The platform's text goes to the browser console, never the page. Content and empty states ("No ...
+  found") show only when every read they depend on is ready, so a refused read never looks like
+  "none", and refused dispute lines show an Unavailable approved total.
+- A record change puts every read back to loading and clears its data. A counter, bumped on every
+  record change and request, drops any Apex reply that is no longer the latest.
+
+`rlmBsgOverview` builds its views only once both of its wires have answered for the current record, so
+a timeline that answers first no longer leaves the Billing Schedules view empty. It counts each billing
+date from the schedule's start, with the day clamped to the month's length: a monthly schedule starting
+January 31 bills in February.
+
+### Known limitations
+
+- `rlmBsgOverview` still shows the server's message for a failed read. A refusal before the Apex class
+  runs (no class access) shows the platform's text there.
+- Dispute Details shows approved amounts read-only; they are edited on the dispute item.
+  `RLM_DisputeDetailsController.saveApprovedAmounts` has no caller in this package.
+- A related name that cannot be read (account, profile, contact, invoice, invoice line) shows a dash,
+  the same as a missing one.
+- The balance cards explain an Unavailable balance only in the status pill's tooltip.
+- The controllers' "object absent from the org means a real 0" checks assume every user sees the same
+  schema. A user without the Billing license has not been tested.
+
 ## Create Billing Schedule Group modal
 
 `rlmBillingScheduleGroupModal` calls `RLM_BillingScheduleGroupService`, which invokes

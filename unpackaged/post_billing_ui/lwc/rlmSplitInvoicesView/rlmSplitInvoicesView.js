@@ -20,14 +20,41 @@ import getRelatedNames from '@salesforce/apex/RLM_SplitInvoicesController.getRel
  *  Id, Name (display), CorrelationIdentifier, BillingAccountId, DocumentNumber,
  *  InvoiceDate, Balance, Status, BillingArrangementId, BillingProfileId
  */
-export default class RlmSplitInvoicesView extends NavigationMixin(LightningElement) {
-    // recordId injected by the flexipage when placed on Invoice record page
-    @api recordId;
 
-    // UI state
-    @track isLoading = true;
-    @track error;
-    @track errorMessage = '';
+// Each read is loading until its own reply, then ready or unavailable (todo 509). A refused or failed
+// read shows only UNAVAILABLE_TEXT, never the platform's text (that goes to the console) and never an
+// empty "No split invoices found"; a record change puts every read back to loading.
+const LOADING = 'loading';
+const READY = 'ready';
+const UNAVAILABLE = 'unavailable';
+const UNAVAILABLE_TEXT = 'Unable to read the split invoices. Contact your administrator.';
+
+export default class RlmSplitInvoicesView extends NavigationMixin(LightningElement) {
+    _recordId;
+
+    // recordId injected by the flexipage when placed on Invoice record page
+    @api
+    get recordId() { return this._recordId; }
+    set recordId(value) {
+        if (value !== this._recordId) {
+            // A new record: both reads start over, and a names reply in flight is dropped.
+            this._seq += 1;
+            this.currentState = LOADING;
+            this.listState = LOADING;
+            this.correlationIdentifier = undefined;
+            this.allRows = [];
+            this.rows = [];
+        }
+        this._recordId = value;
+    }
+
+    // One state per read: the current invoice (its correlation id) and the split list. Each read's
+    // reply sets only its own state.
+    currentState = LOADING;
+    listState = LOADING;
+    // Bumped by a record change, a new correlation id, a list reply and a list failure: a names reply
+    // applies only while it is still the latest.
+    _seq = 0;
 
     // Data (correlationIdentifier drives second wire reactively)
     correlationIdentifier;
@@ -70,6 +97,19 @@ export default class RlmSplitInvoicesView extends NavigationMixin(LightningEleme
         }
     ];
 
+    // The view's one state: the current invoice's, then (when it has a correlation id) the list's.
+    get state() {
+        if (!this.recordId) return READY;
+        if (this.currentState !== READY) return this.currentState;
+        if (!this.correlationIdentifier) return READY;
+        return this.listState;
+    }
+    get isLoading() { return this.state === LOADING; }
+    get isUnavailable() { return this.state === UNAVAILABLE; }
+    get unavailableText() { return UNAVAILABLE_TEXT; }
+    get hasRows() { return this.state === READY && this.rows.length > 0; }
+    get isEmpty() { return this.state === READY && this.rows.length === 0; }
+
     // Wire 1: current invoice by recordId → get CorrelationIdentifier
     @wire(graphql, {
         query: '$queryCurrentInvoice',
@@ -77,24 +117,24 @@ export default class RlmSplitInvoicesView extends NavigationMixin(LightningEleme
     })
     wiredCurrentInvoice({ data, errors, refresh }) {
         this._refreshCurrent = refresh;
-        if (!this.recordId) {
-            this.isLoading = false;
-            return;
-        }
         if (errors && errors.length) {
-            this.error = errors;
-            this.errorMessage = this.readableError(errors[0]);
-            this.rows = [];
-            this.isLoading = false;
+            this._fail('current', errors);
             return;
         }
+        // The empty delivery before the first reply is not an answer.
+        if (!data) return;
         const current = data?.uiapi?.query?.Invoice?.edges?.[0]?.node;
-        this.correlationIdentifier = current?.CorrelationIdentifier?.value ?? null;
-        if (!this.correlationIdentifier) {
+        const correlation = current?.CorrelationIdentifier?.value ?? null;
+        if (correlation !== this.correlationIdentifier) {
+            // A different correlation id: its list is read afresh. The same id (a re-read of this
+            // invoice) leaves the list's state as it is, since the list wire does not answer again.
+            this._seq += 1;
+            this.listState = LOADING;
             this.allRows = [];
             this.rows = [];
-            this.isLoading = false;
         }
+        this.correlationIdentifier = correlation;
+        this.currentState = READY;
     }
 
     get currentInvoiceVariables() {
@@ -108,53 +148,63 @@ export default class RlmSplitInvoicesView extends NavigationMixin(LightningEleme
     })
     wiredInvoicesByCorrelation({ data, errors, refresh }) {
         this._refreshList = refresh;
-        if (this.correlationIdentifier === undefined) return;
         if (!this.correlationIdentifier) return;
         if (errors && errors.length) {
-            this.error = errors;
-            this.errorMessage = this.readableError(errors[0]);
-            this.rows = [];
-            this.isLoading = false;
+            this._fail('list', errors);
             return;
         }
+        if (!data) return;
+        const seq = (this._seq += 1);
         const listEdges = data?.uiapi?.query?.InvoiceByCorrelation?.edges || [];
         const allShaped = listEdges.map((e) => this.shapeRow(e.node)).filter((r) => !!r);
         const rows = allShaped.filter((r) => r.Id !== this.recordId);
-        this.error = undefined;
-        this.errorMessage = '';
 
         const accountIds = [...new Set(rows.map((r) => r.billingAccountId).filter(Boolean))];
         const arrangementIds = [...new Set(rows.map((r) => r.billingArrangementId).filter(Boolean))];
         const profileIds = [...new Set(rows.map((r) => r.billingProfileId).filter(Boolean))];
 
         if (accountIds.length === 0 && arrangementIds.length === 0 && profileIds.length === 0) {
-            this.allRows = this.sortData(rows, this.sortedBy, this.sortedDirection);
-            this.rows = this.allRows;
-            this.isLoading = false;
+            this._showRows(rows);
             return;
         }
 
+        // The list shows once its names are read; a name that cannot be read stays a dash.
         getRelatedNames({ accountIds, arrangementIds, profileIds, contactIds: [] })
             .then((result) => {
-                const accountNames = result.accountNames || {};
-                const arrangementNames = result.arrangementNames || {};
-                const profileNames = result.profileNames || {};
-                const merged = rows.map((r) => ({
+                const accountNames = result?.accountNames || {};
+                const arrangementNames = result?.arrangementNames || {};
+                const profileNames = result?.profileNames || {};
+                return rows.map((r) => ({
                     ...r,
                     billingAccountName: (r.billingAccountId && accountNames[r.billingAccountId]) || r.billingAccountName,
                     billingArrangementName: (r.billingArrangementId && arrangementNames[r.billingArrangementId]) || r.billingArrangementName,
                     billingProfileName: (r.billingProfileId && profileNames[r.billingProfileId]) || r.billingProfileName
                 }));
-                this.allRows = this.sortData(merged, this.sortedBy, this.sortedDirection);
-                this.rows = this.allRows;
             })
-            .catch(() => {
-                this.allRows = this.sortData(rows, this.sortedBy, this.sortedDirection);
-                this.rows = this.allRows;
-            })
-            .finally(() => {
-                this.isLoading = false;
+            .catch(() => rows)
+            .then((named) => {
+                if (seq === this._seq) this._showRows(named);
             });
+    }
+
+    _showRows(rows) {
+        this.allRows = this.sortData(rows, this.sortedBy, this.sortedDirection);
+        this.rows = this.allRows;
+        this.listState = READY;
+    }
+
+    // A refused or failed read: its own state becomes unavailable and the platform's text goes to the
+    // console only. A list failure also drops its rows and any names reply in flight.
+    _fail(source, error) {
+        console.error(`rlmSplitInvoicesView: the ${source} invoice read failed`, error);
+        if (source === 'current') {
+            this.currentState = UNAVAILABLE;
+            return;
+        }
+        this._seq += 1;
+        this.listState = UNAVAILABLE;
+        this.allRows = [];
+        this.rows = [];
     }
 
     get invoicesByCorrelationVariables() {
@@ -299,29 +349,19 @@ export default class RlmSplitInvoicesView extends NavigationMixin(LightningEleme
         });
     }
 
-    readableError(e) {
-        if (!e) return 'Unknown error';
-        if (Array.isArray(e.body)) return e.body.map((x) => x.message).join(', ');
-        if (e.body && e.body.message) return e.body.message;
-        if (e.message) return e.message;
-        try {
-            return JSON.stringify(e);
-        } catch {
-            return 'Unknown error';
-        }
+    // Re-reads both invoices. Nothing is cleared first: a re-read whose result is unchanged may not
+    // answer again. A re-read that fails marks its own read unavailable.
+    @api async refresh() {
+        const recordId = this.recordId;
+        await this._refreshRead('current', this._refreshCurrent, recordId);
+        await this._refreshRead('list', this._refreshList, recordId);
     }
 
-    @api async refresh() {
-        this.isLoading = true;
-        this.error = undefined;
+    async _refreshRead(source, refresh, recordId) {
         try {
-            await this._refreshCurrent?.();
-            await this._refreshList?.();
+            await refresh?.();
         } catch (err) {
-            this.error = err;
-            this.errorMessage = this.readableError(err);
-        } finally {
-            this.isLoading = false;
+            if (this.recordId === recordId) this._fail(source, err);
         }
     }
 }

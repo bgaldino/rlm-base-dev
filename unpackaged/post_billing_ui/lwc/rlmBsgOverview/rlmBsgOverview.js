@@ -5,8 +5,48 @@ import getBillingScheduleGroupData from '@salesforce/apex/RLM_BSGTimelineControl
 import getConsolidatedTimeline from '@salesforce/apex/RLM_BSGTimelineController.getConsolidatedTimeline';
 import { parseDateOnly, dateOnlyKey } from 'c/rlmDateOnly';
 
+// Months added to a date keep its day, clamped to the target month's length: a monthly schedule
+// starting January 31 bills in February (on the 28th or 29th), not on March 3.
+function addMonths(date, months) {
+    const d = new Date(date);
+    const day = d.getDate();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + months);
+    const monthLength = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    d.setDate(Math.min(day, monthLength));
+    return d;
+}
+
 export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
-    @api recordId;
+    _recordId;
+
+    // A new record starts a new load: both reads count as pending again and the previous record's
+    // data and errors are cleared, so nothing is built from one record's group and another's timeline.
+    @api
+    get recordId() { return this._recordId; }
+    set recordId(value) {
+        if (value !== this._recordId) {
+            this._bsgDelivered = false;
+            this._timelineDelivered = false;
+            this.bsgData = undefined;
+            this.rawSegments = [];
+            this.consolidatedSegments = [];
+            this.chartGroups = [];
+            this.ganttSchedules = [];
+            this.selectedSchedule = undefined;
+            this.bsgError = undefined;
+            this.timelineError = undefined;
+            this.isLoading = true;
+        }
+        this._recordId = value;
+    }
+
+    // Each wire is delivered once it answers with data or an error; the views are built only when both
+    // have (todo 509): a timeline that answers first, even with no segments, waits for the group.
+    _bsgDelivered = false;
+    _timelineDelivered = false;
+    bsgError;
+    timelineError;
 
     bsgData;
     rawSegments = [];
@@ -19,7 +59,6 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
     isCrowdedChart = false;
     selectedSchedule;
     isLoading = true;
-    error;
     activeView = 'period';
     milestoneChartItems = [];
     _isMilestoneBilling = false;
@@ -31,15 +70,15 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
         this._wiredBSG = result;
         if (result.data) {
             this.bsgData = result.data;
-            this.error = undefined;
-            if (this.rawSegments.length > 0) {
-                this._buildAll();
-            }
+            this.bsgError = undefined;
         } else if (result.error) {
-            this.error = result.error.body?.message || 'An error occurred loading the BSG data';
+            this.bsgError = result.error.body?.message || 'An error occurred loading the BSG data';
             this.bsgData = undefined;
-            this.isLoading = false;
+        } else {
+            return;
         }
+        this._bsgDelivered = true;
+        this._buildWhenBothDelivered();
     }
 
     @wire(getConsolidatedTimeline, { recordId: '$recordId' })
@@ -47,14 +86,26 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
         this._wiredTimeline = result;
         if (result.data) {
             this.rawSegments = result.data;
-            this.error = undefined;
-            this._buildAll();
+            this.timelineError = undefined;
         } else if (result.error) {
-            this.error = result.error.body?.message || 'An error occurred loading the consolidated data';
+            this.timelineError = result.error.body?.message || 'An error occurred loading the consolidated data';
+            this.rawSegments = [];
             this.consolidatedSegments = [];
             this.chartGroups = [];
-            this.isLoading = false;
+        } else {
+            return;
         }
+        this._timelineDelivered = true;
+        this._buildWhenBothDelivered();
+    }
+
+    _buildWhenBothDelivered() {
+        if (this._bsgDelivered && this._timelineDelivered) this._buildAll();
+    }
+
+    // One error per wire: a success clears only its own.
+    get error() {
+        return this.bsgError || this.timelineError;
     }
 
     // ─── Getters ─────────────────────────────────────────────────────────────
@@ -495,17 +546,19 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
 
     // Advance a date by N units of the given term
     _advancePeriodByN(date, termUnit, n) {
-        const d = new Date(date);
         const count = n || 1;
         switch (termUnit) {
-            case 'year':      d.setFullYear(d.getFullYear() + count); break;
-            case 'semiannual':d.setMonth(d.getMonth() + 6 * count);   break;
-            case 'quarterly': d.setMonth(d.getMonth() + 3 * count);   break;
-            case 'onetime':   d.setFullYear(d.getFullYear() + 100);   break;
+            case 'year':       return addMonths(date, 12 * count);
+            case 'semiannual': return addMonths(date, 6 * count);
+            case 'quarterly':  return addMonths(date, 3 * count);
+            case 'onetime': {
+                const d = new Date(date);
+                d.setFullYear(d.getFullYear() + 100);
+                return d;
+            }
             case 'month':
-            default:          d.setMonth(d.getMonth() + count);       break;
+            default:           return addMonths(date, count);
         }
-        return d;
     }
 
     // Last day of the bucket that starts at periodStart
@@ -613,11 +666,15 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
                 const snap = this._snapToPeriodStart(bsStart, termUnit);
                 billingBucketKeys.add(dateOnlyKey(snap));
             } else {
+                // Each billing date counts from the start date, so a day clamped to a short month
+                // (January 31 to February 28) does not carry into the months after it.
+                let step = 0;
                 let bsCursor = new Date(bsStart);
                 while (bsCursor <= bsEnd) {
                     const snap = this._snapToPeriodStart(bsCursor, termUnit);
                     billingBucketKeys.add(dateOnlyKey(snap));
-                    bsCursor = this._advancePeriodByN(bsCursor, bsUnit, bsTerm);
+                    step += 1;
+                    bsCursor = this._advancePeriodByN(bsStart, bsUnit, bsTerm * step);
                 }
             }
 

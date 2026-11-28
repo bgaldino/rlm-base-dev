@@ -28,14 +28,10 @@
             </template>
 
             <!-- No Data Message -->
-            <template if:false={hasData}>
-                <template if:false={isLoading}>
-                    <template if:false={error}>
-                        <div class="slds-align_absolute-center slds-m-around_large">
-                            <p class="slds-text-color_weak">No Billing Schedule Groups found for this account.</p>
-                        </div>
-                    </template>
-                </template>
+            <template if:true={isEmpty}>
+                <div class="slds-align_absolute-center slds-m-around_large">
+                    <p class="slds-text-color_weak">No Billing Schedule Groups found for this account.</p>
+                </div>
             </template>
 
             <!-- Charge Type Tabs -->

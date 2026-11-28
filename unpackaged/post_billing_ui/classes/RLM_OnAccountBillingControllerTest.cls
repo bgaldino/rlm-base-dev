@@ -369,8 +369,8 @@ private class RLM_OnAccountBillingControllerTest {
     }
 
     // Without advanced currency management (no dated rows: SELECT COUNT() FROM DatedConversionRate
-    // returned 0 as admin on rlm-base__apexcov-ac1125-r1 and rlm-base__hdr-hdr-r1, both multi-currency,
-    // measured 2026-11-26) a user whose dated-rate read is refused or empty gets an empty map, not an
+    // returned 0 as admin on two build orgs, both multi-currency [Measured: 2026-11-26, 264, scratch
+    // orgs]) a user whose dated-rate read is refused or empty gets an empty map, not an
     // error: every currency then converts at its standard rate. The ACM-on refusal (dated rows the
     // user cannot read -> fixed sentence) cannot be set up in a test: dated rates exist only with
     // ACM enabled, an org setting, and Apex cannot insert DatedConversionRate rows.

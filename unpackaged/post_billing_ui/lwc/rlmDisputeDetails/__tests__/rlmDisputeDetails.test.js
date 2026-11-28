@@ -159,7 +159,7 @@ describe('rlmDisputeDetails stale state', () => {
         graphql.emitErrors([{ message: 'Dispute read failed.' }]);
         await flush();
         expect(invoiceLink(el)).toBeUndefined();
-        expect(errorText(el)).toBe('Dispute read failed.');
+        expect(errorText(el)).toBe("Unable to read this case's dispute. Contact your administrator.");
     });
 
     it('shows no dispute when a read of the same record fails after a success', async () => {
