@@ -111,7 +111,7 @@ The engine is **procedure-driven**: instead of a single "calculate price" rule, 
 
 A **Price Book** (`Pricebook2`) is a catalog of prices. Each price book has many **Price Book Entries** (`PricebookEntry`), one per Product × Selling Model × Currency combination.
 
-QB orgs ship with the **Standard Price Book** (the default and only price book in QB) and **114 PricebookEntry records** spanning the QB catalog × applicable selling models. The catalog supports 9 selling models, so a single product like QB-API has multiple entries (one per Term-Defined frequency, one per Evergreen frequency, etc.).
+QB orgs ship with the **Standard Price Book** (the default and only price book in QB) and **114 PricebookEntry records** spanning the QB catalog × applicable selling models. The catalog supports 10 selling models, so a single product like QB-API has multiple entries (one per Term-Defined frequency, one per Evergreen frequency, etc.).
 
 **Walkthrough — Inspect Infinitech-relevant pricing entries:**
 
@@ -152,7 +152,7 @@ A **Pricing Procedure** is an ordered sequence of **Pricing Elements**, each of 
 
 > **Version:** introduced foundational · available all · *Scenario step: Pricing Foundation 4*
 
-The QB org provisions **9 Selling Models** that define how pricing relates to time:
+The QB org provisions **10 Selling Models** that define how pricing relates to time:
 
 | Selling Model | Type | Effect on price |
 |---|---|---|
@@ -161,6 +161,7 @@ The QB org provisions **9 Selling Models** that define how pricing relates to ti
 | Term Monthly | TermDefined | Monthly price × term length |
 | Term Based - Quarterly | TermDefined | Per-quarter price |
 | Term Based - Semi-Annual | TermDefined | Per-half-year price |
+| Term Weekly | TermDefined | Per-week price (sold on QuantumBit Subscription as the weekly billing example) |
 | Evergreen Annual | Evergreen | Annual price, no defined end date |
 | Evergreen Monthly | Evergreen | Monthly price, no defined end date |
 | Evergreen - Quarterly | Evergreen | Quarterly price, no defined end date |

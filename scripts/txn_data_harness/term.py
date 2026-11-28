@@ -5,9 +5,10 @@ A standalone module so ``config.py`` (pure parse/validate), ``discovery.py``
 (REST payloads) can all reference the same ``Term`` shape without any of
 them pulling in another's responsibilities.
 
-``unit`` carries one of the four real ``ProductSellingModel.PricingTermUnit``
-picklist values (verified against the bundled ``ProductSellingModel.csv`` and
-a Revenue Cloud R262 scratch org). ``None`` is the sentinel a bare-int
+``unit`` carries one of four of the five ``ProductSellingModel.PricingTermUnit``
+values in the bundled ``ProductSellingModel.csv`` (checked against a Revenue
+Cloud R262 scratch org); the fifth, ``Weekly``, isn't supported here yet.
+``None`` is the sentinel a bare-int
 ``term: N`` from YAML lands in -- the runner resolves it to the bound PSM's
 unit once the PBE is known.
 
