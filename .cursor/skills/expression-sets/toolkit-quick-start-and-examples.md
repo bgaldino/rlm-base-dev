@@ -12,22 +12,26 @@ Progressive-disclosure sub-file of `.cursor/skills/expression-sets/SKILL.md`. Wo
   seconds or more, then read the output.
 - **Submit, then wait (for a foreground limit such as 120 s).** Add `--no-wait` to
   `import_expression_set.py`, `set_step_formula.py` or `apply_expression_set_overlay.py`.
-  The run still waits for the deactivation (the write needs it), submits the
-  reactivation and exits 0 without polling it. It leaves any cascaded procedure plans
-  off and prints the exact `activate_expression_set.py ... --wait` command that finishes
-  the job. `--no-wait` also skips the step-label restore and the final read-back, so
-  re-run those after the wait. Finish with `--wait`: it polls `IsActive` (default
-  `--timeout 600`), reactivates the plans named by `--plans`, and exits 1 with the state
-  reached if the version is still off at the timeout (re-run it to keep waiting; it is
-  safe to repeat and needs no `--confirm`):
+  The run still waits for the deactivation (the write needs it), reactivates any cascaded
+  procedure plans, submits the version's reactivation and exits 0 without polling it. It
+  prints the exact `activate_expression_set.py ... --wait` command that confirms it. If
+  the version already reads active at that point the run just carries on as usual and
+  prints no follow-up. `--wait` is read-only: it polls `IsActive` (default `--timeout
+  600`), and exits 1 with the state reached if the version is still off at the timeout
+  (re-run it to keep waiting; no `--confirm`). While the version is unconfirmed, the
+  overlay and import tools skip the step-label restore (they print a relabel command
+  that reactivates the version) and the overlay and formula tools skip their read-back,
+  so repeat those after the wait:
 
   ```bash
   python scripts/expression_sets/set_step_formula.py --target-org <sf_alias> \
     --expression-set <Set> --step <Step> --formula '<expr>' --confirm --no-wait
   # prints: Wait for it with: python scripts/expression_sets/activate_expression_set.py \
-  #   --target-org <sf_alias> --expression-set <Set> --version <Set_V1> --wait --timeout 600 --plans <ids>
+  #   --target-org <sf_alias> --expression-set <Set> --version <Set_V1> --wait --timeout 600
   python scripts/expression_sets/activate_expression_set.py --target-org <sf_alias> \
-    --expression-set <Set> --version <Set_V1> --wait --timeout 100 --plans <ids>   # repeat until exit 0
+    --expression-set <Set> --version <Set_V1> --wait --timeout 100   # repeat until exit 0
+  python scripts/expression_sets/set_step_formula.py --target-org <sf_alias> \
+    --expression-set <Set> --step <Step> --show                      # read the formula back
   ```
 - **Check the end state.** `apply_expression_set_overlay.py` reads the version back after
   `--confirm`, prints `Final ExpressionSetVersion ... IsActive=<bool>` and exits 1 when

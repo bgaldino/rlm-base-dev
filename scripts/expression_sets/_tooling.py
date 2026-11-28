@@ -614,12 +614,15 @@ def restore_version_labels(
     es_def_id: str,
     cascade: bool = True,
     skip_version_id: Optional[str] = None,
+    deferred_wait: bool = False,
 ) -> Dict[str, Any]:
     """Restore every captured version's labels; aggregate the per-version results.
 
     ``skip_version_id`` leaves one version alone (the toggled version under
     ``--no-activate``, whose relabel would need the reactivation it was asked
-    to skip); ``skipped`` reports whether that happened. Non-fatal like
+    to skip, or under ``--no-wait`` the one whose activation is unconfirmed:
+    ``deferred_wait``, whose printed relabel command reactivates it);
+    ``skipped`` reports whether that happened. Non-fatal like
     :func:`restore_labels_after_clobber`. Returns
     ``{"ok", "changed", "error", "skipped"}``.
     """
@@ -629,11 +632,12 @@ def restore_version_labels(
             skipped = True
             if not engine.dry_run:  # a preview patched nothing
                 engine.log(f"Labels on {api_name} are left as the PATCH set them "
-                           "(--no-activate); to restore them and keep it inactive: "
+                           f"({'--no-wait' if deferred_wait else '--no-activate'}); to restore them"
+                           + ("" if deferred_wait else " and keep it inactive") + ": "
                            + relabel_hint(engine, es_id=es_id, es_def_id=es_def_id,
                                           version_api_name=api_name,
                                           name_to_label=name_to_label,
-                                          no_activate=True))
+                                          no_activate=not deferred_wait))
             continue
         result = restore_labels_after_clobber(
             engine, es_id=es_id, es_def_id=es_def_id, version_api_name=api_name,

@@ -308,12 +308,14 @@ def main(argv=None) -> int:
         # --no-activate; the version the lifecycle toggled needs the reactivation.
         restore_result = restore_version_labels(
             engine, restore_maps, es_id=es_id, es_def_id=es_def_id, cascade=cascade,
-            skip_version_id=(None if activate_after and not args.no_wait
+            skip_version_id=(None if activate_after and not engine.pending_wait
                              else esv.get("Id")),
+            deferred_wait=bool(engine.pending_wait),
         )
         if restore_result.pop("skipped") and not preview:
-            eprint("Note: --no-activate/--no-wait set — the toggled version's labels were left "
-                   "un-restored; the relabel command printed above restores them.")
+            eprint(f"Note: {'--no-wait' if engine.pending_wait else '--no-activate'} set — "
+                   "the toggled version's labels were left un-restored; the relabel "
+                   "command printed above restores them.")
 
     except (ExpressionSetClientError, ResolveError, LifecycleError, OverlayError) as exc:
         eprint(f"\nFAILED: {exc}")
@@ -321,7 +323,7 @@ def main(argv=None) -> int:
 
     restore_ok = restore_result.get("ok", True)
     final_active = None
-    if not preview and not args.no_wait:
+    if not preview and not engine.pending_wait:
         # Report where the run left the version: a passed lifecycle is not proof it is on.
         try:
             rows = [v for v in list_versions(es_id, target_org=args.target_org,

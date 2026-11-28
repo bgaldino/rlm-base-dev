@@ -276,13 +276,14 @@ def main(argv=None) -> int:
             restore_result = restore_version_labels(
                 engine, restore_maps, es_id=es_id, es_def_id=es_def_id,
                 cascade=cascade,
-                skip_version_id=(None if activate_after and not args.no_wait
+                skip_version_id=(None if activate_after and not engine.pending_wait
                                  else esv.get("Id")),
+                deferred_wait=bool(engine.pending_wait),
             )
             if restore_result.pop("skipped") and not preview:
-                eprint("Note: --no-activate/--no-wait set — the toggled version's labels were "
-                       "left un-restored; the relabel command printed above restores "
-                       "them.")
+                eprint(f"Note: {'--no-wait' if engine.pending_wait else '--no-activate'} set — "
+                       "the toggled version's labels were left un-restored; the relabel "
+                       "command printed above restores them.")
             result["expressionSetId"] = es_id
             result["versionId"] = esv["Id"]
         else:  # create
@@ -306,29 +307,24 @@ def main(argv=None) -> int:
                 desired = activate_after
                 if bool(esv.get("IsActive")) is not desired:
                     engine.set_version_active(esv["Id"], desired)
-                    if args.no_wait:
-                        engine.announce_submitted(
-                            resolve_definition_id(
-                                api_name, target_org=args.target_org,
-                                api_version=args.api_version), esv)
-                    else:
-                        engine.wait_for_version_state(esv["Id"], desired)
+                    engine.confirm_or_defer(
+                        resolve_definition_id(api_name, target_org=args.target_org,
+                                              api_version=args.api_version),
+                        esv, active=desired, defer=args.no_wait)
                 result["expressionSetId"] = es_id
                 result["versionId"] = esv["Id"]
                 # A clone starts label-less (POST has no label field): apply the
                 # input's "labels" block through Tooling, in place (no cycle needed
                 # while inactive; the shared relabel core toggles an active version).
-                if file_labels and preserve_labels and args.no_wait:
-                    eprint("Note: --no-wait set — the input's labels block was not "
-                           "applied; re-run the import with --confirm (no --no-wait) "
-                           "once the version is active, or relabel it.")
-                elif file_labels and preserve_labels:
+                if file_labels and preserve_labels:
                     new_def_id = resolve_definition_id(
                         api_name, target_org=args.target_org,
                         api_version=args.api_version)
                     restore_result = restore_version_labels(
                         engine, [(esv.get("ApiName"), esv["Id"], file_labels)],
                         es_id=es_id, es_def_id=new_def_id, cascade=cascade,
+                        skip_version_id=esv["Id"] if engine.pending_wait else None,
+                        deferred_wait=bool(engine.pending_wait),
                     )
                     restore_result.pop("skipped", None)
             if preview and file_labels and preserve_labels:

@@ -3350,62 +3350,122 @@ def test_import_labels_block():
 
 
 def test_submit_wait_split():
-    """--no-wait submits without polling reactivation; activate --wait finishes it."""
+    """--no-wait submits without polling reactivation; activate --wait confirms it."""
     print("test_submit_wait_split")
+    import contextlib
+    import io
     from scripts.expression_sets._lifecycle import LifecycleEngine
+    import scripts.expression_sets._tooling as tooling_mod
     import scripts.expression_sets.activate_expression_set as act_mod
-    import scripts.expression_sets.apply_expression_set_overlay as apply_mod
     import scripts.expression_sets.import_expression_set as import_mod
-    import scripts.expression_sets.set_step_formula as formula_mod
 
-    # Argument handling: every blocking tool takes --no-wait; the default blocks.
-    for mod in (import_mod, apply_mod, formula_mod):
-        check(f"{mod.__name__.rsplit('.', 1)[1]} documents --no-wait",
-              "--no-wait" in Path(mod.__file__).read_text())
+    ESV = {"Id": "9QMv", "IsActive": True, "ApiName": "X_V1"}
 
-    # Engine: --no-wait skips the reactivation wait and the plan reactivation.
-    def run(**kw):
+    def run(*, stale_read, **kw):
+        """run_mutation over the fake transport; ``stale_read`` makes the version
+        read inactive after it is switched back on (activation still pending)."""
         t = _PlanTransport(plans={"1Cv1": True})
         waits, logs = [], []
         engine = LifecycleEngine(t, logger=logs.append, max_wait_seconds=0,
                                  poll_interval_seconds=1)
         engine.wait_for_version_state = lambda vid, active: waits.append(active)
         engine.definition_name = lambda _id: "X_Set"
-        engine.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True,
-                                                   "ApiName": "X_V1"},
-                            mutate=lambda: None, activate_after=True, cascade=True, **kw)
+
+        def mutate():
+            t.esv_reads_inactive = stale_read
+        engine.run_mutation(es_def_id="9QAx", esv=dict(ESV), mutate=mutate,
+                            activate_after=True, cascade=True, **kw)
         return t, waits, engine, logs
 
-    t, waits, engine, logs = run()
-    check("default still waits for deactivation and reactivation", waits == [False, True], waits)
-    check("default reactivates the plans", t.plans["1Cv1"] is True and not engine.pending_wait)
-    t, waits, engine, logs = run(wait_reactivation=False)
-    check("--no-wait waits for deactivation only", waits == [False], waits)
-    check("--no-wait submitted the activation", t.esv_active is True)
-    check("--no-wait leaves the cascaded plan for the wait step", t.plans["1Cv1"] is False)
+    t, waits, engine, logs = run(stale_read=True)
+    check("default waits for deactivation and reactivation", waits == [False, True], waits)
+    check("default: plans back on, nothing pending", t.plans["1Cv1"] is True
+          and engine.pending_wait is None)
+
+    t, waits, engine, logs = run(stale_read=True, wait_reactivation=False)
+    check("--no-wait waits for the deactivation only", waits == [False], waits)
+    check("--no-wait still reactivates the cascaded plans", t.plans["1Cv1"] is True, t.plans)
     cmd = (engine.pending_wait or {}).get("command", "")
-    check("--no-wait prints the wait command with version and plan ids",
-          "--expression-set X_Set --version X_V1 --wait" in cmd and "--plans 1Cv1" in cmd, cmd)
+    check("--no-wait prints the wait command (no plan ids)",
+          "--expression-set X_Set --version X_V1 --wait" in cmd and "--plans" not in cmd, cmd)
+    check("--no-wait logs the submit", any(m.startswith("Submitted:") for m in logs), logs)
 
-    # CLI: set_step_formula --no-wait exits 0 without the reactivation wait.
-    waited = []
-    orig = LifecycleEngine.wait_for_version_state
-    LifecycleEngine.wait_for_version_state = lambda self, vid, active: waited.append(active)
-    try:
-        rc, flogs = _run_set_formula(
-            _FormulaTransport(metadata=_formula_metadata(), plans={"1Cv1": True}),
-            ["--parent-step", _RAMP_PARENT, "--formula", "1 + 1", "--confirm",
-             "--no-wait"])
-    finally:
-        LifecycleEngine.wait_for_version_state = orig
-    check("set_step_formula --no-wait: exit 0, only the deactivation waited",
-          rc == 0 and waited == [False], (rc, waited))
-    check("set_step_formula --no-wait prints the wait command",
-          any("--wait" in m and "activate_expression_set.py" in m for m in flogs))
+    t, waits, engine, logs = run(stale_read=False, wait_reactivation=False)
+    check("--no-wait with the version already active takes the normal path",
+          waits == [False, True] and engine.pending_wait is None
+          and not any("Submitted" in m for m in logs), (waits, logs))
 
-    # activate --wait: finishes the plans; times out non-zero with the state reached.
-    def run_wait(esv_active, extra):
-        t = _PlanTransport(plans={"1Cv1": False}, esv_active=esv_active)
+    # confirm_or_defer: a deactivation is never deferred.
+    t = _PlanTransport(plans={})
+    engine = LifecycleEngine(t, logger=lambda *a, **k: None, max_wait_seconds=0)
+    waits = []
+    engine.wait_for_version_state = lambda vid, active: waits.append(active)
+    engine.confirm_or_defer("9QAx", dict(ESV), active=False, defer=True)
+    check("a deactivation waits even under --no-wait; nothing pending",
+          waits == [False] and engine.pending_wait is None, waits)
+
+    # Label hint under --no-wait reactivates; under --no-activate it keeps it off.
+    seen = []
+
+    def fake_hint(engine, **kw):
+        seen.append(kw["no_activate"])
+        return "<relabel command>"
+    for deferred, flag in ((True, "--no-wait"), (False, "--no-activate")):
+        logs = []
+        eng = type("E", (), {"dry_run": False, "log": staticmethod(logs.append)})()
+        undo = _patch(tooling_mod, relabel_hint=fake_hint)
+        try:
+            res = tooling_mod.restore_version_labels(
+                eng, [("X_V1", "9QMv", {"A": "a"})], es_id="9QLx", es_def_id="9QAx",
+                skip_version_id="9QMv", deferred_wait=deferred)
+        finally:
+            undo()
+        check(f"skip hint names {flag}", res["skipped"] and flag in logs[0]
+              and (deferred or "keep it inactive" in logs[0]), logs)
+    check("hint reactivates under --no-wait, stays inactive under --no-activate",
+          seen == [False, True], seen)
+
+    # Import create path: --no-activate --no-wait waits for the (inactive) state.
+    calls, created = [], []
+
+    def resolve_def(*a, **k):
+        from scripts.expression_sets._resolve import ResolveError
+        if not created:
+            raise ResolveError("not found")
+        return "9QAn"
+
+    class _CreateEngine(_FakeEngine):
+        def post_definition(self, *a, **k):
+            created.append(True)
+            return {"id": "9QLn"}
+
+        def set_version_active(self, *a, **k):
+            calls.append(("set", a[1]))
+
+        def confirm_or_defer(self, es_def_id, esv, *, active, defer):
+            calls.append(("confirm", active, defer))
+
+    with tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "c.json"
+        path.write_text(json.dumps({"apiName": "C", "versions": [
+            {"apiName": "C_V1", "steps": [], "variables": []}]}))
+        undo = _patch_cli(
+            import_mod, LifecycleEngine=_CreateEngine, Transport=lambda **k: None,
+            resolve_definition_id=resolve_def,
+            resolve_version_by_es_id=lambda *a, **k: {
+                "Id": "9QMn", "ApiName": "C_V1", "IsActive": True, "VersionNumber": 1},
+            validate_definition=lambda *a, **k: _passing_validation())
+        try:
+            rc = import_mod.main(["--target-org", "x", "--input-file", str(path),
+                                  "--confirm", "--no-activate", "--no-wait"])
+        finally:
+            undo()
+    check("create --no-activate --no-wait asks for an inactive version (engine waits it)",
+          rc == 0 and ("confirm", False, True) in calls and ("set", False) in calls,
+          (rc, calls))
+    # activate --wait: success; timeout exits 1 with the state; argparse rejections.
+    def run_wait(esv_active, extra, *, found=True):
+        t = _PlanTransport(plans={}, esv_active=esv_active)
         logs = []
 
         def make_engine(tr, **k):
@@ -3418,20 +3478,34 @@ def test_submit_wait_split():
                       resolve_expression_set_id=lambda *a, **k: "9QLx",
                       resolve_version_by_es_id=lambda *a, **k: {"Id": "9QMv",
                                                                 "ApiName": "X_V1"})
+        out = io.StringIO()
         try:
-            rc = act_mod.main(["--target-org", "x", "--expression-set", "X", "--wait",
-                               *extra])
+            with contextlib.redirect_stdout(out):
+                rc = act_mod.main(["--target-org", "x", "--expression-set", "X", "--wait",
+                                   *extra])
         finally:
             undo()
-        return rc, logs, t
+        return rc, logs, out.getvalue()
 
-    rc, logs, t = run_wait(True, ["--plans", "1Cv1"])
-    check("--wait: active version, plan reactivated, exit 0",
-          rc == 0 and t.plans["1Cv1"] is True, (rc, t.plans))
-    rc, logs, t = run_wait(False, ["--timeout", "2", "--plans", "1Cv1"])
-    check("--wait timeout: exit 1, state reported, plans untouched",
-          rc == 1 and t.plans["1Cv1"] is False
-          and any("State reached: IsActive=False" in m for m in logs), (rc, logs))
+    rc, logs, _ = run_wait(True, [])
+    check("--wait: active version, exit 0", rc == 0, rc)
+    rc, logs, _ = run_wait(False, ["--timeout", "2"])
+    check("--wait timeout: exit 1 with the state reached",
+          rc == 1 and any("State reached: IsActive=False" in m for m in logs), (rc, logs))
+    rc, logs, out = run_wait(True, ["--version", "Nope", "--json"])
+    check("--wait: unknown version exits 1 and still prints the JSON result",
+          rc == 1 and json.loads(out).get("ok") is False, (rc, out))
+    for label, argv in (("--timeout with --activate", ["--activate", "--timeout", "5"]),
+                        ("--confirm with --wait", ["--wait", "--confirm"]),
+                        ("--no-cascade with --wait", ["--wait", "--no-cascade"])):
+        err = io.StringIO()
+        try:
+            with contextlib.redirect_stderr(err):
+                act_mod.main(["--target-org", "x", "--expression-set", "X", *argv])
+            rc = 0
+        except SystemExit as exc:
+            rc = exc.code
+        check(f"{label} is a usage error", rc == 2, (rc, err.getvalue()))
 
 
 def main():

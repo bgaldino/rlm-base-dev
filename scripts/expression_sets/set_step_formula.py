@@ -432,7 +432,7 @@ def main(argv=None) -> int:
             print(json.dumps(result, indent=2))
         return 0
 
-    if args.no_wait and engine.pending_wait:
+    if engine.pending_wait:
         result.update({"changed": True, "submitted": True,
                        "pendingWait": engine.pending_wait})
         eprint("\nSubmitted: the formula is written; activation is not yet confirmed. "
