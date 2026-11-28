@@ -150,20 +150,22 @@ The object reference names the two target-date fields `TargetDayOfMonth` and `Ta
 
 1. Create an order for `Sample Split Billing Owner`. With `billing_ui` on, set the order's **Billing Arrangement** field (`RLM_Billing_Arrangement__c`) to `Sample Split Billing 40-30-30` before activating it; `apply_context_billing_order` maps it onto the order's billing schedule group. Without `billing_ui`, open the schedule group after activation, then Billing Arrangements tab, Manage Billing Arrangements (Help: *Configure Billing Arrangements for Billing Schedule Groups*).
 2. Activate the order and use Preview Invoices on the order, either partner account or the schedule group. An order of 900 previewed as three invoices of 360, 270 and 270 before tax, one per billing account, each to that account's bill-to contact. A preview for Partner B, which owns nothing, returned the same three invoices [Measured: 2026-11-28, 264, scratch].
-3. Generate invoices for the order or one of the accounts, then open one invoice's Split Invoices tab. Posting, voiding or deleting one split invoice does the same to the others (Help: *Review Split Invoices Before Posting, Voiding, or Deleting*).
+3. Generate invoices for the order's billing schedule (or one of the accounts), then open one invoice. In the Billing Console its **Split Billing** tab (`rlmSplitInvoicesCards`) shows the other two; outside the console the platform's **Split Invoices** tab does. Posting, voiding or deleting one split invoice does the same to the others (Help: *Review Split Invoices Before Posting, Voiding, or Deleting*).
+
+Headless, with the transaction harness (`docs/guides/txn-data-harness.md`): run a config with `account: "Sample Split Billing Owner"` and `target_stage: order_draft` (quote, then order), set `RLM_Billing_Arrangement__c` on the order, then continue with `python -m scripts.txn_data_harness.cli step --org <sf-alias> --manifest <run manifest> --account "Sample Split Billing Owner" --to-stage invoice_draft`. That run activated the order and generated three Draft invoices from its one billing schedule: 360, 270 and 270 before tax (396, 297, 297 with tax). Each carried its own account, billing profile, bill-to contact and the billing address of its billing account, and all three carried the order's shipping address and the arrangement. Both Split tabs listed the other two invoices [Measured: 2026-11-28, 264, scratch]. The harness records one of the three invoices in its manifest.
 
 ### Demo: invoice grouping
 
-Preview the policyholder account, or the three schedules by id. The preview returned two invoices: `POLICY_1001` with two lines (200) and `POLICY_1002` with one line (100), each carrying its key in `customGroupingKey`. Before the keys were set, the same schedules previewed as one invoice [Measured: 2026-11-28, 264, scratch].
+Preview the policyholder account, or the three schedules by id. The preview returned two invoices: `POLICY_1001` with two lines (200) and `POLICY_1002` with one line (100), each carrying its key in `customGroupingKey`. Before the keys were set, the same schedules previewed as one invoice. Generating Draft invoices for the three schedules (`POST /services/data/v68.0/commerce/invoicing/invoices/collection/actions/generate` with `billingScheduleIds`, `action` `Draft`, `invoiceDate` and `targetDate`) made the same two invoices [Measured: 2026-11-28, 264, scratch].
 
 Headless preview: `POST /services/data/v68.0/commerce/invoicing/invoices/collection/actions/preview` with `billingTransactionId` (an order, account or schedule group id) or `billingScheduleIds` (a list of schedule ids), plus `numberOfBillingPeriods` and `previewDate`. The 264 dev guide's input page lists only `billingTransactionId`; the list was accepted [Measured: 2026-11-28, 264, scratch].
 
 ### Known limitations
 
 - The grouping schedules are real and due from the day of the build: an invoice run with no filter criteria (an activated sample scheduler, for example) or Generate Invoices on the policyholder account invoices them. A schedule group that was never invoiced can be deleted, and its schedule went with it [Measured: 2026-11-28, 264, scratch].
-- In the measured previews every split invoice carried the order's billing address, not the address on its own billing account, although Help says the billing profile's address takes precedence. Not investigated.
-- The four billing accounts make the sample accounts billing-ready for the transaction harness. With no `account:` pinned, the harness takes the first billing account its query returns, which may now be a sample account; the bundled scenarios all pin one.
-- Not measured here: an invoice run of either sample, the Split Invoices tab, and an amendment of an arrangement order.
+- Preview and invoice differ on the billing address: every split invoice in the measured previews carried the order's billing address, while the generated invoices carried each billing account's own address (Help says the billing profile's address takes precedence). Not investigated.
+- The four billing accounts make the sample accounts billing-ready for the transaction harness. With no `account:` pinned, the harness takes the first billing-ready account by account name, so Infinitech stays the default on a QB build that loads the sample data.
+- Not measured here: posting the split invoices, a scheduled invoice run, and an amendment of an arrangement order.
 
 ## Apex Activation Scripts
 

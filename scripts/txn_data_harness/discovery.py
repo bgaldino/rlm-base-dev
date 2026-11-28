@@ -262,6 +262,9 @@ def discover_accounts(client: SfRestClient, account_name: Optional[str] = None) 
     soql = "SELECT Id, Name, AccountId, Account.Name FROM BillingAccount"
     if account_name:
         soql += f" WHERE Account.Name = '{_sql_escape(account_name)}'"
+    # Ordered so the default account (row 0) is the same on every build: by account name,
+    # Infinitech sorts ahead of the billing seed's "Sample ..." accounts (todo 257).
+    soql += " ORDER BY Account.Name, Id"
     rows = client.query(soql)
     if not rows:
         log.info("discovered 0 billing-ready account(s)")

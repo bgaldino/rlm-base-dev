@@ -337,3 +337,17 @@ def test_id_batches_deduplicate_and_propagate_later_failure(fake_client):
     assert caught.value is error
     assert calls[0].count("'001") == 100
     assert calls[1].count("'001") == 1
+
+
+def test_billing_account_discovery_orders_by_account_name(fake_client):
+    # The default account is row 0, so the query must be ordered: by account name, Infinitech
+    # stays ahead of the billing seed's "Sample ..." accounts on every build (todo 257).
+    sqls = []
+    def query(sql):
+        sqls.append(sql)
+        return []
+    fake_client.query = query
+    discovery.discover_accounts(fake_client)
+    discovery.discover_accounts(fake_client, account_name='Infinitech')
+    assert sqls[0].endswith(' FROM BillingAccount ORDER BY Account.Name, Id')
+    assert sqls[1].endswith(" WHERE Account.Name = 'Infinitech' ORDER BY Account.Name, Id")
