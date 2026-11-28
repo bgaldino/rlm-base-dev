@@ -59,9 +59,8 @@ in `page-configuration.md`; day-to-day use is in `runtime-behavior.md`. Source t
 
 - The quote has a Start Date and an Expiration Date but no term or end date; lines have Start Date, End Date,
   Subscription Term and unit [Repo: scripts/erd/schema_diff/264-schema.json].
-- Nothing cascades from the quote header to its lines out of the box: a line added in the editor defaults its Start
-  Date to today, not the quote's [Platform behaviour, traced in part] (traced for the Place Sales Transaction add path and the CSV import; the
-  editor's own add path was not traced) [Open: add a line in the editor on a quote whose Start Date is not today and read the line's Start Date].
+- Whether a line added through the editor, Place Sales Transaction or CSV import takes today's date or the quote's Start Date
+  [Open: add a line each way on a quote whose Start Date is not today and read each line's Start Date].
 - Ramped groups are the exception: a group's End Date sets the end date of its term-defined lines, and editing a
   ramp segment's dates updates its lines [Help: ind.qocal_ramp_deal_for_groups_create].
 - Building a header default is a customer build. Candidate designs [Open: build one design, add a line, and read the line's dates and the banner] are custom header term fields plus a before-save flow on line create; an after-save

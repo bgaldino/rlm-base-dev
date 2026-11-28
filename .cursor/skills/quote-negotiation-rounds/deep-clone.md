@@ -133,7 +133,7 @@ write back the ones that differ ([SKILL.md](SKILL.md) → Validation Checks).
 
 ## Starting round 1: creating a quote from an opportunity (the deal)
 
-[Measured: 2026-11-26, 264.12.x (USA796), ent-sb0 harness build]
+[Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]
 - The **Create quote from deal** path copies the opportunity's **one-time** products only, flattened (no bundle structure) and
   with no attributes, after the Quote save. Recurring or bundled products are not copied.
 - Inserting a Quote through the API or a flow copies nothing from the opportunity; the repo's New Quote action creates a

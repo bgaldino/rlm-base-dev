@@ -12,7 +12,7 @@ A rep can build a group ramp in the 264 quote editor with the same result as the
 `AssetStatePeriod` per segment. **Standard** was verified through pricing only.
 
 **Measured** 2026-10-29 on a fresh `ent-r1` build of `main`:
-- Org: 264.9.6, Advanced Detail Line Pricing on, Multiple Ramp Schedules Per Transaction on,
+- Org: 264, Advanced Detail Line Pricing on, Multiple Ramp Schedules Per Transaction on,
   procedure plan inactive.
 - Product `QB-API`, list price 15,000. An attribute-based price adjustment (waterfall row
   *Calculate attribute-based prices*) takes 5,000 off, so the base is 10,000.
