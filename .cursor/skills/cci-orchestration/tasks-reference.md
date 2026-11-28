@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**272 tasks** across **9 groups**.
+**269 tasks** across **9 groups**.
 
 **Options** lists the defaults `cumulusci.yml` sets. Every option a task takes, and which are required: `cci task info <task>`.
 
@@ -459,20 +459,7 @@
 
 ## Data Management - Idempotency
 
-*24 task(s)*
-
-### `test_inapp_idempotency`
-
-**Description:** Idempotency test for inapp (In-App Learning navigation content). Every object is Upsert since todo 334.
-
-**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
-
-**Options:**
-
-- `pathtoexportjson`: `datasets/sfdmu/inapp`
-- `use_extraction_roundtrip`: `False`
-
----
+*23 task(s)*
 
 ### `test_q3_billing_idempotency`
 
@@ -875,7 +862,7 @@
 
 ## Revenue Lifecycle Management
 
-*180 task(s)*
+*178 task(s)*
 
 ### `activate_agents`
 
@@ -1797,18 +1784,6 @@
 
 ---
 
-### `deploy_post_inapp`
-
-**Description:** Deploy the In-App Learning navigation framework (objects, LWC, Apex, flexipages, Learning Home app)
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_inapp`
-
----
-
 ### `deploy_post_large_stx`
 
 **Description:** Deploy Large Sales Transaction metadata
@@ -2688,18 +2663,6 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-tax`
-
----
-
-### `load_inapp_dataset`
-
-**Description:** Load In-App Learning navigation content (Pages/Sections/Blocks/DynamicLinks) via SFDMU
-
-**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
-
-**Options:**
-
-- `pathtoexportjson`: `datasets/sfdmu/inapp`
 
 ---
 

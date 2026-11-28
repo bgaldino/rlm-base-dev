@@ -415,10 +415,10 @@ def test_run_build_failure_without_robot_output_removes_workspace(tmp_path, monk
 
 def test_run_build_fails_loudly_when_cci_ignores_the_overrides(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(runner, "ROOT", tmp_path)
-    base_cci = {"project": {"custom": {"inapp": False}}, "flows": {"prepare_rlm_org": {"steps": {}}}, "orgs": {"scratch": {"ent": {"config_file": "orgs/ent.json", "days": 30}}}}
+    base_cci = {"project": {"custom": {"large_stx": False}}, "flows": {"prepare_rlm_org": {"steps": {}}}, "orgs": {"scratch": {"ent": {"config_file": "orgs/ent.json", "days": 30}}}}
     monkeypatch.setattr(runner, "load_cci", lambda _: base_cci)
     monkeypatch.setattr(runner, "load_prepare_steps", lambda _: [])
-    monkeypatch.setattr(runner, "verify_project_flags", lambda _root, _flags: PreflightFailure("CCI read inapp=False", "deterministic"))
+    monkeypatch.setattr(runner, "verify_project_flags", lambda _root, _flags: PreflightFailure("CCI read large_stx=False", "deterministic"))
     commands: List[Any] = []
     monkeypatch.setattr(
         runner,
@@ -429,9 +429,9 @@ def test_run_build_fails_loudly_when_cci_ignores_the_overrides(tmp_path, monkeyp
 
     events: List[RunEvent] = []
     code = runner.run_build(
-        config=_build_config(overrides={"inapp": True}), stop_event=Event(), emit=_emit_collector(events)
+        config=_build_config(overrides={"large_stx": True}), stop_event=Event(), emit=_emit_collector(events)
     )
     assert code == 20
     assert commands == []
     failed = [e for e in events if e.kind.name == "RUN_FAILED"]
-    assert failed and "inapp=False" in failed[0].payload["message"]
+    assert failed and "large_stx=False" in failed[0].payload["message"]

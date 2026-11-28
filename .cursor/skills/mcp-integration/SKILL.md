@@ -23,7 +23,7 @@ Gateway-endpoint research credit: Sam Check (`feature/mcp-servers`).
 ## Quick Rules
 
 1. **`cci flow run prepare_mcp --org <alias>` stands up the whole org-side surface.**
-   It is step 36 of `prepare_rlm_org` (37 steps; `stamp_git_commit` follows),
+   It is step 36 of `prepare_rlm_org` (36 steps, numbered 1-37; `stamp_git_commit` follows),
    gated on the `mcp` feature flag, which defaults to **off**: the hosted `revenue-cloud`
    server needs the RevMCP pilot permission, which not every org shape has, and the flow
    cannot finish the job, because each person still runs their own browser OAuth login.

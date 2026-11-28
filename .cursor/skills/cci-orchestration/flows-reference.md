@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**47 flows** across **5 groups**.
+**46 flows** across **5 groups**.
 
 ---
 
@@ -422,19 +422,6 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 
 ---
 
-### `prepare_inapp`
-
-Deploy the In-App Learning framework, assign its permission set, and load the navigation content
-
-**Steps:**
-
-1. **task** `deploy_post_inapp`  `when: project_config.project__custom__inapp`
-2. **task** `assign_permission_sets`  `when: project_config.project__custom__inapp`
-   - `api_names`: `['RLM_Learning']`
-3. **task** `load_inapp_dataset`  `when: project_config.project__custom__inapp`
-
----
-
 ### `prepare_large_stx`
 
 **Steps:**
@@ -698,7 +685,6 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 28. **flow** `prepare_large_stx`
 29. **flow** `prepare_personas`
 30. **flow** `prepare_ux`
-31. **flow** `prepare_inapp`
 32. **flow** `prepare_scratch`
 33. **flow** `refresh_all_decision_tables`
 34. **task** `rebuild_search_index`

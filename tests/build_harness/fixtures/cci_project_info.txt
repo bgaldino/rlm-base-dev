@@ -28,7 +28,6 @@ custom:
     billing_portal: False
     billing_portal_deploy: True
     mcp: False
-    inapp: False
     locale: en_US
     rlm_psl_api_names:
         - BREDesigner

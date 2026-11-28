@@ -116,7 +116,6 @@ the invoice. For a step-by-step walk-through, see the
 | Prepare a demo walkthrough | Generate the per-release demo script | [QB demo script](../../.cursor/skills/qb-demo-script/SKILL.md) |
 | Make a clone ready for a hands-on workshop | Capture seeded quotes and configuration, replay and verify | [DF workshop setup](../../.cursor/skills/df-workshop-setup/SKILL.md) |
 | Write or refresh enablement exercises | Author exercises grounded in the release documentation | [Release enablement](../../.cursor/skills/release-enablement/SKILL.md) |
-| Maintain in-app learning content | Rebuild and verify the learning data plan | [In-app framework](../../.cursor/skills/inapp-framework/SKILL.md) |
 
 ## Build and run an environment
 

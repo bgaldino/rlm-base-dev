@@ -356,9 +356,11 @@ That task runs the load twice and fails if any object's record count increases o
 - Self-referencing objects: ProductComponentGroup hierarchy validated — SFDMU handles multi-pass automatically with simple `ParentGroup.Code` reference
 - ProductCategory self-reference (Network Adapter → PCIe) validated
 - ProductClassification: all 18 records are root-level (no hierarchy yet)
-- Not carried (todo 345): `AttributePicklist.Code` (a B2B Commerce field, absent on Revenue Cloud
-  orgs), and the fields 264 derives and never lets a load write: `ProductCategoryProduct.CatalogId`
-  and `ProductRelatedComponent.ChildProductRole`, `ParentProductRole` and `UnitOfMeasureId`.
+- `AttributePicklist.Code` is kept: TSO builds require it, and it holds the picklist's name.
+  Default builds don't have the field (no B2B Commerce), and SFDMU skips the column there.
+- Not carried (todo 345): the fields 264 derives and never lets a load write:
+  `ProductCategoryProduct.CatalogId` and `ProductRelatedComponent.ChildProductRole`,
+  `ParentProductRole` and `UnitOfMeasureId`.
 - `Product2.CanRamp` is kept although 264 doesn't let a load write it. On one 264 qb build the
   products with `CanRamp` true were exactly those with a `ProductRampSegment` row (the four the CSV
   marks true); how the platform sets it was not verified, so the column stays as the plan's intent.

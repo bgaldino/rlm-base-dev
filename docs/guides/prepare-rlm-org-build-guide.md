@@ -13,7 +13,7 @@
 
 ## What This Document Covers
 
-Revenue Cloud Base Foundations automates the creation and configuration of Salesforce Revenue Lifecycle Management (RLM) environments. The centerpiece of this automation is the `prepare_rlm_org` flow — a 37-step orchestration that transforms a bare Salesforce org into a fully functional Revenue Cloud environment, complete with product catalogs, pricing engines, billing configurations, and more.
+Revenue Cloud Base Foundations automates the creation and configuration of Salesforce Revenue Lifecycle Management (RLM) environments. The centerpiece of this automation is the `prepare_rlm_org` flow — a 36-step orchestration (numbered 1–37; there is no step 31) that transforms a bare Salesforce org into a fully functional Revenue Cloud environment, complete with product catalogs, pricing engines, billing configurations, and more.
 
 This guide walks through that build process from start to finish, explaining not just *what* happens at each stage, but *why* each step exists and how the pieces fit together. Whether you're onboarding to the team, preparing a demo environment, or troubleshooting a failed build, this document gives you the full picture.
 
@@ -61,7 +61,7 @@ The most commonly used flags and their defaults:
 
 ## The Build Process: Phase by Phase
 
-The 37 steps of `prepare_rlm_org` can be understood as eight logical phases. Each phase builds on the previous one — you can't load product data before the metadata that defines those objects is deployed, and you can't activate billing records before they're inserted.
+The 36 steps of `prepare_rlm_org` can be understood as eight logical phases. Each phase builds on the previous one — you can't load product data before the metadata that defines those objects is deployed, and you can't activate billing records before they're inserted.
 
 ---
 
@@ -194,7 +194,7 @@ To turn it on, set `quote_est_tax: true` together with `tax: true`. Help require
 
 ### Phase 7: Final Configuration & Personalization (Steps 26–32)
 
-**What happens:** Revenue settings are configured via Robot Framework, pricing discovery is reconfigured, the optional feature extensions (Large Sales Transaction, Personas), the UX layer, and the In-App Learning framework are deployed, and scratch org seed data is inserted.
+**What happens:** Revenue settings are configured via Robot Framework, pricing discovery is reconfigured, the optional feature extensions (Large Sales Transaction, Personas) and the UX layer are deployed, and scratch org seed data is inserted.
 
 **Why it matters:** This phase is the "polish and personalize" pass — it wires together the pieces assembled in previous phases, layers on optional feature extensions, and assembles the user-facing UX so the org is demo-ready.
 
@@ -208,7 +208,7 @@ To turn it on, set `quote_est_tax: true` together with `tax: true`. Help require
 
 **UX assembly** (Step 30, `ux` flag) — Assembles and deploys the UX metadata (flexipages, layouts, applications, profiles, object bindings) via the UX assembler. Set `ux: false` to skip all UX assembly when testing feature deploys in isolation. See [Dynamic UX Assembly](../features/dynamic-ux-assembly.md).
 
-**In-App Learning** (Step 31, `inapp` flag) — Deploys the `unpackaged/post_inapp` In-App Learning framework, assigns its permission set, and loads the navigation/walkthrough content dataset. This surfaces guided in-app learning prompts in the org. Off by default — enable with `inapp: true`.
+**Step 31** — removed 2026-11-28 (todo 429): the opt-in In-App Learning framework (`inapp` flag) is gone from the repo. Orgs built with it keep its metadata, records and permission set assignments, since the build never deletes them and the repo ships no removal task; delete them in Setup if you no longer want them.
 
 **Scratch org seed data** (Step 32, `prepare_scratch`, `sample_data` flag) — Inserts basic Account and Contact records that other data plans reference. In production-like orgs these records already exist; in fresh scratch orgs they need to be created. (This ran earlier in prior releases; it now runs near the end so seed data lands after all metadata and feature bundles are in place.)
 

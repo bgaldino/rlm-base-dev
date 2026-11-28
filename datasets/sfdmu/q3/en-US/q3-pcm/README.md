@@ -96,8 +96,10 @@ ProductCategoryProduct.csv               # 72 records
   source org kept both from before the rule existed (todo 319, owner decision).
 - The source org's `Unit` UnitOfMeasureClass had no `Type`, which 264 requires. Nothing references
   it, so it was dropped (todo 319).
-- **Columns that never land are not carried**, as in qb-pcm (todo 345): `AttributePicklist.Code`
-  (absent on Revenue Cloud orgs) and the fields 264 describes as neither createable nor updateable:
+- **`AttributePicklist.Code` is kept**, as in qb-pcm: TSO builds require it. Default builds don't
+  have the field (no B2B Commerce), and SFDMU skips the column there.
+- **Columns that never land are not carried**, as in qb-pcm (todo 345): the fields 264 describes as
+  neither createable nor updateable:
   `Product2.SpecificationType` (the CSV had `Commercial` on every row),
   `ProductCategoryProduct.CatalogId`, `ProductClassificationAttr.UnitOfMeasureId` (three rows had a
   unit), and `ProductRelatedComponent.ChildProductRole`, `ParentProductRole` and `UnitOfMeasureId`.
