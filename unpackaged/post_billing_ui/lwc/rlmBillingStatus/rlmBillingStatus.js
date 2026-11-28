@@ -1,5 +1,6 @@
 import { LightningElement, api, track, wire } from 'lwc';
 import { gql, graphql } from 'lightning/graphql';
+import { parseDateOnly } from 'c/rlmDateOnly';
 
 export default class RlmBillingStatus extends LightningElement {
     @api recordId;
@@ -65,7 +66,7 @@ export default class RlmBillingStatus extends LightningElement {
         const resumptionDate = node?.BillingResumptionDate?.value;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const resumptionDateValue = resumptionDate ? new Date(resumptionDate) : null;
+        const resumptionDateValue = resumptionDate ? parseDateOnly(resumptionDate) : null;
         if (resumptionDateValue) resumptionDateValue.setHours(0, 0, 0, 0);
         const isSuspended = !!suspensionDate && (!resumptionDateValue || resumptionDateValue >= today);
 
@@ -73,10 +74,10 @@ export default class RlmBillingStatus extends LightningElement {
             isSuspended,
             isActive: !isSuspended,
             formattedSuspensionDate: suspensionDate
-                ? new Date(suspensionDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                ? parseDateOnly(suspensionDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
                 : '',
             formattedResumptionDate: resumptionDate
-                ? new Date(resumptionDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                ? parseDateOnly(resumptionDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
                 : ''
         };
     }

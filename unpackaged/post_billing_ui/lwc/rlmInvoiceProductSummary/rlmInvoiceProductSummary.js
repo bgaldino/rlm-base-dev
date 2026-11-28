@@ -1,6 +1,7 @@
 import { LightningElement, api, wire, track } from 'lwc';
 import getInvoiceProductSummary from '@salesforce/apex/RLM_InvoiceProductSummaryController.getInvoiceProductSummary';
 import saveLineAttributes       from '@salesforce/apex/RLM_InvoiceProductSummaryController.saveLineAttributes';
+import { parseDateOnly } from 'c/rlmDateOnly';
 
 const CHARGE_TYPE_PILL_MAP = {
     'Monthly'              : 'pill pill-monthly',
@@ -265,7 +266,7 @@ export default class RlmInvoiceProductSummary extends LightningElement {
 
     formatDateRange(startDate, endDate) {
         if (!startDate && !endDate) return null;
-        const f = d => d ? new Date(d).toLocaleDateString('en-US', {
+        const f = d => d ? parseDateOnly(d).toLocaleDateString('en-US', {
             month: 'short', day: 'numeric', year: 'numeric'
         }) : '?';
         if (startDate && endDate) return `${f(startDate)} → ${f(endDate)}`;

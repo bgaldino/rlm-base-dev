@@ -4,6 +4,7 @@ import { gql, graphql } from 'lightning/graphql';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getRelatedNames from '@salesforce/apex/RLM_DisputeDetailsController.getRelatedNames';
 import saveApprovedAmounts from '@salesforce/apex/RLM_DisputeDetailsController.saveApprovedAmounts';
+import { parseDateOnly } from 'c/rlmDateOnly';
 
 /**
  * Dispute Details – shows the Dispute record linked to the current Case,
@@ -188,7 +189,7 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
         const resolutionActionStatus = node?.ResolutionActionStatus?.value || 'N/A';
 
         const formattedReceivedDate = receivedDate
-            ? new Date(receivedDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+            ? parseDateOnly(receivedDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
             : '—';
 
         this._disputeId = id;
@@ -243,7 +244,7 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
             const gqlChargeType = node?.InvoiceLine?.RLM_Charge_Type__c?.value || '—';
             const startDate = node?.InvoiceLine?.InvoiceLineStartDate?.value;
             const endDate = node?.InvoiceLine?.InvoiceLineEndDate?.value;
-            const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+            const fmtDate = (d) => d ? parseDateOnly(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
             const billingPeriod = startDate && endDate ? `${fmtDate(startDate)} – ${fmtDate(endDate)}` : '—';
 
             return {
