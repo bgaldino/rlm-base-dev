@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**270 tasks** across **9 groups**.
+**271 tasks** across **9 groups**.
 
 **Options** lists the defaults `cumulusci.yml` sets. Every option a task takes, and which are required: `cci task info <task>`.
 
@@ -875,7 +875,7 @@
 
 ## Revenue Lifecycle Management
 
-*178 task(s)*
+*179 task(s)*
 
 ### `activate_agents`
 
@@ -1407,6 +1407,14 @@
 **Options:**
 
 - `path`: `scripts/apex/createDRORuleLibrary.apex`
+
+---
+
+### `create_invoice_schedulers`
+
+**Description:** Create inactive sample invoice schedulers (catch-up, target day of month, billing period count, Generate Invoice Documents) via the Connect API from qb-billing InvoiceSchedulers.json; skips names that exist (standard DML cannot create these objects)
+
+**Class:** `tasks.rlm_billing.CreateInvoiceSchedulers`
 
 ---
 

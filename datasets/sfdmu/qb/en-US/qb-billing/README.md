@@ -25,6 +25,9 @@ This plan is executed as **step 2** of the `prepare_billing` flow (when `billing
 | 13   | `deploy_post_billing_ui`                | billing_ui         | Deploys Billing UI LWC components, Apex, fields, permset from `unpackaged/post_billing_ui` |
 | 14   | `assign_permission_sets`                | billing_ui         | Assigns the `RLM_BillingUI`, `RLM_BillingUIAssetAttributes` and `RLM_CollectionsDashboard` permission sets to the running user |
 | 15   | `apply_context_billing_order`           | billing+billing_ui | Patches `RLM_BillingContext` Order node — maps `BillingArrangement__std` → `RLM_Billing_Arrangement__c` and `BillingProfile__std` → `RLM_Billing_Profile__c` |
+| 16   | `prepare_billing_portal` (flow)         | see that flow      | Self-Service Billing Portal steps                                                       |
+| 17   | `recalculate_billing_psg_after_settings` | billing           | Recalculates `RLM_RCB` after the billing settings add fields                            |
+| 18   | `create_invoice_schedulers`             | billing+!refresh   | Creates the inactive sample invoice schedulers in `InvoiceSchedulers.json` via the Connect API; see [Sample invoice schedulers](#sample-invoice-schedulers-connect-api) |
 
 ### Task Definition
 
@@ -104,6 +107,26 @@ The legacy `resolveSeqPolicyConditionRefs.apex` (which resolved portable LegalEn
 From 264 a pattern can include fields of the target object besides `{Date}` and `{SequenceValue}`. The token is the field's API name in braces, as stored in `SequencePattern`: `INV-FT-{Date}-{DocumentNumber}-{SequenceValue}`. The Connect API refuses a name that isn't a direct field of the target object (`{Invoice.Description}` and `{BillingAccount.Name}` are refused) and a lookup field such as `{BillingAccountId}`. On an invoice, `{CurrencyIsoCode}` resolved to the currency's name (`U.S. Dollar`) and `{TotalAmount}` to a formatted amount (`USD 1.00`) [Measured: 2026-11-28, 264, scratch, one org].
 
 The example policy is loaded **inactive**: every legal entity already has an active invoice policy, and each invoice must resolve to one policy. To demo it, deactivate `US Invoice Numbering Policy` and activate the example, which uses the same US legal entity condition.
+
+## Sample Invoice Schedulers (Connect API)
+
+`create_invoice_schedulers` (`tasks.rlm_billing.CreateInvoiceSchedulers`, `prepare_billing` step 18) creates one invoice scheduler per 264 scheduler option from `InvoiceSchedulers.json`. `BillingBatchScheduler` and its `InvoiceBatchRunCriteria` are neither createable nor updateable through DML or a REST PATCH; `POST /commerce/invoicing/invoice-schedulers` creates both, and accepts the four options as request properties [Measured: 2026-11-28, 264, scratch, API 68.0].
+
+| Scheduler | Option shown | Stored on |
+|-----------|--------------|-----------|
+| `Sample - Catch-Up Bill Run` | `shouldCatchUpBillRun` (Once) | `InvoiceBatchRunCriteria.ShouldCatchUpBillRun` |
+| `Sample - Target Day of Month` | `targetDayOfMonth` -1 (last day), `targetMonthOffset` 0 (Monthly) | `InvoiceBatchRunCriteria.TargetDateDayOfMonth`, `TargetDateMonthOffset` |
+| `Sample - Billing Period Count` | `billingCycleCount` 1, no target date (Monthly) | `InvoiceBatchRunCriteria.BillingCycleCount` |
+| `Sample - Generate Invoice Documents` | `shouldGenerateInvoiceDocuments` (Monthly) | `BillingBatchScheduler.ShouldGenerateInvoiceDocuments` |
+
+The object reference names the two target-date fields `TargetDayOfMonth` and `TargetMonthOffset`; a 264 org's describe names them `TargetDateDayOfMonth` and `TargetDateMonthOffset` [Measured: 2026-11-28, 264, scratch].
+
+- **No build starts a bill run.** The task always sends `status` Inactive and never `shouldStartRunImmediately`, whatever the JSON says. No sample has filter criteria, so an activated one selects every billing schedule; the three invoice samples create draft invoices, and the catch-up sample creates none.
+- **Start date.** The API refuses a start date before today, so the task sets it at run time (the next UTC day). The catch-up sample's target date is that same day; before activating it, set the target date to the last date the legacy system billed (Help: *Catch-Up Bill Runs*).
+- **Catch-up rules.** The API refuses `invoiceStatus` and `invoiceDate` on a catch-up scheduler. The sample keeps the default job type (Invoice) with the catch-up flag set; the API also accepts `jobType` `Catchup`, and which of the two the UI creates was not checked.
+- **Idempotent by name.** Existing names are skipped. A scheduler can't be deleted (the sobject DELETE is refused and the Connect resource allows only PUT and PATCH), so a sample is never replaced; change it in the UI, or with `PUT /commerce/invoicing/invoice-schedulers/{id}` while it is Draft or Inactive. A PUT replaces the whole scheduler, so send every property.
+- **To demo:** App Launcher, Billing Batch Schedulers, open the sample. Before it is set Active, give it filter criteria (for example a billing account) so it invoices only demo data, and check its dates; editing in the UI was not checked here, so use the PUT above if the UI refuses. The UI path for a new scheduler is in Help: *Generate Invoices Automatically Based on Billing Schedules*. Don't start an invoice run while a catch-up run is in progress (Help: *Catch-Up Bill Runs*). Generate Invoice Documents needs batch document generation (deployed by `prepare_docgen`); a billing persona also needs the DocGen sets described in `docs/references/revenue-cloud-permissions.md` → *Billing personas and invoice documents*.
+- **Not measured:** a run of any sample. Each was created and read back only.
 
 ## Apex Activation Scripts
 
@@ -188,6 +211,10 @@ Chart of accounts (51 GL accounts) with 8 assignment rules mapping transaction t
 
 15 `SequencePolicy` records: 14 active ones (7 regions US/CA/EU/UK/AU/CH/JP × Invoice/CreditMemo) controlling invoice and credit memo number sequences, and one inactive 264 field-token example, `264 Field Token Example Invoice Policy` (see [Field tokens in a sequence pattern](#field-tokens-in-a-sequence-pattern-264)). Each has one `SeqPolicySelectionCondition` routing by LegalEntity. These are created by the `create_sequence_policies` Connect-API task (`prepare_billing` step 4) from `SequencePolicies.json`, **not** by this SFDMU plan — see [Sequence Policies (Connect API)](#sequence-policies-connect-api).
 
+### Sample Invoice Schedulers (Connect-API task, not SFDMU)
+
+4 inactive `BillingBatchScheduler` records, each with its `InvoiceBatchRunCriteria`, created by `create_invoice_schedulers` (`prepare_billing` step 18) from `InvoiceSchedulers.json` — see [Sample Invoice Schedulers (Connect API)](#sample-invoice-schedulers-connect-api).
+
 ## Composite External IDs
 
 | Object                      | Composite Key                                                            | CSV `$$` Column |
@@ -254,6 +281,7 @@ qb-billing/
 ├── PaymentRetryRuleSet.csv
 ├── PaymentRetryRule.csv
 ├── SequencePolicies.json                # 15 policies (7 regions × Invoice/CreditMemo, plus an inactive field-token example) with inline selection conditions
+├── InvoiceSchedulers.json               # 4 inactive sample invoice schedulers, one per 264 scheduler option (Connect API task)
 │
 │  Source CSVs (Pass 2 - Activate BTI)
 ├── objectset_source/
