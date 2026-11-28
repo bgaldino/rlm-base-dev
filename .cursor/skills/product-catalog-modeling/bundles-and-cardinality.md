@@ -40,7 +40,8 @@ subscription that must renew or bill on its own model) is not settled by the rul
   static bundle, select None as the parent selling model and no component selling model;
   for a configurable bundle, select no component selling model. The shipped q3 static
   bundle `CERT007` sets both (see the linked section). Children keep their own selling
-  model options. On a static kit such a row added no child line (see below). [Help: ind.product_catalog_add_components_to_a_static_product_bundle.htm; ind.product_catalog_product_relationships.htm] ([details](selling-models-and-lifecycle.md#selling-models-inside-bundles))
+  model options. [Help: ind.product_catalog_add_components_to_a_static_product_bundle.htm; ind.product_catalog_product_relationships.htm] ([details](selling-models-and-lifecycle.md#selling-models-inside-bundles))
+  On a static kit such a row added no child line (see below).
   What an insert accepted and rejected is measured in
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#measured-component-selling-model-rules).
 - **For a bundle's children, the run-time selling model choice Help documents is in the
