@@ -2612,6 +2612,18 @@ tasks:
     description: Create inactive sample invoice schedulers (catch-up, target day of month, billing period count, Generate Invoice Documents) via the Connect API from qb-billing InvoiceSchedulers.json; skips names that exist (standard DML cannot create these objects)
     class_path: tasks.rlm_billing.CreateInvoiceSchedulers
 
+  seed_billing_arrangement_sample:
+    group: Revenue Lifecycle Management
+    description: >
+      Seed the split billing and invoice grouping samples: four sample accounts with contacts and
+      billing accounts, an Active billing arrangement billed 40/30/30 (attached to nothing), and three
+      standalone billing schedules (Create Standalone Billing Schedules action) with custom invoice
+      group keys POLICY_1001 and POLICY_1002. Creates no invoice. Idempotent. See
+      scripts/apex/seedBillingArrangementSample.apex and the qb-billing README.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/seedBillingArrangementSample.apex
+
   update_currency_rates_csv:
     group: Data Management - Currency
     description: >
@@ -4257,6 +4269,11 @@ flows:
         # Inactive samples of the 264 scheduler options (todo 379); a build starts no bill run.
         task: create_invoice_schedulers
         when: project_config.project__custom__billing and not project_config.project__custom__refresh
+      19:
+        # Split billing (40/30/30 arrangement) and invoice grouping samples (todo 257). Needs the
+        # qb-tax and qb-billing records and the QB-API-FLEX product; creates no invoice.
+        task: seed_billing_arrangement_sample
+        when: project_config.project__custom__billing and project_config.project__custom__qb and project_config.project__custom__tax and project_config.project__custom__sample_data and not project_config.project__custom__refresh
 
   prepare_prm:
     group: Revenue Lifecycle Management

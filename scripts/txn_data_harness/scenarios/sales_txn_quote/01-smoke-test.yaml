@@ -10,7 +10,7 @@ defaults:
   kind: sales_txn_quote        # drives Quote -> Order -> Activate -> Invoice -> Post
 
 scenarios:
-  - account: "Infinitech"        # the only QB account pre-wired with a BillingAccount
+  - account: "Infinitech"        # the QB sample account pre-wired with a BillingAccount (insert_scratch_data)
     target_stage: invoice_posted
     products:
       - sku: "QB-API-FLEX"       # known-good, places cleanly (simple term product)

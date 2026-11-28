@@ -251,6 +251,7 @@ Extract rating and rates data from an org into CSV files
 16. **flow** `prepare_billing_portal`
 17. **task** `recalculate_billing_psg_after_settings`  `when: project_config.project__custom__billing`
 18. **task** `create_invoice_schedulers`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh`
+19. **task** `seed_billing_arrangement_sample`  `when: project_config.project__custom__billing and project_config.project__custom__qb and project_config.project__custom__tax and project_config.project__custom__sample_data and not project_config.project__custom__refresh`
 
 ---
 
