@@ -2627,6 +2627,11 @@ tasks:
     description: Create SequencePolicy and SeqPolicySelectionCondition records via the Connect API (standard DML cannot create these objects)
     class_path: tasks.rlm_billing.CreateSequencePolicies
 
+  create_invoice_schedulers:
+    group: Revenue Lifecycle Management
+    description: Create inactive sample invoice schedulers (catch-up, target day of month, billing period count, Generate Invoice Documents) via the Connect API from qb-billing InvoiceSchedulers.json; skips names that exist (standard DML cannot create these objects)
+    class_path: tasks.rlm_billing.CreateInvoiceSchedulers
+
   update_currency_rates_csv:
     group: Data Management - Currency
     description: >
@@ -4291,6 +4296,10 @@ flows:
         # RLM_RCB aggregate includes the fields those settings add (todo 292).
         task: recalculate_billing_psg_after_settings
         when: project_config.project__custom__billing
+      18:
+        # Inactive samples of the 264 scheduler options (todo 379); a build starts no bill run.
+        task: create_invoice_schedulers
+        when: project_config.project__custom__billing and not project_config.project__custom__refresh
 
   prepare_prm:
     group: Revenue Lifecycle Management

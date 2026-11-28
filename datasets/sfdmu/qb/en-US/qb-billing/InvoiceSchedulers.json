@@ -1,0 +1,61 @@
+[
+  {
+    "schedulerName": "Sample - Catch-Up Bill Run",
+    "frequencyCadence": "Once",
+    "frequencyCadenceOptions": {},
+    "preferredTime": "02:00",
+    "timezone": "America/Los_Angeles",
+    "filterCriteria": [],
+    "shouldCatchUpBillRun": true
+  },
+  {
+    "schedulerName": "Sample - Target Day of Month",
+    "frequencyCadence": "Monthly",
+    "frequencyCadenceOptions": {
+      "recurringSubType": "SpecificDate",
+      "recursOnDate": "1",
+      "shouldExcludeWkendAndHldy": false
+    },
+    "preferredTime": "02:00",
+    "timezone": "America/Los_Angeles",
+    "invoiceStatus": "Draft",
+    "invoiceDateOffset": 0,
+    "isInvoiceDateFromRunDate": true,
+    "filterCriteria": [],
+    "targetDayOfMonth": -1,
+    "targetMonthOffset": 0
+  },
+  {
+    "schedulerName": "Sample - Billing Period Count",
+    "frequencyCadence": "Monthly",
+    "frequencyCadenceOptions": {
+      "recurringSubType": "SpecificDate",
+      "recursOnDate": "1",
+      "shouldExcludeWkendAndHldy": false
+    },
+    "preferredTime": "02:00",
+    "timezone": "America/Los_Angeles",
+    "invoiceStatus": "Draft",
+    "invoiceDateOffset": 0,
+    "isInvoiceDateFromRunDate": true,
+    "filterCriteria": [],
+    "billingCycleCount": 1
+  },
+  {
+    "schedulerName": "Sample - Generate Invoice Documents",
+    "frequencyCadence": "Monthly",
+    "frequencyCadenceOptions": {
+      "recurringSubType": "SpecificDate",
+      "recursOnDate": "1",
+      "shouldExcludeWkendAndHldy": false
+    },
+    "preferredTime": "02:00",
+    "timezone": "America/Los_Angeles",
+    "invoiceStatus": "Draft",
+    "invoiceDateOffset": 0,
+    "targetDateOffset": 0,
+    "isInvoiceDateFromRunDate": true,
+    "filterCriteria": [],
+    "shouldGenerateInvoiceDocuments": true
+  }
+]

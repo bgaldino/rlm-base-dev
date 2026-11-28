@@ -16,7 +16,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `agents` | `True` | 10 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
 | `approvals` | `True` | 9 flow step(s) |
-| `billing` | `True` | 24 flow step(s) |
+| `billing` | `True` | 25 flow step(s) |
 | `billing_portal` | `False` | 5 flow step(s) |
 | `billing_portal_deploy` | `True` | 3 flow step(s) |
 | `billing_ui` | `True` | 4 flow step(s) |
@@ -52,7 +52,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `quote_est_tax` | `False` | — |
 | `rates` | `True` | 4 flow step(s) |
 | `rating` | `True` | 13 flow step(s) |
-| `refresh` | `False` | 11 flow step(s) |
+| `refresh` | `False` | 12 flow step(s) |
 | `sample_data` | `True` | 1 flow step(s) |
 | `tax` | `True` | 11 flow step(s) |
 | `trial` | `False` | — |
@@ -111,6 +111,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_billing` step 12 → `deploy_billing_email_template_settings`
 - `prepare_billing` step 15 → `apply_context_billing_order`
 - `prepare_billing` step 17 → `recalculate_billing_psg_after_settings`
+- `prepare_billing` step 18 → `create_invoice_schedulers`
 - `prepare_billing_portal` step 1 → `create_billing_portal`
 - `prepare_billing_portal` step 2 → `patch_network_email_for_deploy`
 - `prepare_billing_portal` step 3 → `deploy_post_billing_portal`
@@ -470,6 +471,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_billing` step 2 → `insert_billing_data`
 - `prepare_billing` step 3 → `insert_q3_billing_data`
 - `prepare_billing` step 4 → `create_sequence_policies`
+- `prepare_billing` step 18 → `create_invoice_schedulers`
 - `prepare_tax` step 2 → `insert_tax_data`
 - `prepare_tax` step 3 → `insert_q3_tax_data`
 - `prepare_rating` step 1 → `insert_qb_rating_data`

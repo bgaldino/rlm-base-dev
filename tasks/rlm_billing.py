@@ -1,7 +1,9 @@
+import copy
 import json
 import os
 from collections import defaultdict
-from typing import Any, Dict
+from datetime import date, datetime, timedelta, timezone
+from typing import Any, Dict, Optional
 
 # Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
 from tasks.soql_utils import project_api_version, require_identifier, soql_quote
@@ -15,6 +17,7 @@ except ImportError:
 
 DEFAULT_PLAN_DIR = "datasets/sfdmu/qb/en-US/qb-billing"
 CONNECT_SEQUENCE_POLICY_PATH = "connect/sequences/policy"
+CONNECT_INVOICE_SCHEDULER_PATH = "commerce/invoicing/invoice-schedulers"
 
 # Map human-readable DateStampFormat values to Connect API enum names.
 DATE_STAMP_FORMAT_MAP = {
@@ -206,3 +209,107 @@ class CreateSequencePolicies(BaseSalesforceApiTask):
             body["selectionCondition"] = cond_list
 
         return body
+
+
+def scheduler_start_date(today_utc: Optional[date] = None) -> str:
+    """The sample schedulers' start date: the next UTC day.
+
+    The Connect API refuses a start date before the current date in the user's time zone. The
+    next UTC day is on or after that date in every time zone up to UTC+14.
+    """
+    today_utc = today_utc or datetime.now(timezone.utc).date()
+    return (today_utc + timedelta(days=1)).isoformat()
+
+
+def build_invoice_scheduler_body(entry: dict, start_date: str) -> dict:
+    """Connect POST body for one sample invoice scheduler.
+
+    The scheduler is always created Inactive and never set to start a run on create, so a build
+    starts no bill run whatever the JSON says. A Once scheduler without a target date (the
+    catch-up sample) gets the start date as its target date; set the real date before activating.
+    """
+    body = copy.deepcopy(entry)
+    body["status"] = "Inactive"
+    body["startDate"] = start_date
+    if isinstance(body.get("frequencyCadenceOptions"), dict):
+        body["frequencyCadenceOptions"].pop("shouldStartRunImmediately", None)
+    if body.get("frequencyCadence") == "Once" and not body.get("targetDate"):
+        body["targetDate"] = start_date
+    return body
+
+
+class CreateInvoiceSchedulers(BaseSalesforceApiTask):
+    """Create inactive sample invoice schedulers via the Connect API.
+
+    BillingBatchScheduler and InvoiceBatchRunCriteria are neither createable nor updateable
+    through DML; POST /commerce/invoicing/invoice-schedulers creates both. One sample per 264
+    scheduler option (catch-up, target day of month and month offset, billing period count,
+    Generate Invoice Documents), read from InvoiceSchedulers.json in the plan directory.
+
+    Idempotent: a scheduler whose name already exists is skipped. The platform does not let
+    a scheduler be deleted, so an existing sample is never replaced.
+    """
+
+    task_options: Dict[str, Dict[str, Any]] = {
+        "plan_dir": {
+            "description": (
+                f"Path to the qb-billing plan directory containing InvoiceSchedulers.json. "
+                f"Defaults to {DEFAULT_PLAN_DIR}."
+            ),
+            "required": False,
+        },
+    }
+
+    def _run_task(self) -> None:
+        import requests
+
+        plan_dir = self.options.get("plan_dir", DEFAULT_PLAN_DIR)
+        json_path = os.path.join(plan_dir, "InvoiceSchedulers.json")
+        if not os.path.isfile(json_path):
+            raise TaskOptionsError(f"InvoiceSchedulers.json not found: {json_path}")
+        with open(json_path, encoding="utf-8") as f:
+            schedulers = json.load(f)
+
+        existing_names = {
+            r["BillingSchedulerName"]
+            for r in self.sf.query_all(
+                "SELECT BillingSchedulerName FROM BillingBatchScheduler"
+            ).get("records", [])
+        }
+
+        api_version = project_api_version(self.project_config, TaskOptionsError)
+        url = (
+            f"{self.org_config.instance_url}/services/data/v{api_version}"
+            f"/{CONNECT_INVOICE_SCHEDULER_PATH}"
+        )
+        headers = {
+            "Authorization": f"Bearer {self.org_config.access_token}",
+            "Content-Type": "application/json",
+        }
+        start_date = scheduler_start_date()
+
+        created = skipped = errors = 0
+        for entry in schedulers:
+            name = entry["schedulerName"]
+            if name in existing_names:
+                self.logger.info(f"  Skipping existing scheduler: {name}")
+                skipped += 1
+                continue
+            body = build_invoice_scheduler_body(entry, start_date)
+            resp = requests.post(url, headers=headers, json=body, timeout=30)
+            if resp.status_code in (200, 201):
+                self.logger.info(f"  Created inactive scheduler: {name}")
+                created += 1
+            else:
+                self.logger.error(
+                    f"  Failed to create '{name}': HTTP {resp.status_code} — {resp.text}"
+                )
+                errors += 1
+
+        self.logger.info(
+            f"createInvoiceSchedulers: created={created}, skipped={skipped}, errors={errors}."
+        )
+        if errors:
+            raise TaskOptionsError(
+                f"createInvoiceSchedulers: {errors} scheduler creation(s) failed."
+            )
