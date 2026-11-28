@@ -99,6 +99,12 @@ Activates BillingTreatment records and sets `DefaultBillingTreatmentId` on Billi
 
 The legacy `resolveSeqPolicyConditionRefs.apex` (which resolved portable LegalEntity names in `SeqPolicySelectionCondition.FilterValue` to target-org IDs) is **retired** — selection conditions are now created directly by the Connect-API task, so no name→ID FilterValue resolution step is wired into `prepare_billing`. The `.apex` file remains on disk but is unused.
 
+### Field tokens in a sequence pattern (264)
+
+From 264 a pattern can include fields of the target object besides `{Date}` and `{SequenceValue}`. The token is the field's API name in braces, as stored in `SequencePattern`: `INV-FT-{Date}-{DocumentNumber}-{SequenceValue}`. The Connect API refuses a name that isn't a direct field of the target object (`{Invoice.Description}` and `{BillingAccount.Name}` are refused) and a lookup field such as `{BillingAccountId}`. On an invoice, `{CurrencyIsoCode}` resolved to the currency's name (`U.S. Dollar`) and `{TotalAmount}` to a formatted amount (`USD 1.00`) [Measured: 2026-11-28, 264, scratch, one org].
+
+The example policy is loaded **inactive**: every legal entity already has an active invoice policy, and each invoice must resolve to one policy. To demo it, deactivate `US Invoice Numbering Policy` and activate the example, which uses the same US legal entity condition.
+
 ## Apex Activation Scripts
 
 ### `activateDefaultPaymentTerm.apex`
@@ -180,7 +186,7 @@ Chart of accounts (51 GL accounts) with 8 assignment rules mapping transaction t
 
 ### Sequence Policies (Connect-API task, not SFDMU)
 
-14 `SequencePolicy` records (7 regions US/CA/EU/UK/AU/CH/JP × Invoice/CreditMemo) controlling invoice and credit memo number sequences, each with one `SeqPolicySelectionCondition` routing by LegalEntity. These are created by the `create_sequence_policies` Connect-API task (`prepare_billing` step 4) from `SequencePolicies.json`, **not** by this SFDMU plan — see [Sequence Policies (Connect API)](#sequence-policies-connect-api).
+15 `SequencePolicy` records: 14 active ones (7 regions US/CA/EU/UK/AU/CH/JP × Invoice/CreditMemo) controlling invoice and credit memo number sequences, and one inactive 264 field-token example, `264 Field Token Example Invoice Policy` (see [Field tokens in a sequence pattern](#field-tokens-in-a-sequence-pattern-264)). Each has one `SeqPolicySelectionCondition` routing by LegalEntity. These are created by the `create_sequence_policies` Connect-API task (`prepare_billing` step 4) from `SequencePolicies.json`, **not** by this SFDMU plan — see [Sequence Policies (Connect API)](#sequence-policies-connect-api).
 
 ## Composite External IDs
 
@@ -247,7 +253,7 @@ qb-billing/
 ├── GeneralLedgerAcctAsgntRule.csv       # 8 records
 ├── PaymentRetryRuleSet.csv
 ├── PaymentRetryRule.csv
-├── SequencePolicies.json                # 14 policies (7 regions × Invoice/CreditMemo) with inline selection conditions
+├── SequencePolicies.json                # 15 policies (7 regions × Invoice/CreditMemo, plus an inactive field-token example) with inline selection conditions
 │
 │  Source CSVs (Pass 2 - Activate BTI)
 ├── objectset_source/
