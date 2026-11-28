@@ -6,7 +6,7 @@
       "name": "First Pass - catalog",
       "objects": [
         {
-          "query": "SELECT Code, DataType, Description, Id, Name, Status, UnitOfMeasureId FROM AttributePicklist ORDER BY Name ASC",
+          "query": "SELECT DataType, Description, Id, Name, Status, UnitOfMeasureId FROM AttributePicklist ORDER BY Name ASC",
           "operation": "Upsert",
           "externalId": "Name"
         },

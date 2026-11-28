@@ -19,6 +19,10 @@ SFDMU data plan for the Japanese QuantumBit pricing: currency types, the standar
 
 - **Standard book only.** All entries are in the Standard Price Book, keyed `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` as in en-US, and the target query is scoped `WHERE Pricebook2.IsStandard = true` so the match never sees another book's entry.
 
+## Columns not carried
+
+As in en-US (todo 345), the fields 264 derives and never lets a load write are not selected: `PricingTerm`, `PricingTermUnit`, `ScheduleType` and `SellingModelType` on the adjustments and tiers, `AttributeAdjConditionsHash`, `AttributeCount`, `PriceAdjustmentTier.AdjustmentType`, `BundleBasedAdjustment.Name` and `PricebookEntry.Name`.
+
 ## Excluded
 
 - **`PricebookEntryDerivedPrice`** stays `excluded: true`; it was excluded before todo 212, and its four rows (two USD, two JPY) have never been loaded or verified. en-US's own CSV has no rows. Including them is part of the catalog work above.

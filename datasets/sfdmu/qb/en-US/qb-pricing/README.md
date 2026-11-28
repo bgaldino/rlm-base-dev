@@ -280,15 +280,20 @@ All other objects have **complete field coverage** — every updateable, non-sys
 | ProrationPolicy              | ✅     | All 4 fields present (all read-only after create)  |
 | Pricebook2                   | ✅     | All updateable fields; `IsArchived` correctly omitted (read-only) |
 | CostBook                     | ✅     | All 4 updateable fields present                    |
-| PriceAdjustmentTier          | ✅     | All updateable + read-only formula fields present   |
+| PriceAdjustmentTier          | ✅     | All updateable fields; read-only derived fields dropped (todo 345) |
 | PriceAdjustmentSchedule      | ✅     | All updateable fields; `ContractId` correctly filtered |
 | AttributeBasedAdjRule        | ⚠️     | Missing `UsageType` (see above)                    |
 | AttributeAdjustmentCondition | ✅     | All fields present; `UsageType` is read-only here   |
-| AttributeBasedAdjustment     | ✅     | All fields present (many read-only formula fields)  |
-| BundleBasedAdjustment        | ✅     | All fields present (many read-only formula fields)  |
-| PricebookEntry               | ✅     | `UseStandardPrice` omitted (typically false, minor) |
+| AttributeBasedAdjustment     | ✅     | All writable fields; read-only derived fields dropped (todo 345) |
+| BundleBasedAdjustment        | ✅     | All writable fields; read-only derived fields and auto-number `Name` dropped (todo 345) |
+| PricebookEntry               | ✅     | `UseStandardPrice` omitted (typically false, minor); read-only `Name` dropped (todo 345) |
 | PricebookEntryDerivedPrice   | ✅     | All fields present                                  |
 | CostBookEntry                | ✅     | All fields present                                  |
+
+Not carried, because 264 describes them as neither createable nor updateable and the platform
+derives them (todo 345): `PricingTerm`, `PricingTermUnit`, `ScheduleType` and `SellingModelType` on
+the adjustments and tiers, `AttributeAdjConditionsHash` and `AttributeCount`,
+`PriceAdjustmentTier.AdjustmentType`, `BundleBasedAdjustment.Name` and `PricebookEntry.Name`.
 
 ### Cross-Object Dependencies
 

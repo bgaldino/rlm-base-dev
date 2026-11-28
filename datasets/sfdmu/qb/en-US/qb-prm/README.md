@@ -78,6 +78,10 @@ Uses composite externalId `Name;Rank` — both are direct fields on the object, 
 - `RLM_Discount_Rate__c` — discount percentage for the tier
 - `RLM_Minimum_Deal_Size__c` — minimum deal size threshold
 
+`RLM_Deal_Expiration_Days__c` and `RLM_Minimum_Deal_Size__c` are deployed by `deploy_post_prm`, which
+runs only with `prm_exp_bundle` and `tso`. On other builds the fields don't exist and SFDMU drops the
+two columns. They stay in the plan because those builds load their values (todo 345).
+
 ### ChannelProgramMember (Pass 2)
 
 Auto-numbered `Name` field (`00000003` format) — not used as externalId. Uses `Partner.Name;Program.Name` composite key instead (a partner can only be enrolled in a program once). Uses `Upsert` with `skipExistingRecords: true` to preserve any existing members not in this plan.
