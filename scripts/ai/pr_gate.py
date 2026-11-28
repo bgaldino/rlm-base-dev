@@ -1040,18 +1040,24 @@ CHECKS = [
         # that reason. test_billing_portal_config asserts prepare_billing_portal's step gating
         # (billing + billing_portal on all steps; billing_portal_deploy only on the bundle
         # steps); test_generate_cci_reference pins _scan_when_clauses' exact-flag matching, so
-        # cumulusci.yml and generate_cci_reference.py are its triggers.
+        # cumulusci.yml and generate_cci_reference.py are its triggers. test_create_invoice_schedulers
+        # (todo 379) covers create_invoice_schedulers in tasks/rlm_billing.py, its shipped samples and
+        # its prepare_billing wiring; it patches requests.post, so requests is a dependency.
         name="billing_portal_suites",
         cmd=["python", "-m", "pytest", "-q",
              "tests/test_billing_portal_config.py",
-             "tests/test_generate_cci_reference.py"],
+             "tests/test_generate_cci_reference.py",
+             "tests/test_create_invoice_schedulers.py"],
         # pyproject.toml sets [tool.pytest.ini_options], so a collection change there must select
         # this pytest-driven check rather than let it land unexercised.
         triggers=["cumulusci.yml", "scripts/ai/generate_cci_reference.py",
                   "unpackaged/post_billing_portal/",
                   "tests/test_billing_portal_config.py",
-                  "tests/test_generate_cci_reference.py", "pyproject.toml"],
-        deps=["pytest", "PyYAML"], gating=True,
+                  "tests/test_generate_cci_reference.py", "pyproject.toml",
+                  "tasks/rlm_billing.py", "tasks/soql_utils.py",
+                  "datasets/sfdmu/qb/en-US/qb-billing/InvoiceSchedulers.json",
+                  "tests/test_create_invoice_schedulers.py"],
+        deps=["pytest", "PyYAML", "requests"], gating=True,
     ),
     dict(
         # scripts/ux/ (UX assembly + drift tooling): pytest-style, so run through pytest. It
