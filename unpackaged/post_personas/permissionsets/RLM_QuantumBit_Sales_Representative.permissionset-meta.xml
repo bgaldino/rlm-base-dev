@@ -33,6 +33,29 @@
         <field>Contact.Phone</field>
         <readable>true</readable>
     </fieldPermissions>
+    <!-- Contract fields RLM_CreateContractFromQuote (a user-context screen flow) writes or reads after
+         createContract (todo 518). EndDate is read-only:
+         the platform calculates it from StartDate and ContractTerm. -->
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Contract.BillingAddress</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Contract.ContractTerm</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Contract.EndDate</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Contract.ShippingAddress</field>
+        <readable>true</readable>
+    </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
         <field>DocumentGenerationProcess.DocGenerationBatchProcessId</field>
