@@ -2187,9 +2187,14 @@ Verify Renewal Opportunity Includes Product
     ...    ⚠ Reset Test Account does NOT remove earlier renewal Opportunities. Live 2026-10-13: the
     ...    contract-first test's renewal (ContractId set) survived the next run's reset, and the
     ...    next no-contract test matched it before its own flow had fired, failing on
-    ...    ContractId 800… != None. So the query also requires the renewal Opportunity to have been
+    ...    ContractId 800… != None. So the query also requires the Opportunity LINE to have been
     ...    created at or after ${order_id}'s ActivatedDate (server time, so local clock skew can't
-    ...    matter): only the renewal this activation produced can satisfy it.
+    ...    matter): only a line this activation produced can satisfy it.
+    ...
+    ...    The line's age is the test, not the Opportunity's. The flow reuses an open renewal
+    ...    Opportunity of the same account, contract, currency, name and close date, so a rerun on
+    ...    the same account adds this order's line to the Opportunity an earlier run created.
+    ...    Requiring a new Opportunity would fail that correct result.
     ...
     ...    Then checks the fields the flow copies onto the Opportunity it creates: ContractId and
     ...    CurrencyIsoCode must equal ${order_id}'s (in the no-contract test both ContractIds are
@@ -2209,7 +2214,7 @@ Verify Renewal Opportunity Includes Product
     Should Match Regexp    ${since}    ^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$
     ...    msg=Order ${order_id} ActivatedDate isn't a timestamp: ${activated}[ActivatedDate]
     ${line_id}=    Wait For Related Record Via API
-    ...    SELECT Id FROM OpportunityLineItem WHERE Opportunity.AccountId = '${account_id}' AND Opportunity.Type = 'Existing Business' AND OpportunityId != '${source_opportunity_id}' AND Opportunity.CreatedDate >= ${since} AND Product2Id = '${product_id}' ORDER BY CreatedDate DESC LIMIT 1
+    ...    SELECT Id FROM OpportunityLineItem WHERE Opportunity.AccountId = '${account_id}' AND Opportunity.Type = 'Existing Business' AND OpportunityId != '${source_opportunity_id}' AND CreatedDate >= ${since} AND Product2Id = '${product_id}' ORDER BY CreatedDate DESC LIMIT 1
     Log    Renewal opportunity line for ${product_name}: ${line_id}
     ${line}=    SalesforceAPI.Query Record By Id    OpportunityLineItem    ${line_id}    fields=OpportunityId
     ${renewal}=    SalesforceAPI.Query Record By Id    Opportunity    ${line}[OpportunityId]

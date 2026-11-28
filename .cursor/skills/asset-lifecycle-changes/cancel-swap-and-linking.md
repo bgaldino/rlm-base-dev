@@ -87,6 +87,36 @@ Read quote values before activation for cancellations as well as renewals.
 - **Partial transfer of a bundle** needs every component on Proportional quantity scale; Constant or null components are
   refused with "Transfer the entire quantity of the bundle".
 
+## One renewal opportunity per account and end date
+
+[Measured: 2026-11-28, 264, scratch org built from main]
+- **What creates it:** `RLM_CreateUpdateRenewalOpportunities`, a flow triggered by the order-to-asset platform event
+  (`CreateAssetOrderEvent`, last batch only), so it runs after activation, not in the activation transaction. Its
+  only record reads were the order and the account, so it never looked for a renewal Opportunity an earlier order had
+  made: each activation built its own, and two orders on one account with one end date gave two Opportunities with
+  the same name and close date, one product line each. The sequence of activations, about 1 s or minutes apart, did
+  not matter; it was a missing lookup, not a race.
+- **Fix:** the flow reads the account's open renewal Opportunities (same type, contract, currency, name prefix),
+  matches by price book and close date, adds the new lines to the oldest match, and creates an Opportunity
+  only when none matches. Three orders on one account and end date gave one Opportunity with three lines; an order
+  with a later end date got its own.
+- **Matching rule** [Inferred from the flow, not measured with a closed or renamed Opportunity]: price book and close
+  date, among the account's open Opportunities with the order's contract and currency and the renewal name prefix.
+  The same rule decides whether to create and which Opportunity a line joins, so one renamed but still starting with
+  `<Account> - Renewal - ` still matches, while renaming it otherwise, or renaming the account, makes the next
+  activation create a new one; a closed one is never reused. When several match, the oldest takes every line. Orders with no contract matched an
+  Opportunity with none [Measured].
+- **Bulk activation** [Inferred from the flow, which has no locking]: orders delivered in the same platform-event
+  batch can still each create an Opportunity.
+- **Test-data traps:** an order placed with the Place Sales Transaction graph needs an `AppUsageAssignment`, shipping
+  and billing addresses and a bill-to contact before activation; an order created by plain sObject inserts has no
+  order action and creates no assets, so the flow never runs. A contract set directly on an order is not a substitute
+  for one made from a quote: that order made assets and no renewal Opportunity, before and after the fix, so the
+  contract-matching condition was not exercised live.
+- **Checking a rerun:** `Verify Renewal Opportunity Includes Product` now requires the Opportunity line, not the
+  Opportunity, to be newer than the order's activation, because a rerun on the same account reuses an earlier
+  Opportunity.
+
 ## Desk-researched, not measured here
 
 [Open: each needs a live check before it is stated as fact]

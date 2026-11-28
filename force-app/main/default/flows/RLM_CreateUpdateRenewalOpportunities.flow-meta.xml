@@ -26,7 +26,7 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
     <actionCalls>
-        <description>Calls an action that sends an email to the account owner and the user who activated the order if the flow can’t get the order, its account, or the renewable assets summary.</description>
+        <description>Calls an action that sends an email to the account owner and the user who activated the order if the flow can’t get the order, its account, the account’s existing renewal opportunities, or the renewable assets summary.</description>
         <name>SendErrorEmailGetRenewableAssetsSummaryFailed</name>
         <label>Send Error Email If Get Renewable Assets Summary Fails</label>
         <locationX>0</locationX>
@@ -248,6 +248,23 @@
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <description>Cloned from template runtime_revenue_arcflows__RenewalOpp. Customization: TotalPrice assignments removed from all OpportunityLineItem create/update nodes. Salesforce only allows setting UnitPrice OR TotalPrice on OLI, not both. The flow sets UnitPrice (weighted average) and Quantity; Salesforce auto-calculates TotalPrice. Further customizations: new opportunities get a name from RenewalOpportunityNameFormula, Type from RenewalOpportunityType, and ContractId and CurrencyIsoCode from the order. HasRenewalQuantity skips an asset whose renewal price details add up to zero quantity instead of dividing by zero; the quantity is totaled before the flow decides whether to create an opportunity, so a skipped asset doesn’t leave an opportunity without products. Error emails go to the account owner and the user who activated the order (only that user when the account lookup itself faults, since there is no owner to read), include $Flow.FaultMessage, and are sent as rich text. GetOrder and GetContact faults send an error email instead of continuing without an account.</description>
+    <assignments>
+        <description>Sets OpportunityLinked to False before the flow looks for the opportunity of the current opportunity product.</description>
+        <name>ResetOpportunityLinked</name>
+        <label>Reset Opportunity Linked</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>OpportunityLinked</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>FilterOpportunitiesToIdentifyTheOpportunityToUpdate</targetReference>
+        </connector>
+    </assignments>
     <assignments>
         <description>Adds the asset price and asset quantity  in the loop to the TotalAssetPriceAmount and TotalAssetQuantity variables, respectively.</description>
         <name>AddAssetPriceToTotalAssetPriceAndQuantityToTotalAssetQuantity</name>
@@ -594,6 +611,13 @@
                 <elementReference>opportunityProductToCreate</elementReference>
             </value>
         </assignmentItems>
+        <assignmentItems>
+            <assignToReference>OpportunityLinked</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </assignmentItems>
         <connector>
             <targetReference>IterateOverOpportunitiesToUpdate</targetReference>
         </connector>
@@ -684,6 +708,13 @@
                 <elementReference>opportunity</elementReference>
             </value>
         </assignmentItems>
+        <assignmentItems>
+            <assignToReference>CandidateOpportunities</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>opportunity</elementReference>
+            </value>
+        </assignmentItems>
         <connector>
             <targetReference>AddCurrentOpportunityProductAndPriceBookEntryToCollection</targetReference>
         </connector>
@@ -757,7 +788,48 @@
             </value>
         </assignmentItems>
         <connector>
+            <targetReference>GetExistingRenewalOpportunities</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Starts the CandidateOpportunities collection with the account’s existing renewal opportunities. The flow adds each opportunity it creates, so one collection answers whether a matching renewal opportunity already exists, whether an earlier activation or this one created it.</description>
+        <name>SeedCandidateOpportunities</name>
+        <label>Seed Candidate Opportunities</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>CandidateOpportunities</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>GetExistingRenewalOpportunities</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
             <targetReference>GetRenewableAssetsSummary</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Builds the LinkableOpportunities collection from the account’s existing renewal opportunities, oldest first, and the opportunities that CreateOpportunities just inserted, which now have IDs. Opportunity products without an opportunity are attached to the first match in it.</description>
+        <name>BuildLinkableOpportunities</name>
+        <label>Build Linkable Opportunities</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>LinkableOpportunities</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>GetExistingRenewalOpportunities</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>LinkableOpportunities</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>Opportunities</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>IterateOverOpportunityProductsToCreate</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -819,7 +891,7 @@
         </connector>
     </assignments>
     <collectionProcessors>
-        <description>Filters records from the Opportunities record collection with matching price book ID and close date. Stores the filtered collection results in the Opportunities from FilterOpportunitiesToIdentifyTheOpportunityToUpdate record collection. The record collection is then used to assign the opportunity ID to an opportunity product.</description>
+        <description>Filters records from the LinkableOpportunities record collection with matching price book ID and close date. Stores the filtered collection results in the Opportunities from FilterOpportunitiesToIdentifyTheOpportunityToUpdate record collection. The record collection is then used to assign the opportunity ID to an opportunity product.</description>
         <name>FilterOpportunitiesToIdentifyTheOpportunityToUpdate</name>
         <elementSubtype>FilterCollectionProcessor</elementSubtype>
         <label>Filter Opportunities to Identify the Opportunity to Update</label>
@@ -827,7 +899,7 @@
         <locationY>0</locationY>
         <assignNextValueToReference>currentItem_Filter_Opportunity_Records</assignNextValueToReference>
         <collectionProcessorType>FilterCollectionProcessor</collectionProcessorType>
-        <collectionReference>Opportunities</collectionReference>
+        <collectionReference>LinkableOpportunities</collectionReference>
         <conditionLogic>and</conditionLogic>
         <conditions>
             <leftValueReference>currentItem_Filter_Opportunity_Records.Pricebook2Id</leftValueReference>
@@ -848,7 +920,7 @@
         </connector>
     </collectionProcessors>
     <collectionProcessors>
-        <description>Filters records from the Opportunities record collection with matching price book ID and close date. Stores the filtered collection results in the Opportunities from FilterOpportunitiesToIdentifyWhetherOpportunityExists record collection. The record collection is then used to check whether an opportunity exists.</description>
+        <description>Filters records from the CandidateOpportunities record collection (the account’s existing renewal opportunities plus those created in this run) with matching price book ID and close date. GetExistingRenewalOpportunities has already limited the account’s existing ones to open renewal opportunities with the order’s contract and currency and a renewal name, the same rule the link filter relies on. Stores the filtered collection results in the Opportunities from FilterOpportunitiesToIdentifyWhetherOpportunityExists record collection. The record collection is then used to check whether an opportunity exists.</description>
         <name>FilterOpportunitiesToIdentifyWhetherOpportunityExists</name>
         <elementSubtype>FilterCollectionProcessor</elementSubtype>
         <label>Filter Opportunities in Collection with Price Book ID and Close Date</label>
@@ -856,7 +928,7 @@
         <locationY>0</locationY>
         <assignNextValueToReference>currentItem_Filter_If_Opportunity_Exists</assignNextValueToReference>
         <collectionProcessorType>FilterCollectionProcessor</collectionProcessorType>
-        <collectionReference>Opportunities</collectionReference>
+        <collectionReference>CandidateOpportunities</collectionReference>
         <conditionLogic>and</conditionLogic>
         <conditions>
             <leftValueReference>currentItem_Filter_If_Opportunity_Exists.Pricebook2Id</leftValueReference>
@@ -1000,6 +1072,32 @@
             <stringValue>Upsells</stringValue>
         </value>
     </constants>
+    <decisions>
+        <description>Determines whether the current opportunity product already has an opportunity. The first opportunity in LinkableOpportunities that matches the price book and close date gets the product, which is the oldest one. The loop then runs out the remaining matches without assigning them, so a product never lands on two renewal opportunities.</description>
+        <name>ShouldLinkToOpportunity</name>
+        <label>Should Link to This Opportunity?</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>AddCurrentRootOpportunityToCollection</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>No Opportunity Linked Yet (Default)</defaultConnectorLabel>
+        <rules>
+            <name>OpportunityAlreadyLinked</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>OpportunityLinked</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>IterateOverOpportunitiesToUpdate</targetReference>
+            </connector>
+            <label>Already Linked</label>
+        </rules>
+    </decisions>
     <decisions>
         <description>Determines whether the CanceledOpportunityProducts record collection has at least one record.</description>
         <name>AreThereOpportunityProductsTobeDeleted</name>
@@ -1393,6 +1491,12 @@
         <expression>SUBSTITUTE({!IterateOverOpportunityProducts.OpportunityId}, &quot;ref_&quot;, &quot;&quot;)</expression>
     </formulas>
     <formulas>
+        <description>Returns the leading part of every renewal opportunity name for the order’s account, such as Acme - Renewal - . GetExistingRenewalOpportunities uses it to find the account’s renewal opportunities. Follows the same account name and length rules as RenewalOpportunityNameFormula.</description>
+        <name>RenewalOpportunityNamePrefixFormula</name>
+        <dataType>String</dataType>
+        <expression>IF(ISBLANK({!AccountName}), &quot;&quot;, LEFT({!AccountName}, 80) &amp; &quot; - &quot;) &amp; {!OpportunityName} &amp; &quot; - &quot;</expression>
+    </formulas>
+    <formulas>
         <description>Returns the name of the opportunity record to be created: the account name, the OpportunityName constant, and the close date, such as Acme - Renewal - 2027-09-29. Keeps the name within the 120-character limit of the Opportunity Name field.</description>
         <name>RenewalOpportunityNameFormula</name>
         <dataType>String</dataType>
@@ -1424,7 +1528,7 @@
         <collectionReference>FilterOpportunitiesToIdentifyTheOpportunityToUpdate</collectionReference>
         <iterationOrder>Asc</iterationOrder>
         <nextValueConnector>
-            <targetReference>AddCurrentRootOpportunityToCollection</targetReference>
+            <targetReference>ShouldLinkToOpportunity</targetReference>
         </nextValueConnector>
         <noMoreValuesConnector>
             <targetReference>IterateOverOpportunityProductsToCreate</targetReference>
@@ -1502,7 +1606,7 @@
             <targetReference>SetPriceBookID</targetReference>
         </nextValueConnector>
         <noMoreValuesConnector>
-            <targetReference>FilterOpportunitiesToIdentifyTheOpportunityToUpdate</targetReference>
+            <targetReference>ResetOpportunityLinked</targetReference>
         </noMoreValuesConnector>
     </loops>
     <loops>
@@ -1540,7 +1644,7 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>IterateOverOpportunityProductsToCreate</targetReference>
+            <targetReference>BuildLinkableOpportunities</targetReference>
         </connector>
         <faultConnector>
             <targetReference>SendErrorEmailOpportunitiesNotCreated</targetReference>
@@ -1604,6 +1708,69 @@
         </filters>
         <getFirstRecordOnly>true</getFirstRecordOnly>
         <object>Account</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Gets the open renewal opportunities that earlier order activations already created for the order’s account, with the order’s contract (or none) and currency, the two values the flow copies onto an opportunity it creates. The flow reuses one of them, instead of creating a second, when its name, price book and close date match a renewable asset’s. Sorted oldest first, so the oldest match is the one reused.</description>
+        <name>GetExistingRenewalOpportunities</name>
+        <label>Get Existing Renewal Opportunities</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>SeedCandidateOpportunities</targetReference>
+        </connector>
+        <faultConnector>
+            <isGoTo>true</isGoTo>
+            <targetReference>SendErrorEmailGetRenewableAssetsSummaryFailed</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>AccountId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>AccountId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Type</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>RenewalOpportunityType</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>ContractId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>GetOrder.ContractId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>CurrencyIsoCode</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>GetOrder.CurrencyIsoCode</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>IsClosed</field>
+            <operator>EqualTo</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <filters>
+            <field>Name</field>
+            <operator>StartsWith</operator>
+            <value>
+                <elementReference>RenewalOpportunityNamePrefixFormula</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>Opportunity</object>
+        <sortField>CreatedDate</sortField>
+        <sortOrder>Asc</sortOrder>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
@@ -1683,7 +1850,7 @@
         <text>&lt;p&gt;The RLM Create and Update Renewal Opportunities flow couldn’t update opportunity products on the renewal opportunities for this order.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Order number: {!OrderNumber}&lt;/li&gt;&lt;li&gt;Order ID: {!$Record.OrderIdentifier}&lt;/li&gt;&lt;li&gt;Account: {!AccountName}&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;Error: {!$Flow.FaultMessage}&lt;/p&gt;&lt;p&gt;Opportunity products that weren’t updated: {!OpportunityProductsToUpdate}&lt;/p&gt;&lt;p&gt;Update the quantities and prices of these products manually, or ask your Salesforce admin to check the flow.&lt;/p&gt;</text>
     </textTemplates>
     <textTemplates>
-        <description>Stores the body of the email that notifies the account owner and the user who activated the order if the flow can&apos;t get the order, its account, or the renewable assets summary. Includes the order and the error message.</description>
+        <description>Stores the body of the email that notifies the account owner and the user who activated the order if the flow can&apos;t get the order, its account, the account’s existing renewal opportunities, or the renewable assets summary. Includes the order and the error message.</description>
         <name>RenewalOpportunitiesNotCreatedOrUpdatedErrorBodyTextTemplate</name>
         <isViewedAsPlainText>false</isViewedAsPlainText>
         <text>&lt;p&gt;The RLM Create and Update Renewal Opportunities flow couldn’t create or update the renewal opportunities for this order.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Order number: {!OrderNumber}&lt;/li&gt;&lt;li&gt;Order ID: {!$Record.OrderIdentifier}&lt;/li&gt;&lt;li&gt;Account: {!AccountName}&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;Error: {!$Flow.FaultMessage}&lt;/p&gt;&lt;p&gt;Create or update the renewal opportunities manually, or ask your Salesforce admin to check the flow.&lt;/p&gt;</text>
@@ -1774,6 +1941,32 @@
         <value>
             <booleanValue>false</booleanValue>
         </value>
+    </variables>
+    <variables>
+        <description>Stores the opportunities a renewable asset can belong to: the account’s existing renewal opportunities and each opportunity this run adds to the Opportunities collection.</description>
+        <name>CandidateOpportunities</name>
+        <dataType>SObject</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>Opportunity</objectType>
+    </variables>
+    <variables>
+        <description>Stores the existing renewal opportunities and the opportunities this run created, which now have IDs, so opportunity products can be attached to them.</description>
+        <name>LinkableOpportunities</name>
+        <dataType>SObject</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>Opportunity</objectType>
+    </variables>
+    <variables>
+        <description>Stores whether the current opportunity product has been assigned an opportunity from the matches in LinkableOpportunities.</description>
+        <name>OpportunityLinked</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
     </variables>
     <variables>
         <description>Stores a collection of opportunity records to be created.</description>
