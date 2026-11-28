@@ -46,3 +46,15 @@ earliest line start only when that is earlier than the GMT date. `StartDate` sta
 recalculates when `ContractTerm` is set [Platform behaviour, traced]. To default to local
 time, clone the quote-to-contract flow and correct the date after the action [Open: not built; whether a before-save flow on
 Contract fires for `createContract` inserts].
+
+## Quote state after contract creation
+
+Creating a contract from a quote modifies the quote and all its lines in the same second and sets
+`Quote.ValidationResult` to `TransactionIncomplete`, while `CalculationStatus` stays `CompletedWithPricing`.
+Create Order then refuses the quote ("We couldn't create the order because the prices aren't updated. Click Reprice
+All and try again."), and the quote page shows "The prices aren't up to date or the validation isn't complete."
+One Force reprice (Place Sales Transaction, `pricingPref` Force, `configurationMethod` Skip) sets `ValidationResult`
+to null, after which a single order creation from the quote succeeds. Reprice and wait on `ValidationResult`, not
+only `CalculationStatus`, before ordering a quote that has a contract. `ValidationResult` as the order-creation gate:
+[troubleshooting: large-deal-preprocess-reference](../troubleshooting/large-deal-preprocess-reference.md)
+[Measured: 2026-11-28, 264, scratch org built from main].
