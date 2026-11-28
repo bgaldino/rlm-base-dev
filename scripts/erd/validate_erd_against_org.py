@@ -264,7 +264,7 @@ def build_object_entries(erd_data: dict, describes: Dict[str, dict], domain: str
         for fi in parse_org_fields(describe, skip_custom=skip_custom):
             entry = {"description": fi.label or "", "type": fi.type or "string"}
             if fi.reference_to:
-                entry["refersTo"] = fi.reference_to[0]
+                entry["refersTo"] = ", ".join(fi.reference_to)
                 entry["relationshipName"] = fi.relationship_name
                 entry["relationshipType"] = (
                     "Master-Detail" if raw[fi.name].get("cascadeDelete") else "Lookup")
@@ -279,11 +279,10 @@ def patch_erd(erd_data: dict, diffs: List[ObjectDiff]) -> Tuple[int, int, int]:
     """Apply org discoveries back into erd-data.json. Returns (fields_added, rels_added, fields_removed)."""
     objects = erd_data["objects"]
     relationships = erd_data["relationships"]
-    existing_rels = {(r["source"], r["target"], r.get("field", "")) for r in relationships}
 
     fields_added = 0
-    rels_added = 0
     fields_removed = 0
+    patched = set()
 
     for diff in diffs:
         if not diff.org_exists or diff.error:
@@ -294,28 +293,14 @@ def patch_erd(erd_data: dict, diffs: List[ObjectDiff]) -> Tuple[int, int, int]:
         # Add missing reference fields (relationships)
         for f in diff.rels_in_org_not_erd:
             if f.name not in obj_fields:
-                targets = f.reference_to
-                target = targets[0] if targets else "Unknown"
                 obj_fields[f.name] = {
                     "description": f.label or "",
                     "type": "reference",
-                    "refersTo": target,
+                    "refersTo": ", ".join(f.reference_to or ["Unknown"]),
                     "relationshipType": "lookup",
                 }
                 fields_added += 1
-
-                # Also add relationship link
-                if target in objects:
-                    key = (diff.object_name, target, f.name)
-                    if key not in existing_rels:
-                        relationships.append({
-                            "source": diff.object_name,
-                            "target": target,
-                            "field": f.name,
-                            "type": "lookup",
-                        })
-                        existing_rels.add(key)
-                        rels_added += 1
+                patched.add(diff.object_name)
 
         # Add missing data fields
         for f in diff.fields_in_org_not_erd:
@@ -326,6 +311,9 @@ def patch_erd(erd_data: dict, diffs: List[ObjectDiff]) -> Tuple[int, int, int]:
                 }
                 obj_fields[f.name] = entry
                 fields_added += 1
+
+    # Link every target of the added reference fields
+    rels_added = link_new_objects(erd_data, patched)
 
     # Update stats
     total_fields = sum(len(o.get("fields", {})) for o in objects.values())

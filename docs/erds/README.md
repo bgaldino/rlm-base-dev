@@ -90,7 +90,7 @@ object count see the Domain Overview table in
 ### Interactive HTML Viewer
 
 - **revenue-cloud-erd.html** — Force-directed graph with full field detail
-  - Combines the core Revenue Cloud baseline (265 objects) with the Contracts CLM extension (40 new objects). The integrated viewer displays 305 nodes, 4,738 fields, and 733 relationship edges across 10 domains.
+  - Combines the core Revenue Cloud baseline (265 objects) with the Contracts CLM extension (40 new objects). The integrated viewer displays 305 nodes, 4,738 fields, and 1,103 relationship edges across 10 domains.
   - **Features:**
     - Click any object node to see all fields (type, description, refersTo links)
     - Fields grouped into Relationship Fields, Data Fields, and Related Objects sections
@@ -104,7 +104,7 @@ object count see the Domain Overview table in
   - Revenue Cloud data is sourced from dual-org 264 cross-validation and the committed 262 snapshot; CLM data is separately cross-checked across four API v68.0 prepared orgs
   - Self-contained (D3.js v7 CDN only external dependency)
 
-- **contracts-erd-data.json** — Separate Contracts CLM viewer extension (40 new objects, 446 fields, 55 additional relationship edges)
+- **contracts-erd-data.json** — Separate Contracts CLM viewer extension (40 new objects, 446 fields, 55 relationship edges, 2 of which the baseline already has)
   - Kept separate from the Revenue Cloud baseline so its release-diff history remains comparable
   - Includes Salesforce Contracts guide objects plus related contract status, state-model, and Context Service objects
   - `scripts/erd/schema_diff/264-clm-schema.json` records the four-org describe consensus (48 objects, 553 fields) and feature-gated visibility

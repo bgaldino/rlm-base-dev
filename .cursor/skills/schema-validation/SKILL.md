@@ -209,7 +209,7 @@ assuming:
 
 - **`validate_erd_against_org.py --patch` fixes nothing on a field the ERD already
   has.** Both patch branches are guarded by `if f.name not in obj_fields`
-  (`validate_erd_against_org.py:226-260`), so patching is *add-only at field
+  (`patch_erd` in `validate_erd_against_org.py`), so patching is *add-only at field
   granularity*: it writes `refersTo`, `relationshipName`, `description`, and `type`
   only for fields it is adding. For a field already present, a wrong or null value in
   any of those survives every patch run, indefinitely — which is why the 264 refresh
@@ -328,8 +328,8 @@ rather than product-and-resource level, so neither is the sole binding site);
 94 reference fields with a null `refersTo`;
 and 10 `refersTo` values whose casing matched no ERD node, which silently broke
 traversal (`PricebookEntry` vs the ERD's then-key `PriceBookEntry`, since renamed).
-Later, every reference field gained a relationship row for each of its targets (a
-polymorphic field one per target), and the field types were aligned with the 264 snapshot
+Later, every reference field gained a relationship row for each of its targets that is
+an ERD node (a polymorphic field one per target), and the field types were aligned with the 264 snapshot
 (`scripts/erd/schema_diff/264-schema.json`) on reference-ness: fields it types as
 references are typed `reference`, and fields it types otherwise lost the `reference` type
 and `refersTo` they had carried from the docs. The relationship count above is after both.

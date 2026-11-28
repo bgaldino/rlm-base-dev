@@ -396,10 +396,13 @@ def main():
     # the snapshot lacks is stale doc metadata that relinking turns into a false edge, and a
     # real reference must carry the reference type.
     snap_objects = snap["264"]["objects"]
+    def agrees(x, snap_field):
+        if snap_field.get("referenceTo"):
+            return bool(x.get("refersTo")) and x.get("type") == "reference"
+        return not x.get("refersTo") and x.get("type") != "reference"
     disagree = [(n, f) for n, o in erd["objects"].items() for f, x in o["fields"].items()
                 if f in snap_objects.get(n, {}).get("fields", {})
-                and bool(snap_objects[n]["fields"][f].get("referenceTo"))
-                != bool(x.get("refersTo") and x.get("type") == "reference")]
+                and not agrees(x, snap_objects[n]["fields"][f])]
     check("reference_type_and_refersTo_agree_with_the_snapshot", not disagree,
           f"disagree: {disagree}")
 
