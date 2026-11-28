@@ -287,8 +287,9 @@ def patch_erd(erd_data: dict, diffs: List[ObjectDiff]) -> Tuple[int, int, int]:
     for diff in diffs:
         if not diff.org_exists or diff.error:
             continue
-        obj = objects.get(diff.object_name, {})
-        obj_fields = obj.get("fields", {})
+        if diff.object_name not in objects:  # new objects go through --add-objects
+            continue
+        obj_fields = objects[diff.object_name]["fields"]
 
         # Add missing reference fields (relationships)
         for f in diff.rels_in_org_not_erd:
@@ -296,7 +297,7 @@ def patch_erd(erd_data: dict, diffs: List[ObjectDiff]) -> Tuple[int, int, int]:
                 obj_fields[f.name] = {
                     "description": f.label or "",
                     "type": "reference",
-                    "refersTo": ", ".join(f.reference_to or ["Unknown"]),
+                    "refersTo": ", ".join(f.reference_to),
                     "relationshipType": "lookup",
                 }
                 fields_added += 1
@@ -312,7 +313,7 @@ def patch_erd(erd_data: dict, diffs: List[ObjectDiff]) -> Tuple[int, int, int]:
                 obj_fields[f.name] = entry
                 fields_added += 1
 
-    # Link every target of the added reference fields
+    # Link the patched objects' reference fields, and any pointing at them
     rels_added = link_new_objects(erd_data, patched)
 
     # Update stats

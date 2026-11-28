@@ -129,7 +129,7 @@ WINDOW = 3
 # citation, row, headline or whole file leaving the audit shows up as a smaller
 # number instead of as "all checks passed" — the failure mode the per-site guards
 # above exist to prevent, and the reason `tests/test_branch_scope.py` pins its own.
-EXPECTED_CHECKS = 118
+EXPECTED_CHECKS = 119
 
 ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "erd-data.json")
 CLM_ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "contracts-erd-data.json")
@@ -405,6 +405,17 @@ def main():
                 and not agrees(x, snap_objects[n]["fields"][f])]
     check("reference_type_and_refersTo_agree_with_the_snapshot", not disagree,
           f"disagree: {disagree}")
+
+    # An org patch keeps every target of a polymorphic field and links the ones that are ERD nodes.
+    sample = {"objects": {"Quote": {"domain": "x", "fields": {}}}, "relationships": []}
+    poly = validator.FieldInfo("ZzWhatId", "reference", "What", ["Quote", "NotInErd"],
+                               None, True, True, False)
+    diff = validator.ObjectDiff("Quote", "x", rels_in_org_not_erd=[poly])
+    first = validator.patch_erd(sample, [diff])
+    check("patch_links_every_polymorphic_target_once",
+          first == (1, 1, 0) and validator.patch_erd(sample, [diff]) == (0, 0, 0)
+          and sample["objects"]["Quote"]["fields"]["ZzWhatId"]["refersTo"] == "Quote, NotInErd"
+          and sample["stats"]["totalRelationships"] == 1)
 
     real_describe = validator.describe_sobject
     validator.describe_sobject = lambda org, name: {"name": "PricebookEntry", "fields": []}
