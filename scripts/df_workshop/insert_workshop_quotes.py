@@ -37,6 +37,9 @@ import os
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+from scripts.soql_literal import soql_quote  # noqa: E402
+
 API = "v68.0"
 DEFAULT_SPEC = "datasets/df_workshop/workshop_quotes.json"
 COWORKER_ADMIN_PSET = "AISearchAdmin"          # label: Agentforce Coworker Admin
@@ -57,7 +60,7 @@ def _run(args, timeout=300):
 
 
 def soql_str(value):
-    return "'" + str(value).replace("\\", "\\\\").replace("'", "\\'") + "'"
+    return soql_quote(value)
 
 
 def _is_real_id(value):

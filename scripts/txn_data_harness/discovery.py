@@ -237,8 +237,9 @@ class OrgContext:
 
 
 def _sql_escape(value: str) -> str:
-    """Escape single quotes for literal interpolation into SOQL."""
-    return value.replace("\\", "\\\\").replace("'", "\\'")
+    """Escape a value for a quoted SOQL literal: backslash, quote, newline, CR (scripts/soql_literal.py's rule)."""
+    text = value.replace("\\", "\\\\").replace("'", "\\'")
+    return text.replace("\n", "\\n").replace("\r", "\\r")
 
 
 def _query_id_batches(client: SfRestClient, template: str, ids: list[str]) -> list[dict]:

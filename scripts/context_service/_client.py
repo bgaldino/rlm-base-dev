@@ -217,14 +217,15 @@ def sobjects_request(
 def soql_literal(value: Any) -> str:
     """Escape a value for safe interpolation inside a single-quoted SOQL literal.
 
-    SOQL string literals escape ``\\`` and ``'`` with a backslash (per the SOQL
-    reference). Callers still supply the surrounding quotes:
+    SOQL string literals escape ``\\``, ``'``, a newline and a carriage return with a
+    backslash (scripts/soql_literal.py's rule). Callers still supply the surrounding quotes:
     ``f"WHERE Name='{soql_literal(name)}'"``. This guards plan-authored values
     (e.g. a ``contextAttribute`` name) from producing a malformed query — Context
     Service attribute API names are normally alphanumeric, but plan JSON is
     free-text and reaches these queries unvalidated.
     """
-    return str(value).replace("\\", "\\\\").replace("'", "\\'")
+    text = str(value).replace("\\", "\\\\").replace("'", "\\'")
+    return text.replace("\n", "\\n").replace("\r", "\\r")
 
 
 def soql_query(

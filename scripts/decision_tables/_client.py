@@ -352,8 +352,12 @@ def get_decision_table_data(
 
 
 def soql_literal(value: Any) -> str:
-    """Escape a value for safe interpolation inside a single-quoted SOQL literal."""
-    return str(value).replace("\\", "\\\\").replace("'", "\\'")
+    """Escape a value for safe interpolation inside a single-quoted SOQL literal.
+
+    Backslash, quote, newline and carriage return, the rule of scripts/soql_literal.py.
+    """
+    text = str(value).replace("\\", "\\\\").replace("'", "\\'")
+    return text.replace("\n", "\\n").replace("\r", "\\r")
 
 
 def _paginated_query(

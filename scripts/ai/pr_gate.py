@@ -1135,6 +1135,7 @@ STDLIB_SUITES = [
     "tests/test_rlm_configure_search_index.py",
     "tests/test_rlm_enable_change_data_capture.py",
     "tests/test_robot_salesforce_api_auth.py",
+    "tests/test_script_soql_literal.py",
     "tests/test_search_index_readiness.py",
     "tests/test_sfdmu_id_lookups.py",
     "tests/test_sfdmu_conditional_steps.py",

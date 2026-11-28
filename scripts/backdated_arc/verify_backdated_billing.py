@@ -51,7 +51,6 @@ import argparse
 import datetime as dt
 import json
 import os
-import re
 import shlex
 import subprocess
 import sys
@@ -61,6 +60,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 from build_quote_to_asset import (  # noqa: E402
     API, StepError, create_order, sf_apex, sf_query, sf_rest, soql_str, wait_for_calculation,
 )
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+from scripts.soql_literal import is_record_id  # noqa: E402
 
 TODAY = dt.date.today()
 BUILDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "build_quote_to_asset.py")
@@ -68,7 +69,6 @@ SCENARIOS = ("amend-up", "amend-down", "cancel", "renew-expired", "renew-early",
              "swap", "upgrade", "downgrade", "rollback")
 SWAPS = ("swap", "upgrade", "downgrade")
 POLL = 10
-ID_RE = re.compile(r"^[A-Za-z0-9]{15}(?:[A-Za-z0-9]{3})?$")
 INVOICE_DRAFT = {"Draft", "Split Draft"}
 INVOICE_POSTED = {"Posted", "Split Posted"}
 INVOICE_FAILED = {"Error", "Split Error"}
@@ -136,7 +136,7 @@ def default_effective(today):
 
 
 def soql_ids(ids):
-    return ",".join(f"'{i}'" for i in ids)
+    return ",".join(soql_str(i) for i in ids)
 
 
 # ----------------------------------------------------------------------
@@ -151,7 +151,7 @@ def account_id(org, name):
 
 def assets(org, acct, sku):
     return sf_query(org, "SELECT Id, Quantity, LifecycleStartDate, LifecycleEndDate FROM Asset "
-                         f"WHERE AccountId = '{acct}' AND Product2.StockKeepingUnit = {soql_str(sku)} "
+                         f"WHERE AccountId = {soql_str(acct)} AND Product2.StockKeepingUnit = {soql_str(sku)} "
                          "ORDER BY CreatedDate")
 
 
@@ -175,7 +175,7 @@ def build_asset(org, account, acct, sku, start, end, quantity, ramp_years=0, ram
 
 
 def account_orders(org, acct):
-    return [r["Id"] for r in sf_query(org, f"SELECT Id FROM Order WHERE AccountId = '{acct}'")]
+    return [r["Id"] for r in sf_query(org, f"SELECT Id FROM Order WHERE AccountId = {soql_str(acct)}")]
 
 
 def schedules(org, order_ids):
@@ -243,7 +243,7 @@ def complete_schedules(org, order_ids, zero_lines=False):
 def invoice_lines(org, invoice_id):
     return sf_query(org, "SELECT BillingScheduleId, BillingScheduleGroupId, ChargeAmount, InvoiceLineStartDate, "
                          "InvoiceLineEndDate "
-                         f"FROM InvoiceLine WHERE InvoiceId = '{invoice_id}' AND Type = 'Charge' "
+                         f"FROM InvoiceLine WHERE InvoiceId = {soql_str(invoice_id)} AND Type = 'Charge' "
                          "ORDER BY InvoiceLineStartDate")
 
 
@@ -313,19 +313,19 @@ def bill_through_today(org, sched_rows, tag):
         if row["TotalAmount"] < 0:
             def credited():
                 r = sf_query(org, "SELECT CreditMemoNumber, Status, TotalAmount FROM CreditMemo "
-                                  f"WHERE ReferenceEntityId = '{row['Id']}'")
+                                  f"WHERE ReferenceEntityId = {soql_str(row['Id'])}")
                 return r[0] if r else None
             memo = wait(f"{tag} credit memo", credited, 300)
 
             # The memo is applied to the invoice a moment after it posts; until then the
             # invoice still shows its full negative balance.
             def settled():
-                r = sf_query(org, f"SELECT Balance FROM Invoice WHERE Id = '{row['Id']}'")
+                r = sf_query(org, f"SELECT Balance FROM Invoice WHERE Id = {soql_str(row['Id'])}")
                 return r if r and r[0]["Balance"] == 0 else None
             try:
                 row["Balance"] = wait(f"{tag} credit memo applied", settled, 120)[0]["Balance"]
             except StepError:
-                row["Balance"] = sf_query(org, f"SELECT Balance FROM Invoice WHERE Id = '{row['Id']}'")[0]["Balance"]
+                row["Balance"] = sf_query(org, f"SELECT Balance FROM Invoice WHERE Id = {soql_str(row['Id'])}")[0]["Balance"]
         lines = invoice_lines(org, row["Id"])
         log(f"invoice      {row['InvoiceNumber']} {row['TotalAmount']:.2f} ({len(lines)} line(s), balance "
             f"{row['Balance']})" + (f" -> credit memo {memo['CreditMemoNumber']} {memo['TotalAmount']:.2f} "
@@ -345,14 +345,14 @@ def prepare_and_activate(org, order_id):
     contact, and activation refuses an order without billing address + bill-to
     contact (runbook: backdated-asset-lifecycle.md).
     """
-    status = sf_query(org, f"SELECT Status FROM Order WHERE Id = '{order_id}'")
+    status = sf_query(org, f"SELECT Status FROM Order WHERE Id = {soql_str(order_id)}")
     if not status:
         raise StepError(f"order {order_id} not found")
     if status[0]["Status"] == "Activated":
         log(f"activated    {order_id} (already)")
         return
     out = sf_apex(org, f"""
-Order o = [SELECT Id, AccountId, Status FROM Order WHERE Id = '{order_id}'];
+Order o = [SELECT Id, AccountId, Status FROM Order WHERE Id = {soql_str(order_id)}];
 Account a = [SELECT BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry,
              ShippingStreet, ShippingCity, ShippingState, ShippingPostalCode, ShippingCountry,
              (SELECT Id FROM Contacts ORDER BY CreatedDate LIMIT 1) FROM Account WHERE Id = :o.AccountId];
@@ -383,14 +383,14 @@ def wait_for_order(org, record_id):
     if record_id.startswith("801"):
         # Re-read the id: a 15-character --order would never match the 18-character ids
         # every query returns.
-        rows = sf_query(org, f"SELECT Id, Status FROM Order WHERE Id = '{record_id}'")
+        rows = sf_query(org, f"SELECT Id, Status FROM Order WHERE Id = {soql_str(record_id)}")
         if not rows:
             raise StepError(f"order {record_id} not found")
         if rows[0]["Status"] != "Activated":
             wait_for_calculation(org, rows[0]["Id"], 300, POLL)
         return rows[0]["Id"]
     wait(f"quote {record_id} pricing", lambda: sf_query(
-        org, f"SELECT Id FROM Quote WHERE Id = '{record_id}' AND CalculationStatus LIKE 'Completed%'"), 300)
+        org, f"SELECT Id FROM Quote WHERE Id = {soql_str(record_id)} AND CalculationStatus LIKE 'Completed%'"), 300)
     order = create_order(org, record_id, 300, POLL)
     wait_for_calculation(org, order, 300, POLL)
     log(f"order        {order} (from quote {record_id})")
@@ -439,8 +439,8 @@ def run_action(org, scenario, asset, effective, args):
             "amendOutputType": "Quote"})
         quote = out["amendRecordId"]
         wait(f"quote {quote} pricing", lambda: sf_query(
-            org, f"SELECT Id FROM Quote WHERE Id = '{quote}' AND CalculationStatus LIKE 'Completed%'"), 300)
-        line = sf_query(org, f"SELECT Id, QuoteActionId FROM QuoteLineItem WHERE QuoteId = '{quote}'")
+            org, f"SELECT Id FROM Quote WHERE Id = {soql_str(quote)} AND CalculationStatus LIKE 'Completed%'"), 300)
+        line = sf_query(org, f"SELECT Id, QuoteActionId FROM QuoteLineItem WHERE QuoteId = {soql_str(quote)}")
         if len(line) != 1:
             raise StepError(f"billing-frequency needs a one-line amendment quote, got {len(line)} lines")
         # Measured: Place refuses BillingFrequency on the line ("only when the Quote Action is
@@ -448,7 +448,7 @@ def run_action(org, scenario, asset, effective, args):
         # says so; initiateAmendment's actionSubtype doesn't offer FieldAmendment. In the UI,
         # editing the field flips it (Help: Manage Assets with Field and Price Amendments).
         # Apex, not a REST PATCH: the PATCH answers 204 with no body, which sf_rest can't parse.
-        sf_apex(org, f"update new QuoteAction(Id = '{line[0]['QuoteActionId']}', Type = 'Amend', "
+        sf_apex(org, f"update new QuoteAction(Id = {soql_str(line[0]['QuoteActionId'])}, Type = 'Amend', "
                      "Subtype = 'FieldAmendment');")
         resp = sf_rest(org, f"/services/data/{API}/connect/rev/sales-transaction/actions/place", "POST", {
             "pricingPref": "System", "configurationPref": {"configurationMethod": "Skip"},
@@ -470,7 +470,7 @@ def run_action(org, scenario, asset, effective, args):
         return [wait_for_order(org, out["renewRecordId"])]
     if scenario == "transfer":
         # Asset.Quantity stays null on these assets; CurrentQuantity carries the count.
-        qty = sf_query(org, f"SELECT CurrentQuantity FROM Asset WHERE Id = '{asset}'")[0]["CurrentQuantity"]
+        qty = sf_query(org, f"SELECT CurrentQuantity FROM Asset WHERE Id = {soql_str(asset)}")[0]["CurrentQuantity"]
         out = invocable(org, "initiateTransfer", {
             "transferRecords": [{"assetId": asset, "transferQuantity": qty}],
             "transferDate": iso_dt(effective), "outputRecordType": "Order",
@@ -480,13 +480,13 @@ def run_action(org, scenario, asset, effective, args):
                 wait_for_order(org, out["assetTransferTargetId"])]
     if scenario in SWAPS:
         a = sf_query(org, "SELECT CurrentQuantity, CurrencyIsoCode, LifecycleEndDate, AccountId FROM Asset "
-                          f"WHERE Id = '{asset}'")[0]
+                          f"WHERE Id = {soql_str(asset)}")[0]
         pbe = pricebook_entry(org, args.to_sku, a["CurrencyIsoCode"], args.selling_model)
         # BillingFrequency is only settable with an explicit BillingTreatment ("Add a Billing
         # Treatment to make sure that you can change the Billing Frequency"). Reuse the
         # outgoing asset's, which the builder picked for this currency.
         treatment = sf_query(org, "SELECT BillingTreatmentId FROM OrderItem WHERE BillingTreatmentId != null "
-                                  f"AND Order.AccountId = '{a['AccountId']}' ORDER BY CreatedDate LIMIT 1")
+                                  f"AND Order.AccountId = {soql_str(a['AccountId'])} ORDER BY CreatedDate LIMIT 1")
         if not treatment:
             raise StepError("no billing treatment on the account's original order line")
         body = {"swapStartDate": iso_dt(effective), "outputRecordType": "Quote", "swapGroups": {"groups": [{
@@ -892,7 +892,7 @@ def main():
                     help="swap/upgrade/downgrade: incoming product's selling model name (default: Term Annual)")
     args = ap.parse_args()
     for v in [args.asset] + (args.order or []):
-        if v and not ID_RE.match(v):
+        if v and not is_record_id(v):
             ap.error(f"{v!r} is not a Salesforce record id")
     if args.renewal_ramp_years and args.scenario != "renew-early":
         ap.error("--renewal-ramp-years applies to renew-early only")
@@ -949,7 +949,7 @@ def main():
         acct = account_id(org, args.account)
         start, end, qty = scenario_defaults(args.scenario, effective, max(args.ramp_years, 1))
         if args.asset:
-            rows = sf_query(org, f"SELECT Id FROM Asset WHERE Id = '{args.asset}' AND AccountId = '{acct}'")
+            rows = sf_query(org, f"SELECT Id FROM Asset WHERE Id = {soql_str(args.asset)} AND AccountId = {soql_str(acct)}")
             if not rows:
                 raise StepError(f"asset {args.asset} isn't on {args.account}")
             asset = rows[0]["Id"]
@@ -969,19 +969,19 @@ def main():
         # Read them before the change (a cancel collapses them).
         # The asset's quantity before the change (API mode only: in UI mode it has already changed).
         before = None if args.order else sf_query(
-            org, f"SELECT CurrentQuantity, LifecycleEndDate FROM Asset WHERE Id = '{asset}'")[0]
+            org, f"SELECT CurrentQuantity, LifecycleEndDate FROM Asset WHERE Id = {soql_str(asset)}")[0]
         before_qty = before["CurrentQuantity"] if before else None
         before_end = dt.date.fromisoformat(before["LifecycleEndDate"][:10]) \
             if before and before.get("LifecycleEndDate") else None
         if before_qty is not None and args.scenario == "renew-expired":
             # An expired asset's CurrentQuantity is 0 (measured); it renews at its last period's quantity.
-            last = sf_query(org, f"SELECT Quantity FROM AssetStatePeriod WHERE AssetId = '{asset}' "
+            last = sf_query(org, f"SELECT Quantity FROM AssetStatePeriod WHERE AssetId = {soql_str(asset)} "
                                  "ORDER BY StartDate DESC LIMIT 1")
             before_qty = last[0]["Quantity"] if last else None
             if before_qty is None:
                 log("quantity     not checked: the expired asset has no state period")
         asset_periods = state_periods(sf_query(
-            org, f"SELECT StartDate, EndDate, Quantity FROM AssetStatePeriod WHERE AssetId = '{asset}'")) \
+            org, f"SELECT StartDate, EndDate, Quantity FROM AssetStatePeriod WHERE AssetId = {soql_str(asset)}")) \
             if args.ramp_years else []
         if args.ramp_years and not asset_periods:
             raise StepError(f"ramp asset {asset} has no state periods to check its segments against")
@@ -1030,7 +1030,7 @@ def main():
                 wait(f"order {orders[i - 1]} to finish activating",
                      lambda: complete_schedules(org, [orders[i - 1]]), 300)
             prepare_and_activate(org, o)
-            order_account[o] = sf_query(org, f"SELECT AccountId FROM Order WHERE Id = '{o}'")[0]["AccountId"]
+            order_account[o] = sf_query(org, f"SELECT AccountId FROM Order WHERE Id = {soql_str(o)}")[0]["AccountId"]
         zero = args.scenario == "billing-frequency"
         new = wait(f"a billing schedule for every billable line of order(s) {', '.join(orders)}",
                    lambda: complete_schedules(org, orders, zero_lines=zero), 300)
@@ -1043,7 +1043,7 @@ def main():
             mine = [s for s in new if order_account[s["ReferenceEntityId"]] == a]
             invoices += bill_through_today(org, mine, f"{tag}-{a[-4:]}")
         try:
-            cur = sf_query(org, f"SELECT CurrencyIsoCode FROM Asset WHERE Id = '{asset}'")[0]["CurrencyIsoCode"]
+            cur = sf_query(org, f"SELECT CurrencyIsoCode FROM Asset WHERE Id = {soql_str(asset)}")[0]["CurrencyIsoCode"]
             scale = sf_query(org, "SELECT DecimalPlaces FROM CurrencyType WHERE IsoCode = "
                                   f"{soql_str(cur)}")[0]["DecimalPlaces"]
         except (StepError, IndexError):
@@ -1052,7 +1052,7 @@ def main():
         if args.ramp_years:
             # A ramp asset's segments start a whole number of years after its start or one of
             # its periods' starts (a ramped renewal's group ramp starts at the renewal).
-            first = sf_query(org, f"SELECT LifecycleStartDate FROM Asset WHERE Id = '{asset}'")[0]["LifecycleStartDate"]
+            first = sf_query(org, f"SELECT LifecycleStartDate FROM Asset WHERE Id = {soql_str(asset)}")[0]["LifecycleStartDate"]
             if not first:
                 raise StepError(f"asset {asset} has no LifecycleStartDate to place its ramp segments")
             anchors = tuple(sorted({dt.date.fromisoformat(first[:10])} | {s for s, _, _ in asset_periods}))
