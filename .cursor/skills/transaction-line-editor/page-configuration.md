@@ -244,7 +244,7 @@ group fields are selectable Display Columns and a custom field needs a context m
 
 1. Create the field on Quote Line Group and give the editing profile or permission set field-level security
    (edit, for an editable cell). Don't reuse a line field's API name on the group: the editor can fail to detect
-   Save when the group and the line share a custom field name [Open: untested risk; to settle it, give a group field and a line field the same API name and see whether Save is detected].
+   Save when the group and the line share a custom field name [Open: untested risk; to settle it, give a group field and a line field the same API name, add both as columns, and see whether they render as one column and whether Save is detected].
 2. Map the field in the sales transaction context definition (`context-service`). On an active version this is an
    insert-only addition: it applied in place [Measured: 2026-11-26, 264, ent-sb0 harness build]. A describe diff confirmed the mapping [Measured: 2026-11-26, 264, ent-sb0 harness build].
    Modifying or deleting an existing mapping needs the version deactivated first.
@@ -261,7 +261,6 @@ Measured result of this recipe, text and picklist group fields:
 - Clearing the text and choosing None on the picklist both saved as null [Measured: 2026-11-26, 264, ent-sb0 harness build].
 - A Place Sales Transaction patch of a group with both fields also persisted them [Measured: 2026-11-26, 264, ent-sb0 harness build].
 - The legacy editor and the side panel were not tested [Open: add the custom group fields to the legacy editor and the side panel, edit a group, and read the result].
-- Merging applies to standard fields only (section 2); a custom group field did not merge with a line field in the runs above.
 
 A line Quantity edit used as a positive control fails on Save when the line's product is not set up for product
 discovery; use a group name edit instead [Measured: 2026-11-26, 264, ent-sb0 harness build].

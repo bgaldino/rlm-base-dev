@@ -29,11 +29,10 @@ in `page-configuration.md`; day-to-day use is in `runtime-behavior.md`. Source t
   flow or scheduled Apex can call the Place Sales Transaction executor with Force pricing for quotes in
   `ImportQLISuccess` [Open: build that flow, import a quote, and confirm the quote prices]. Help says not to use the calculation status as a
   state machine: its values are often imprecise [Help: ind.qocal_differences_between_calculation_status_field_and_validation_result_field].
-- Dates and terms in imports: a blank Start Date defaults to today for term-defined and evergreen lines; the import
-  definition can be cloned (Save As) and edited to default differently [Platform behaviour, traced].
+- Dates and terms in imports: the import definition can be cloned (Save As) and edited to default differently
+  [Platform behaviour, traced]. Which Start Date a line without one takes is open (section 3).
 
 ## 2. The refresh banner and Hide Price Refresh Notification
-
 
 - A Save in the standalone line editor reprices and never raises the banner, with Instant Pricing on or off [Measured: 2026-11-26, 264, ent-sb0 harness build]. The
   banner appears after line edits made **outside** the editor (API, automation, record edit page), even with
@@ -61,7 +60,7 @@ in `page-configuration.md`; day-to-day use is in `runtime-behavior.md`. Source t
   Subscription Term and unit [Repo: scripts/erd/schema_diff/264-schema.json].
 - Whether a line added through the editor, Place Sales Transaction or CSV import takes today's date or the quote's Start Date
   [Open: add a line each way on a quote whose Start Date is not today and read each line's Start Date].
-- Ramped groups are the exception: a group's End Date sets the end date of its term-defined lines, and editing a
+- For ramped groups, a group's End Date sets the end date of its term-defined lines, and editing a
   ramp segment's dates updates its lines [Help: ind.qocal_ramp_deal_for_groups_create].
 - Building a header default is a customer build. Candidate designs [Open: build one design, add a line, and read the line's dates and the banner] are custom header term fields plus a before-save flow on line create; an after-save
   quote flow that sends one Place Sales Transaction update per line with Force pricing (direct DML on lines marks

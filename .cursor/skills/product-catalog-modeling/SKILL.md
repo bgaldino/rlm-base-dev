@@ -82,7 +82,7 @@ drop the `.md` suffix of the snapshot file name.
 - **DO NOT** test a bundle in the configurator, or headlessly, with configuration rules
   off. Place the quote with rules **on**; a result with rules off says nothing about the
   model. [Measured: 2026-11, 264, org kind not recorded]
-- **DO NOT** expect a static kit's child to be quoted because its component row exists. With defaults, a static kit's Place added only children whose component row carries selling models; a row without models produced no child line, no message and a successful configure, so the child is not quoted [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]. A configurable root placed both children on their own models.
+- **DO NOT** expect a static kit's child to be quoted because its component row exists. With defaults, a static kit's Place added only children whose component row carries selling models; a row without models produced no child line, no message and a successful configure, so the child is not quoted [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]. A configurable root placed both children on their own models [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org].
 - **DO NOT** hardcode the QuantumBit names in this skill as the model to build. They are
   a labelled worked example; discover your own instances first.
 - **DO NOT** cite or copy content from the private `.agents/artifacts/` tree, and do not name a real

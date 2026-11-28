@@ -12,7 +12,7 @@ kinds are defined in `SKILL.md` (the paragraph that opens the skill).
   `property[:direction]`; direction defaults to ascending and a bad direction is skipped
   [Platform behaviour, traced].
 - **Sort rules** (admin-defined product-list sort options, set in a Sort Settings tab of Product Catalog
-  Management; expected under Index and Search Configuration) are behind a feature gate. On the org tested the gate was off: there was no Sort
+  Management) are behind a feature gate. On the org tested the gate was off: there was no Sort
   Settings tab on Index and Search Configuration [Measured: 2026-11-26, 264, ent-sb0 harness build], the sort-rule API returned `FORBIDDEN` [Measured: 2026-11-26, 264, ent-sb0 harness build], and Browse Catalog
   offered only a name ascending or descending toggle [Measured: 2026-11-26, 264, ent-sb0 harness build]. The validator accepts a Product2-based rule
   on a custom field [Platform behaviour, traced]. The product-list request takes `sortRuleIds` (only the first id

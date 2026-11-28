@@ -267,7 +267,7 @@ at most once; the reprice that clears a quote before a retry doesn't reprice aga
 | Quote ends `SaveFailedOrIncomplete`, `TaxCalculationFailed` or another `*Failed` status | `Wait For Quote Calculation` reprices once (Place Sales Transaction, `pricingPref: Force`) and waits again |
 | Browse Catalogs lists no products ("Something went wrong when calculating product prices"), or an Add saves nothing | `Add Products Via Browse Catalogs` reprices the quote, checks the API, then repeats the catalog pass from a fresh page |
 | Configurator shows "Something went wrong while hydrating the context", or Save & Exit saves no option line | `Configure Bundle Line` reprices the quote, checks the API (a late save means the first pass landed), then repeats the configurator pass from a fresh page |
-| Create Order produces no Order within 45s (`createOrdersFromQuote` gack) | `Create Order From Quote` reruns the flow once (the single-order method creates the order synchronously, so 45s with none means the attempt failed) |
+| Create Order produces no Order within 45s (intermittent `createOrdersFromQuote` gack) | `Create Order From Quote` reruns the flow once (the single-order method creates the order synchronously, so 45s with none means the attempt failed) |
 | New Contract flow shows "The contract could not be created" | `Create Contract From Quote` reruns the flow, only when that message is on screen |
 | No assets from the order 90s after activation (no assetization job started) | `Wait For Assets From Order` calls `createOrUpdateAssetFromOrder` once and keeps waiting (needs Assetize Order, granted via `RLM_PSL`; a refusal is logged and the wait goes on) |
 

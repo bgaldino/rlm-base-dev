@@ -19,8 +19,7 @@ Help says `Type` cannot be changed after the product is created, and that you ca
 simple product to a bundle product [Help: ind.product_catalog_create_simple_products.htm,
 ind.product_catalog_conversion_of_bundle_products.htm]; a separate 264 article
 [Help: ind.product_catalog_convert_simple_product_to_bundle_product.htm] describes one
-exception: a simple product (blank `Type`) can be converted to Bundle, and bundle to simple "can't be undone".
-Conversion can affect configuration, quotes, orders and assets. Simple to Bundle works one way and bundle to simple is refused. Plan as if `Type` is fixed: through the API a blank `Type` was updated to Bundle [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org], and Bundle back to blank was
+exception: a simple product (blank `Type`) can be converted to Bundle; the change "can't be undone" and can affect configuration, quotes, orders and assets. Plan as if `Type` is fixed: through the API a blank `Type` was updated to Bundle [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org], and Bundle back to blank was
 refused ("You can only update a product from Type simple to bundle.") [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org].
 A static bundle can become configurable and back.
 Configurable → static needs every attribute defaulted, every child Not Allowed/None,
@@ -41,7 +40,7 @@ subscription that must renew or bill on its own model) is not settled by the rul
   static bundle, select None as the parent selling model and no component selling model;
   for a configurable bundle, select no component selling model. The shipped q3 static
   bundle `CERT007` sets both (see the linked section). Children keep their own selling
-  model options. [Help: ind.product_catalog_add_components_to_a_static_product_bundle.htm; ind.product_catalog_product_relationships.htm] ([details](selling-models-and-lifecycle.md#selling-models-inside-bundles))
+  model options. On a static kit such a row added no child line (see below). [Help: ind.product_catalog_add_components_to_a_static_product_bundle.htm; ind.product_catalog_product_relationships.htm] ([details](selling-models-and-lifecycle.md#selling-models-inside-bundles))
   What an insert accepted and rejected is measured in
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#measured-component-selling-model-rules).
 - **For a bundle's children, the run-time selling model choice Help documents is in the
