@@ -160,9 +160,13 @@ foundations:
       path: .cursor/skills/transaction-line-editor/SKILL.md
       purpose: "Configure and use the quote/order Sales Transaction Line Editor: columns, Adjustment Type, groups, action buttons, Instant Pricing, auto-refresh, configure from a line, amendment lines; repo page changes via templates/flexipages"
       consumed_by_pmos: [demo-script, sales-enablement]
-      provenance: grounded in the 264 Help, dev-guide and release-notes snapshots plus the repo's page templates; demo traps measured on 264 orgs 2026-11
+      sub_skills:
+        - .cursor/skills/transaction-line-editor/import-lines-and-refresh.md
+        - .cursor/skills/transaction-line-editor/page-configuration.md
+        - .cursor/skills/transaction-line-editor/runtime-behavior.md
+      provenance: grounded in the 264 Help, dev-guide and release-notes snapshots plus the repo's page templates; demo traps measured on 264 orgs 2026-11; header actions, group fields and the refresh banner measured on scratch orgs 2026-11-26
       caveats:
-        - "Action-button configuration UI, run-time limit and the Manage Header Adjustment API name disagree across 264 Help articles and the release notes; settle on a live org before writing an action layout into a template"
+        - "Whether the run-time cap of 10 header actions applies needs an org where 11 or more actions apply; settle it before writing a large action layout into a template"
 
     - id: quote-negotiation-rounds
       path: .cursor/skills/quote-negotiation-rounds/SKILL.md
@@ -381,9 +385,10 @@ foundations:
         - .cursor/skills/product-catalog-modeling/attributes-and-classifications.md
         - .cursor/skills/product-catalog-modeling/selling-models-and-lifecycle.md
         - .cursor/skills/product-catalog-modeling/catalogs-and-loading.md
-      provenance: grounded in the 264 Help and dev-guide snapshots plus repo skills; load facts measured on live 264 builds 2026-11
+        - .cursor/skills/product-catalog-modeling/verified-behavior.md
+      provenance: grounded in the 264 Help and dev-guide snapshots plus repo skills; load facts measured on live 264 builds 2026-11; sale, order, asset and renewal behavior measured on scratch orgs 2026-11-26; product search 2026-11-27
       caveats:
-        - "Several runtime behaviours are open and need live verification (IsSoldOnlyWithOtherProds enforcement, ProductCategory.Code uniqueness scope, the Discontinued vs End Of Life sale cut-off, among others); SKILL.md → Open questions lists them all"
+        - "Some runtime behaviours are still open and need live verification (a static kit's child with several selling-model options, invoices of a static kit, the mismatch message blocking save or Place, sort rules with the gate on); SKILL.md → Open questions lists them"
 
     - id: constraint-models
       path: .cursor/skills/constraint-models/SKILL.md

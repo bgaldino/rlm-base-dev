@@ -12,7 +12,7 @@ requirement are carried from desk notes, not re-read on a live org; check Revenu
 - **Inputs: none on 264.** A probe flow with `recordId`, `selectedScopeJson` and `source` input variables, launched from the
   quote's Create Ramp Schedule action, logged all three empty; the same flow launched by URL with `recordId` logged
   it (positive control). The guided modal passes an empty input list, so a custom flow cannot read the quote id, its
-  dates or its term [Measured: 2026-11-26, 264.12.x (USA796), ent-sb0 harness build].
+  dates or its term [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build].
   [Open: later releases may pass a selection scope; probe the flow on the target release]
 - **Outputs: the modal creates the schedule itself.** It reads the flow's `errorMessage` and schedule outputs, so a
   replacement flow must return the managed flow's output variables, not create groups itself
@@ -26,7 +26,7 @@ requirement are carried from desk notes, not re-read on a live org; check Revenu
 
 ## Editing a segment's uplift after creation
 
-[Measured: 2026-11-26, 264.12.x (USA796), ent-sb0 harness build], one Standard ramp in the quote UI:
+[Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build], one Standard ramp in the quote UI:
 
 - Create Ramp Schedule takes a per-segment Unit Price Uplift %. It defaults to 40 months with a trial; change both.
 - **Edit Ramp Schedule** shows segment name, dates, duration, type and Ramp Uplift Type: no uplift column as built.

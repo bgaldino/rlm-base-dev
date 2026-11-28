@@ -70,7 +70,7 @@ Read quote values before activation for cancellations as well as renewals.
 
 ## Linking a renewal or amendment
 
-[Measured: 2026-11-26, 264.12.x (USA796), ent-sb0 harness build]
+[Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]
 - **Opportunity:** Generate Renewal Quote run on a template forecast record links the quote to that Opportunity and
   creates no new one (a run without the id gave an unlinked quote). `initiateAmendment` with `amendOpportunityId`
   returns a linked, priced quote in the same call. Sync drops `OpportunityLineItem.AssetId` on renewal forecast records.
