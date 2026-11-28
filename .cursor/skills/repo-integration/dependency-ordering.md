@@ -134,7 +134,6 @@ Reverse dependency order (children before parents):
 | 28 | prepare_large_stx | Large Transaction setting first (`post_large_stx_settings`), then large-deal sales-transaction metadata (when `large_stx`) |
 | 29 | prepare_personas | Persona profiles + PSGs + Sales Rep scratch user (when `personas`) |
 | 30 | prepare_ux | UX assembly + deploy (when `ux`) |
-| 31 | prepare_inapp | In-App Learning framework + PSet + content dataset (when `inapp`) |
 | 32 | prepare_scratch | Scratch-only data (Account, Contact, BillingAccount) |
 | 33 | refresh_all_decision_tables | DT cache refresh |
 | 34 | rebuild_search_index | PCM catalog search index build (async) |

@@ -414,13 +414,11 @@ Two shapes owe no root CSV at all:
   PCM plan: a `Readonly` anchor that children reached through a `$$` column, with no CSV for the
   anchor, left those lookups silently unresolved. [Measured: 2026-11, 264, PCM plan load]
   [Open: load a `$$` lookup against a CSV-less `Readonly` parent in a plan with no other change, to
-  settle whether the two results differ by lookup shape.] The shipped `inapp` plan's `RecordType`
-  anchor is reached through a `$$` column and keeps its CSV, so it does not settle it either way.
+  settle whether the two results differ by lookup shape.]
   Until then, keep a CSV with the `$$` column for any `Readonly` anchor reached that way. `product-catalog-modeling` links here for this fact.
   - Convention (pack 151), because the count column used to mean two different things by sight: a
     Readonly object's record count is **org records, not file rows** — it is resolved from the target
-    org, and a Readonly CSV that *does* exist is maintained (e.g. `inapp/RecordType.csv`, kept for its `$$`
-    column); one is not required for a single-field traversal, and for a `$$` lookup see the open
+    org, and a Readonly CSV that *does* exist is maintained; one is not required for a single-field traversal, and for a `$$` lookup see the open
     check above. So `generate_plan_readme.py` renders a Readonly row's count as **`—`**:
     it runs offline with no org access, and labeling the optional CSV's row count as an org count
     would bake in a number that is never validated and silently wrong whenever the org and the CSV
