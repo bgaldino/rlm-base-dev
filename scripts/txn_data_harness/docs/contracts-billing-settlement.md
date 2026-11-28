@@ -634,10 +634,106 @@ then skips the header rows, so the command exits 1 (nothing checked) after
 applying. A failed call may or may not have applied anything: read the
 account's payments and credit memos before calling again.
 
+## Standalone credit memo
+
+Measured live on 2026-11-28 (264 scratch org, Line Level, API 68.0) on a
+one-line Posted invoice (495.00, half paid, 247.50 open). Billing Settings had
+Apply Credits to Posted Invoices, Convert Negative Invoice Lines and the
+converted-memo application on (the build's values). Todo 520.
+
+| Call | Response |
+|---|---|
+| `POST /services/data/v68.0/commerce/invoicing/credit-memos/actions/generate`, body `{"billingAccountId", "type": "Draft", "description", "currencyIsoCode", "taxStrategy": "Ignore", "charges": [{"chargeAmount", "productId"}]}` | `{"errors": [], "requestIdentifier": ..., "success": true}`: no memo id |
+| `POST /services/data/v68.0/commerce/invoicing/credit/collection/actions/post`, body `{"creditMemoIds": [<id>]}` | `{"errors": [], "requestIdentifier": ..., "statusURL": <AsyncOperationTracker>, "success": true}` |
+| `POST /services/data/v68.0/commerce/invoicing/credit-memos/{id}/actions/apply`, body `{"applications": [{"appliedToId": <Invoice id>, "amount"}]}` | `{"applyCreditResults": [{"appliedToId": <InvoiceLine id>, "errors": null, "id": <CreditMemoLineInvoiceLine id>, "success": true}]}` |
+| `POST /services/data/v68.0/commerce/invoicing/credit-memo-lines/{CreditMemoLine id}/actions/apply`, body `{"applyCreditDetails": [{"invoiceLineId", "appliedAmount"}]}` | `{"appliedCreditResponses": [{"creditMemoLineInvoiceLineId", "errors": null, "invoiceLineId", "success": true}]}` |
+
+- **Generate.** The memo was readable within seconds by its description:
+  `Status` Draft, `SourceAction` Standalone, `ReferenceEntityId` null, one
+  Charge line on the product, `Balance` = `TotalAmountWithTax` (30.00),
+  `NetCreditsApplied` 0.
+- **A Draft memo cannot be applied.** The line apply on a Draft memo was HTTP
+  400 `INVALID_API_INPUT` "Update the status of the related credit memo to
+  Posted."
+- **Post.** The memo read `Posted` immediately after the call (`CreditDate`
+  set). Posting did not apply it: its `Balance` stayed 30.00 and the account's
+  open invoice was unchanged, with Apply Credits to Posted Invoices on.
+- **Apply by invoice id at Line Level.** The memo-level apply with the Invoice
+  id (the header-level route in the guide) was accepted at Line Level: it
+  wrote one `CreditMemoLineInvoiceLine` (`Type` Applied) on the invoice's one
+  line and no `CreditMemoInvApplication`. The line-level apply did the same
+  for the line named. Both are synchronous: invoice, line and memo balances
+  had changed when the call returned.
+- **Balances.** Memo `Balance` = `TotalAmountWithTax` − `NetCreditsApplied`
+  (30.00 − 10.00 = 20.00, then 0 after the remaining 20.00), memo
+  `SettlementLevel` LineLevel; `TotalCreditAmountApplied` stayed 0. The
+  invoice and line took the credit as any other (`NetCreditsApplied`, `Balance`
+  down by the amount).
+- **Beyond the memo's balance.** Applying 5.00 more from a memo at 0 was HTTP
+  400 `INVALID_API_INPUT` "Couldn't create Credit Memo Line Invoice Line
+  record. Not enough credit balance."
+- Not measured: how the memo-level apply spreads over an invoice with several
+  lines (Help: descending order), Header Level, `Calculate` or
+  `ManualOverride` tax, voiding the memo, and posting an invoice while a
+  standalone memo is open (the [rule above](#order-matters-the-platform-applies-open-balances-at-post)
+  suggests the invoice absorbs it).
+
+`cli credit-memo --org <sf-alias> --invoice <Posted Invoice Id> --amount <n>
+[--product <Product2 Id>]` (todo 520) runs those calls once each for the
+invoice's account and currency: generate a Draft memo with one charge line
+(`--product`, or the product of the invoice's first Charge line; tax
+`Ignore`; description `CM-<UTC timestamp> standalone credit`), find it in
+Draft, post it, wait for Posted, apply the whole amount to the invoice by its
+id, then run the `cli verify` checks on the invoice and the memo. It refuses,
+before writing, an invoice that is not Posted or an amount not above 0 and up
+to the invoice balance (rounded to the currency). Exit 0 when every step
+passed and verify checked at least one balance with none failing; 1 when a
+step after the generate failed (the output names the memo, which stays on the
+account with its balance) or a check failed or nothing was checked; 2 when
+nothing was written, the generate call failed (a lost answer may still have
+made the memo: the error names its description), or the verify could not
+report.
+
+## Negative invoice lines
+
+Measured live on 2026-11-28 (264 scratch org, Line Level, API 68.0) with
+ingested Posted invoices of a 200.00 line and a −50.00 line (no tax), the
+shape of `scenarios/invoice_ingestion/18-negative-line.yaml`.
+
+- **It is a setting first.** With Billing Settings
+  `enableNegInvoiceLnConversionToCrMemoLn` on (`unpackaged/pre/2_settings` and
+  `unpackaged/post_billing/settings` set it true), the line converted when the invoice posted, whether ingested
+  Posted or ingested Draft and posted with the post action: a Posted credit
+  memo for 50.00 (`SourceAction` NegativeInvoiceLineConversion,
+  `ReferenceEntityId` the invoice, `Description` null) was applied to the
+  positive line (`enableConvertedCrMemoCrMemoLnAppln` on).
+- **The action.** `POST /services/data/v68.0/commerce/invoicing/invoices/{id}/actions/convert-to-credit`,
+  body `{"invoiceLines": [<negative line id>], "effectiveDate", "description"}`.
+  On a line the setting had already converted: HTTP 400 `INVALID_API_INPUT`
+  "Can't convert negative invoice lines as more than one invoice line provided
+  is either invalid or not negative." With the setting turned off for the
+  probe (and back on after), the invoice posted with the line unconverted
+  (line `Balance` −50.00, invoice `Balance` 150.00, no memo); the action then
+  answered `{"errors": [], "id": <CreditMemo id>, "success": true}`
+  synchronously, and the result matched the automatic conversion, with the
+  description and `EffectiveDate` stamped on the memo.
+- **Balances after a conversion.** Negative line: `ConvertedNegAmount` and
+  `ChargeConvertedNegAmount` 50.00, `Balance` 0 = −50.00 + 50.00. Positive
+  line: `NetCreditsApplied` 50.00, `Balance` 150.00. Invoice:
+  `TotalAmountWithTax` 150.00, `NetCreditsApplied` 50.00,
+  `TotalConvertedNegAmount` 50.00, `Balance` 150.00 = 150.00 − 50.00 + 50.00.
+  So the converted amount is added back: `Balance` = total − credits −
+  payments + converted, on the invoice and on each line. `cli verify` checks
+  this for a negative line converted whole with no tax part.
+- The harness does not wrap the action: on this repo's builds posting has
+  already converted every negative line. Not measured: taxed negative lines, a
+  partial conversion, a converted memo larger than the invoice's balance.
+
 ## Cleanup
 
 Payments, credit memos and their application records were not deleted, and no
-delete, void or cancel path was probed. A Payment's `Status` picklist includes
+delete, void or cancel path was probed. That includes the standalone and
+conversion memos above. A Payment's `Status` picklist includes
 `Canceled`; voiding credit memos is documented but not exercised here.
 Unapplying is measured ([Unapply](#unapply)). Treat settlement records like Posted
 invoices: leftovers. Tracked in [`followups.md`](followups.md#billing-settlement).

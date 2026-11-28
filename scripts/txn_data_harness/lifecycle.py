@@ -1984,6 +1984,113 @@ def apply_rules(client: SfRestClient, account_id: str,
     return result
 
 
+# Standalone credit memo (todo 520): generate a Draft memo for an account (no
+# order or invoice behind it), post it, apply it to an invoice. Measured
+# 2026-11-28 (264, Line Level): see contracts-billing-settlement.md ->
+# Standalone credit memo. Each call is sent once (no transport retry).
+
+def first_invoice_product(client: SfRestClient, invoice_id: str) -> Optional[str]:
+    """The Product2Id of the invoice's first Charge line that has one, or None."""
+    rows = client.query(
+        "SELECT Product2Id FROM InvoiceLine "
+        f"WHERE InvoiceId = '{invoice_id}' AND Type = 'Charge' AND Product2Id != null "
+        "ORDER BY Id LIMIT 1"
+    )
+    return rows[0]["Product2Id"] if rows else None
+
+
+def generate_credit_memo(client: SfRestClient, account_id: str, product_id: str,
+                         amount: float, description: str,
+                         currency: Optional[str] = None) -> None:
+    """POST the standalone credit memo generate action for one Draft charge line.
+
+    Async: the measured answer is ``success`` and a ``requestIdentifier``, no
+    memo id; find the memo by its ``description`` (:func:`find_tagged_credit_memo`).
+    """
+    body: dict[str, Any] = {
+        "billingAccountId": account_id,
+        "type": "Draft",
+        "description": description,
+        "taxStrategy": "Ignore",
+        "charges": [{"chargeAmount": amount, "productId": product_id}],
+    }
+    if currency:
+        body["currencyIsoCode"] = currency
+    result = client.post(
+        f"/services/data/v{client.api_version}/commerce/invoicing/credit-memos/actions/generate",
+        body, retry=False,
+    )
+    if not isinstance(result, dict) or not result.get("success"):
+        raise SettlementError("credit-memo",
+                              f"generate answered {describe_response(result)}")
+
+
+def find_tagged_credit_memo(client: SfRestClient, account_id: str,
+                            description: str) -> Optional[dict]:
+    """The account's credit memo carrying ``description``, or None; two raise."""
+    rows = client.query(
+        "SELECT Id, Status, Balance, TotalAmountWithTax FROM CreditMemo "
+        f"WHERE BillingAccountId = '{account_id}' "
+        f"AND Description = '{_sql_escape(description)}'"
+    )
+    if len(rows) > 1:
+        raise SettlementError("credit-memo", f"{len(rows)} credit memos carry "
+                              f"{description!r}: {', '.join(r['Id'] for r in rows)}")
+    return rows[0] if rows else None
+
+
+def wait_credit_memo(client: SfRestClient, find: Callable[[], Optional[dict]],
+                     status: str, timeout: int = 180) -> dict:
+    """Poll ``find()`` until the memo is in ``status``; Error, Canceled or Voided fail."""
+    deadline = time.monotonic() + timeout
+    memo = None
+    while True:
+        memo = find()
+        if memo is not None and memo.get("Status") == status:
+            return memo
+        if memo is not None and memo.get("Status") in _CREDIT_MEMO_FAIL:
+            raise SettlementError("credit-memo", f"credit memo in {memo['Status']}",
+                                  record_id=memo["Id"])
+        if time.monotonic() >= deadline:
+            break
+        time.sleep(_POLL_INTERVAL)
+    seen = f"it is {memo['Status']}" if memo else "it did not appear"
+    raise SettlementError("credit-memo", f"credit memo not {status} within {timeout}s "
+                          f"({seen})", record_id=memo["Id"] if memo else None)
+
+
+def post_credit_memo(client: SfRestClient, memo_id: str) -> None:
+    """POST the Draft memo to Posted (async: ``success`` and a tracker ``statusURL``)."""
+    result = client.post(
+        f"/services/data/v{client.api_version}/commerce/invoicing/credit/collection/actions/post",
+        {"creditMemoIds": [memo_id]}, retry=False,
+    )
+    if not isinstance(result, dict) or not result.get("success"):
+        raise SettlementError("credit-memo", f"post answered {describe_response(result)}",
+                              record_id=memo_id)
+
+
+def apply_credit_memo(client: SfRestClient, memo_id: str, invoice_id: str,
+                      amount: float) -> list[dict]:
+    """Apply ``amount`` of the memo to the invoice (by its id); return the results.
+
+    Synchronous. At Line Level the platform wrote a ``CreditMemoLineInvoiceLine``
+    and answered ``applyCreditResults`` of ``{appliedToId: <invoice line>, id:
+    <row>, success}``. Any result without ``success`` raises.
+    """
+    result = client.post(
+        f"/services/data/v{client.api_version}/commerce/invoicing/credit-memos/"
+        f"{memo_id}/actions/apply",
+        {"applications": [{"appliedToId": invoice_id, "amount": amount}]}, retry=False,
+    )
+    results = result.get("applyCreditResults") if isinstance(result, dict) else None
+    if (not isinstance(results, list) or not results
+            or not all(isinstance(r, dict) and r.get("success") for r in results)):
+        raise SettlementError("credit-memo", f"apply answered {describe_response(result)}",
+                              record_id=memo_id)
+    return results
+
+
 def build_payment_record(
     account_id: str,
     amount: float,

@@ -97,7 +97,7 @@ python -m scripts.txn_data_harness.generate --org <your-sf-alias> --config scrip
 
 The `generate` module is the single-command entry point. The subcommand CLI in
 `cli.py` exposes the same run behavior plus `plan`, `inspect`, `step`, `report`,
-`verify`, `quote-to-cash`, `unapply`, `apply-rules` and `prune` commands for humans and AI agents that need smaller composable
+`verify`, `quote-to-cash`, `unapply`, `apply-rules`, `credit-memo` and `prune` commands for humans and AI agents that need smaller composable
 actions:
 
 ```bash
@@ -109,6 +109,7 @@ python -m scripts.txn_data_harness.cli verify --org <your-sf-alias> --latest   #
 python -m scripts.txn_data_harness.cli quote-to-cash --org <your-sf-alias>  # one quote to an applied payment, then verify (writes records)
 python -m scripts.txn_data_harness.cli unapply --org <your-sf-alias> --manifest <run-id>  # reverse a run's payment and credit applications
 python -m scripts.txn_data_harness.cli apply-rules --org <your-sf-alias> --account "<account-name>"  # apply the account's open balances by the Billing Settings rules (writes records)
+python -m scripts.txn_data_harness.cli credit-memo --org <your-sf-alias> --invoice <invoice-id> --amount 25  # standalone credit memo: generate Draft, post, apply to the invoice, verify (writes records)
 python -m scripts.txn_data_harness.cli prune --older-than 7d          # dry run; --yes to delete
 ```
 
@@ -403,6 +404,17 @@ a fresh batch with a new run id (by design).
 - **Settlement: Header Level not live-verified.** The settlement stages were
   verified at Line Level only; the Header Level branch follows the developer
   guide. Open items: `docs/followups.md` → *Billing settlement*.
+- **Standalone credit memo: measured on a one-line invoice at Line Level.**
+  `cli credit-memo` applies the memo to the invoice by its id; how the platform
+  spreads it over several lines, and Header Level, were not measured (verify
+  checks whatever it wrote). A memo left open by a failed step is not retried
+  or recorded in a manifest: the output names it. A memo still in Draft must be
+  posted first; a Posted memo can be placed with `cli apply-rules` or by hand.
+  Posting another invoice on the account while it is open may absorb it.
+- **Negative invoice lines: conversion is the platform's.** Posting converts
+  them when Billing Settings has the conversion on (as this repo's billing
+  build does); the harness does not wrap the convert action, and `cli verify`
+  checks only a negative line converted whole with no tax part.
 - **Composite batching intentionally skipped.** The lifecycle is async-poll-bound,
   not request-bound, so Composite would save negligible wall-clock;
   scenario-level concurrency is the real win. See `CONTRACTS.md` for the
@@ -412,7 +424,7 @@ a fresh batch with a new run id (by design).
 
 ```text
 scripts/txn_data_harness/
-  cli.py               # subcommands: plan/run/inspect/rate/step/report/verify/quote-to-cash/unapply/apply-rules/prune
+  cli.py               # subcommands: plan/run/inspect/rate/step/report/verify/quote-to-cash/unapply/apply-rules/credit-memo/prune
   generate.py          # CLI entry: argparse, spec resolution, concurrency loop
   auth.py              # SfRestClient: transport-agnostic REST (requests | cli)
   discovery.py         # org introspection: accounts, products, pricebook, legal entity

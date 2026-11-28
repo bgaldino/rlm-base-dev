@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -525,10 +526,11 @@ def _cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
-def _verify_ids(args: argparse.Namespace) -> tuple[list[str], list[str]]:
-    """Collect invoice and payment ids from manifests and/or explicit flags."""
+def _verify_ids(args: argparse.Namespace) -> tuple[list[str], list[str], list[str]]:
+    """Collect invoice, payment and credit memo ids from manifests and/or explicit flags."""
     invoice_ids = billing_verify.split_ids(args.invoice_ids, "--invoice-ids")
     payment_ids = billing_verify.split_ids(args.payment_ids, "--payment-ids")
+    memo_ids = billing_verify.split_ids(args.credit_memo_ids, "--credit-memo-ids")
     paths = [resolve_manifest_path(m) for m in (args.manifest or [])]
     if args.latest:
         manifests = list_manifests()
@@ -542,18 +544,19 @@ def _verify_ids(args: argparse.Namespace) -> tuple[list[str], list[str]]:
             empty.append(str(path))
         invoice_ids += [i for i in inv if i not in invoice_ids]
         payment_ids += [p for p in pay if p not in payment_ids]
-    if not invoice_ids and not payment_ids:
+    if not invoice_ids and not payment_ids and not memo_ids:
         if empty:
             raise billing_verify.VerifyError(
                 f"manifest {', '.join(empty)} names no invoice or payment id; "
                 f"pass --invoice-ids instead"
             )
         raise billing_verify.VerifyError(
-            "verify needs --manifest, --latest, --invoice-ids or --payment-ids"
+            "verify needs --manifest, --latest, --invoice-ids, --payment-ids or "
+            "--credit-memo-ids"
         )
     for path in empty:
         print(f"WARNING: manifest {path} names no invoice or payment id", file=sys.stderr)
-    return invoice_ids, payment_ids
+    return invoice_ids, payment_ids, memo_ids
 
 
 def _cmd_verify(args: argparse.Namespace) -> int:
@@ -564,11 +567,11 @@ def _cmd_verify(args: argparse.Namespace) -> int:
     ``--json`` an error prints ``{"ok": false, "error": ...}`` on stdout too.
     """
     try:
-        invoice_ids, payment_ids = _verify_ids(args)
+        invoice_ids, payment_ids, memo_ids = _verify_ids(args)
         client = SfRestClient.from_alias(
             args.org, api_version=args.api_version, transport=args.transport
         )
-        records = billing_verify.fetch_records(client, invoice_ids, payment_ids)
+        records = billing_verify.fetch_records(client, invoice_ids, payment_ids, memo_ids)
         report = billing_verify.run_checks(records, args.expect_level)
     except Exception as exc:  # noqa: BLE001 - read-only command: any error is exit 2
         # Exit 1 means a check failed, so no error may reach main() (which maps
@@ -923,6 +926,99 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_credit_memo(args: argparse.Namespace) -> int:
+    """Generate a standalone Draft credit memo, post it, apply it to an invoice, verify.
+
+    The memo is for the invoice's account and currency, one charge line on
+    ``--product`` (default: the invoice's first Charge line's product), tax
+    ignored. Exit 0 when the memo was generated, posted and applied and the
+    verify checks passed with at least one balance checked; 1 when a step after
+    the generate failed or a check failed or nothing was checked (the memo, if
+    found, is named: it stays on the account with its balance); 2 when nothing
+    was written (bad input, the invoice is not Posted, the amount is not
+    between 0 and its balance, the org cannot be read), when the generate call
+    failed (a lost answer may still have made the memo: look for its printed
+    description before running again), or when the verify could not report.
+    """
+    try:
+        ids = billing_verify.split_ids([args.invoice], "--invoice")
+        if len(ids) != 1:
+            raise billing_verify.VerifyError("--invoice takes one invoice id")
+        invoice_id = ids[0]
+        client = SfRestClient.from_alias(
+            args.org, api_version=args.api_version, transport=args.transport
+        )
+        invoice = lifecycle.fetch_invoice_header(client, invoice_id)
+        if invoice.get("Status") != "Posted":
+            raise SettlementError("credit-memo", f"invoice {invoice_id} is "
+                                  f"{invoice.get('Status')}, not Posted")
+        currency = invoice.get("CurrencyIsoCode")
+        amount = round(args.amount, lifecycle.currency_decimal_places(client, currency))
+        balance = invoice.get("Balance") or 0
+        if not 0 < amount <= balance:
+            raise SettlementError("credit-memo", f"amount {amount} must be above 0 and at "
+                                  f"most the invoice balance {balance}")
+        product = args.product or lifecycle.first_invoice_product(client, invoice_id)
+        if not product:
+            raise SettlementError("credit-memo", "the invoice has no Charge line with a "
+                                  "product; pass --product")
+        account_id = invoice["BillingAccountId"]
+    except Exception as exc:  # noqa: BLE001 - nothing was written yet
+        print(f"ERROR: credit-memo: {_error_message(exc)}", file=sys.stderr)
+        return 2
+    tag = f"CM-{datetime.now(timezone.utc):%Y%m%dT%H%M%S%fZ} standalone credit"
+    try:
+        lifecycle.generate_credit_memo(client, account_id, product, amount, tag, currency)
+    except Exception as exc:  # noqa: BLE001 - exit 1 is a verdict, never an error
+        print(f"ERROR: credit-memo: generate: {_error_message(exc)}; before running again, "
+              f"look on account {account_id} for a credit memo described {tag!r}",
+              file=sys.stderr)
+        return 2
+    _emit(f"GENERATED: {tag!r} for account {account_id}, {amount} on product {product}")
+    memo_id = None
+    try:
+        find = lambda: lifecycle.find_tagged_credit_memo(client, account_id, tag)  # noqa: E731
+        memo_id = lifecycle.wait_credit_memo(client, find, "Draft")["Id"]
+        _emit(f"DRAFT: credit memo {memo_id}")
+        lifecycle.post_credit_memo(client, memo_id)
+        lifecycle.wait_credit_memo(client, find, "Posted")
+        _emit(f"POSTED: credit memo {memo_id}")
+        for r in lifecycle.apply_credit_memo(client, memo_id, invoice_id, amount):
+            _emit(f"APPLIED: credit memo {memo_id} -> {r.get('appliedToId')} (row {r.get('id')})")
+    except Exception as exc:  # noqa: BLE001 - the memo exists; report it and stop
+        where = f"credit memo {memo_id}" if memo_id else f"the memo described {tag!r}"
+        _emit(f"FAIL: {_error_message(exc)}; {where} stays on the account with its balance")
+        _emit(f"CREDIT-MEMO: fail (invoice {invoice_id})")
+        return 1
+    try:
+        records = billing_verify.fetch_records(client, [invoice_id], None, [memo_id])
+        report = billing_verify.run_checks(records)
+    except Exception as exc:  # noqa: BLE001 - verify could not report
+        print(f"ERROR: credit-memo verify: {_error_message(exc)} (credit memo {memo_id} "
+              "was applied; verify it again)", file=sys.stderr)
+        return 2
+    _emit(billing_verify.render_text(report))
+    if not report["ok"] or not report["checked"]:
+        reason = "a check failed" if not report["ok"] else "no balance was checked"
+        _emit(f"CREDIT-MEMO: fail (invoice {invoice_id}: {reason})")
+        return 1
+    _emit(f"CREDIT-MEMO: pass (credit memo {memo_id} applied to invoice {invoice_id})")
+    return 0
+
+
+def _positive_amount(value: str) -> float:
+    """argparse type: a finite number above 0."""
+    import math
+
+    try:
+        amount = float(value)
+    except ValueError:
+        amount = math.nan
+    if not math.isfinite(amount) or amount <= 0:
+        raise argparse.ArgumentTypeError(f"not an amount above 0: {value!r}")
+    return amount
+
+
 def _target_date(value: str) -> str:
     """argparse type: an ISO date (YYYY-MM-DD)."""
     from datetime import date
@@ -1043,7 +1139,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     verify = sub.add_parser(
         "verify",
         allow_abbrev=False,
-        help="Read-only billing checks on invoices and payments "
+        help="Read-only billing checks on invoices, payments and credit memos "
              "(exit 1 on a failed check, 2 on bad input).",
     )
     add_connection_args(verify)
@@ -1057,6 +1153,9 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
                         help="Invoice ids, comma- or space-separated (repeatable).")
     verify.add_argument("--payment-ids", action="append",
                         help="Extra payment ids to check, such as one with no "
+                             "applications (repeatable).")
+    verify.add_argument("--credit-memo-ids", action="append",
+                        help="Extra credit memo ids to check, such as one with no "
                              "applications (repeatable).")
     verify.add_argument("--expect-level", choices=["auto", "line", "header"],
                         default="auto",
@@ -1109,6 +1208,22 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
                                   "calls considered only invoices posted that UTC "
                                   "day.")
     apply_rules.set_defaults(func=_cmd_apply_rules)
+
+    credit_memo = sub.add_parser(
+        "credit-memo",
+        help="Generate a standalone Draft credit memo for a Posted invoice's account, "
+             "post it, apply it to the invoice, then verify (writes; exit 1 on a "
+             "failed step or check).",
+    )
+    add_connection_args(credit_memo)
+    credit_memo.add_argument("--invoice", required=True, help="Posted Invoice Id.")
+    credit_memo.add_argument("--amount", required=True, type=_positive_amount,
+                             help="Credit amount, at most the invoice balance (tax "
+                                  "ignored).")
+    credit_memo.add_argument("--product",
+                             help="Product2 Id of the memo line (default: the invoice's "
+                                  "first Charge line's product).")
+    credit_memo.set_defaults(func=_cmd_credit_memo)
 
     prune = sub.add_parser("prune", help="Delete old manifests by retention age.")
     prune.add_argument("--older-than", required=True,

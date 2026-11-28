@@ -195,6 +195,29 @@ So the run's invoice ends settled only when the rules pick it. Details and
 exit codes:
 [`contracts-billing-settlement.md` → Rule-based application](../../scripts/txn_data_harness/docs/contracts-billing-settlement.md#rule-based-application).
 
+## Credit with a standalone credit memo
+
+To show a credit that no order or invoice credit produced, on a Posted invoice
+with an open balance (a run whose settlement has no payment, or pays part):
+
+```bash
+python -m scripts.txn_data_harness.cli credit-memo --org $ORG --invoice <invoiceId> --amount 25
+```
+
+It generates a Draft credit memo for the invoice's account (one charge line on
+the invoice's first product, tax ignored), posts it, applies it to the invoice
+and runs the `verify` checks on the invoice and the memo, including
+`credit_memo_balance` (memo balance = total − credits applied). Measured on 264
+at Line Level on a one-line invoice: posting the memo did not apply it
+anywhere, and the apply by invoice id wrote a line-level row. A memo left open
+by a failed step is named in the output; post it first if it is still Draft,
+then `apply-rules` can place it.
+Details: [`contracts-billing-settlement.md` → Standalone credit memo](../../scripts/txn_data_harness/docs/contracts-billing-settlement.md#standalone-credit-memo).
+
+Negative invoice lines convert to credit when the invoice posts (the build's
+Billing Settings); `scenarios/invoice_ingestion/18-negative-line.yaml` makes one,
+and `verify --latest` checks it.
+
 ## When a stage fails
 
 1. `inspect --manifest $RUN --json` shows `reached_stage`, `error` and

@@ -1,0 +1,43 @@
+# Negative invoice line converted to credit -- one Posted invoice with a 200.00
+# line and a -50.00 line (todo 520).
+#
+#   python -m scripts.txn_data_harness.cli run --org <sf-alias> \
+#     --config scripts/txn_data_harness/scenarios/invoice_ingestion/18-negative-line.yaml \
+#     --concurrency 1
+#   python -m scripts.txn_data_harness.cli verify --org <sf-alias> --latest
+#
+# With Billing Settings -> Convert Negative Invoice Lines to Credit Memo Lines on
+# (this repo's billing build turns it on), posting the invoice converts the
+# negative line: a Posted credit memo (SourceAction NegativeInvoiceLineConversion)
+# is created for 50.00 and applied to the positive line, the negative line's
+# ConvertedNegAmount is 50.00 and its Balance 0, and the invoice's Balance stays
+# 150.00 (TotalAmountWithTax 150.00 - 50.00 credited + 50.00 converted).
+# `cli verify` checks that state. With the setting off nothing converts; the
+# convert-to-credit action then converts the line (measured, not wrapped by the
+# harness): scripts/txn_data_harness/docs/contracts-billing-settlement.md ->
+# Negative invoice lines.
+#
+# Prereq: an active non-taxable TaxTreatment (as 15-standalone-billing.yaml).
+# Writes records: Posted invoices and credit memos are not deletable.
+defaults:
+  kind: invoice_ingestion
+  target_stage: invoice_posted
+  invoice:
+    should_calculate_tax: false
+    tax_calculation_status: Posted
+
+scenarios:
+  - account: "Infinitech"
+    count: 1
+    invoice_lines:
+      - name: API Flex
+        sku: QB-API-FLEX
+        quantity: 2
+        unit_price: 100
+        taxable: false
+      - name: API Flex reduction
+        sku: QB-API-FLEX
+        quantity: 1
+        unit_price: 0
+        charge_amount: -50
+        taxable: false

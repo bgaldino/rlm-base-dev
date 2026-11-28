@@ -130,7 +130,11 @@
   "CreditMemo": [
     {
       "Id": "50g000000000001AAA",
-      "Status": "Posted"
+      "Status": "Posted",
+      "TotalAmountWithTax": 100,
+      "NetCreditsApplied": 100,
+      "Balance": 0,
+      "NetRefundsApplied": 0
     }
   ]
 }

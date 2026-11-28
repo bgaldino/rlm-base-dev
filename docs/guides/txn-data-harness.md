@@ -245,8 +245,8 @@ python -m scripts.txn_data_harness.cli prune --older-than 7d --yes     # delete
 
 ### Verifying billing balances
 
-`verify` is read-only. It checks, by id, that each invoice, invoice line and
-payment balance agrees with its payment and credit applications, and that the
+`verify` is read-only. It checks, by id, that each invoice, invoice line,
+payment and credit memo balance agrees with its payment and credit applications, and that the
 applications are all at one level (line or header). Ids may be 15 or 18
 characters. It exits 1 if any check fails, and 2 if the input or a
 Salesforce request is bad. Balance checks run only on what was measured (a
@@ -358,6 +358,8 @@ disposable scratch/sandbox, not something you scrub clean repeatedly):
   delete, void or cancel path was probed. An unapplied or over-paid amount stays
   on the payment or memo and may be applied to the account's next posted invoice,
   or by `cli apply-rules` ([Apply by the rules](quote-to-cash-runbook.md#apply-by-the-rules)).
+  The same holds for memos from `cli credit-memo` and from negative-line
+  conversion ([Credit with a standalone credit memo](quote-to-cash-runbook.md#credit-with-a-standalone-credit-memo)).
 
 ## Troubleshooting
 

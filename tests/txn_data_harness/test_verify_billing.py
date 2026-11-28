@@ -461,8 +461,10 @@ def test_more_ids_than_one_chunk_are_all_read():
     from scripts.txn_data_harness.verify import _id18
     n = 450
     invoices, lines, payments, rows = [], [], [], []
-    unmeasured_invoice = dict.fromkeys(verify_mod._UNMEASURED_INVOICE_FIELDS)
-    unmeasured_line = dict.fromkeys(verify_mod._UNMEASURED_LINE_FIELDS)
+    unmeasured_invoice = dict.fromkeys(verify_mod._UNMEASURED_INVOICE_FIELDS
+                                 + verify_mod._CONVERTED_INVOICE_FIELDS)
+    unmeasured_line = dict.fromkeys(verify_mod._UNMEASURED_LINE_FIELDS
+                              + verify_mod._CONVERTED_LINE_FIELDS)
     for i in range(n):
         iid, lid, pid = (_id18(f"3tt{i:012d}"), _id18(f"5TV{i:012d}"),
                          _id18(f"0aQ{i:012d}"))
@@ -775,7 +777,9 @@ def test_credit_rows_alone_are_evidence_of_the_wrong_level():
             "Id": "0c0000000000099AAA", "InvoiceId": "3tt000000000002AAA",
             "CreditMemoId": "50g000000000099AAA", "Amount": 0, "Type": "Applied",
             "HasBeenUnapplied": "No"})
-        data["CreditMemo"].append({"Id": "50g000000000099AAA", "Status": "Posted"})
+        data["CreditMemo"].append({"Id": "50g000000000099AAA", "Status": "Posted",
+                                   "TotalAmountWithTax": 0, "NetCreditsApplied": 0,
+                                   "Balance": 0, "NetRefundsApplied": None})
     report = _line(level="line", mutate=mutate)
     result = next(r for r in report["checks"] if r["check"] == "application_level"
                   and r["subject"] == "3tt000000000002AAA")
@@ -912,8 +916,10 @@ def _chain(invoices: dict, payments: dict, memos: dict = None) -> dict:
     ids = {name: _id18(f"3tt0000000{i:05d}") for i, name in enumerate(invoices)}
     ids.update({name: _id18(f"0aQ0000000{i:05d}") for i, name in enumerate(payments)})
     ids.update({name: _id18(f"50g0000000{i:05d}") for i, name in enumerate(memos)})
-    blank_inv = dict.fromkeys(verify_mod._UNMEASURED_INVOICE_FIELDS)
-    blank_line = dict.fromkeys(verify_mod._UNMEASURED_LINE_FIELDS)
+    blank_inv = dict.fromkeys(verify_mod._UNMEASURED_INVOICE_FIELDS
+                                 + verify_mod._CONVERTED_INVOICE_FIELDS)
+    blank_line = dict.fromkeys(verify_mod._UNMEASURED_LINE_FIELDS
+                              + verify_mod._CONVERTED_LINE_FIELDS)
     data = {k: [] for k in ("Invoice", "InvoiceLine", "Payment", "PaymentLineInvoiceLine",
                             "CreditMemoLineInvoiceLine", "PaymentLineInvoice",
                             "CreditMemoInvApplication", "CreditMemoLine", "CreditMemo")}
@@ -943,7 +949,10 @@ def _chain(invoices: dict, payments: dict, memos: dict = None) -> dict:
                 "PaymentId": ids[name], "Amount": 10, "Type": "Applied",
                 "UnappliedStatus": "No", "RelatedPaymentLineInvcLineId": None})
     for i, (name, (status, targets)) in enumerate(memos.items()):
-        data["CreditMemo"].append({"Id": ids[name], "Status": status})
+        amount = 5 * len(targets)
+        data["CreditMemo"].append({"Id": ids[name], "Status": status,
+                                   "TotalAmountWithTax": amount, "NetCreditsApplied": amount,
+                                   "Balance": 0, "NetRefundsApplied": None})
         memo_line = f"9yx{i:012d}AAA"
         data["CreditMemoLine"].append({"Id": memo_line, "CreditMemoId": ids[name]})
         for j, target in enumerate(targets):
@@ -1004,22 +1013,23 @@ def test_credit_memo_that_is_not_posted_skips_its_invoices(status):
     ids, skips = report["ids"], _balance_skips(report)
     assert set(skips) == {ids["A"], ids["B"]}
     assert skips[ids["A"]] == (f"linked credit memo {ids['M']}; origin credit memo "
-                               f"{ids['M']}: Status {status or 'null'}; only Posted credit "
-                               "memos are measured")
+                               f"{ids['M']}: Status {status or 'null'} with 2 application "
+                               "row(s); only Posted credit memos and Draft ones with no "
+                               "applications are measured")
     assert report["ok"] is True
 
 
 def test_report_counts_checked_and_skipped_balance_checks():
     report = _line()
-    assert (report["checked"], report["skipped"]) == (8, 1)
-    assert render_text(report).endswith("RESULT: pass (8 checked, 1 skipped)")
+    assert (report["checked"], report["skipped"]) == (10, 1)
+    assert render_text(report).endswith("RESULT: pass (10 checked, 1 skipped)")
     data = _load("line_level.json")
     _row(data, "Invoice", "3tt000000000002AAA")["Status"] = "Draft"
     none_run = _verify(data, ["3tt000000000002AAA"])
     assert (none_run["ok"], none_run["checked"], none_run["skipped"]) == (True, 0, 2)
     assert render_text(none_run).endswith("RESULT: pass (no balances checked; 2 skipped)")
     failed = _line(mutate=lambda d: _row(d, "Payment", "0aQ000000000001EAA").update(Balance=5))
-    assert render_text(failed).endswith("RESULT: fail (payment_balance; 8 checked, 1 skipped)")
+    assert render_text(failed).endswith("RESULT: fail (payment_balance; 10 checked, 1 skipped)")
 
 
 # ------------------------------------------------------------------ CLI
@@ -1053,7 +1063,7 @@ def test_cli_verify_invoice_ids_text_output(recorded_org, capsys):
                    ",".join(LINE_INVOICES), "--payment-ids", LINE_EXTRA_PAYMENTS[0]])
     out = capsys.readouterr().out
     assert rc == 0
-    assert out.strip().endswith("RESULT: pass (8 checked, 1 skipped)")
+    assert out.strip().endswith("RESULT: pass (10 checked, 1 skipped)")
 
 
 def test_cli_verify_forced_wrong_level_exits_one_naming_the_check(recorded_org, capsys):
@@ -1399,7 +1409,8 @@ def test_line_payment_rollup_on_the_wrong_line_fails():
         data["InvoiceLine"].append({
             "Id": "5TV000000000012GAA", "InvoiceId": "3tt000000000001AAA", "Type": "Charge",
             "LineAmount": 0, "NetCreditsApplied": 0, "NetPaymentsApplied": 1000,
-            "Balance": -1000, **dict.fromkeys(verify_mod._UNMEASURED_LINE_FIELDS)})
+            "Balance": -1000, **dict.fromkeys(verify_mod._UNMEASURED_LINE_FIELDS
+                              + verify_mod._CONVERTED_LINE_FIELDS)})
     report = _line(mutate=mutate)
     assert report["failed_checks"] == ["invoice_line_balance"]
     failed = {r["subject"]: r["detail"] for r in report["checks"] if r["status"] == "fail"}
@@ -1442,7 +1453,7 @@ def test_cli_verify_checks_the_payment_ids_a_manifest_names(recorded_org, tmp_pa
 
 def test_fetch_with_no_ids_is_an_error():
     client = RecordedClient({})
-    with pytest.raises(VerifyError, match="no invoice or payment ids to verify"):
+    with pytest.raises(VerifyError, match="no invoice, payment or credit memo ids to verify"):
         fetch_records(client, [], [])
     assert client.queries == []
 
@@ -1452,6 +1463,7 @@ def test_failed_checks_follow_the_check_order():
         _row(data, "Payment", "0aQ000000000002EAA")["Balance"] = 1
         _row(data, "Invoice", "3tt000000000002AAA")["Balance"] = 1
         _row(data, "InvoiceLine", "5TV000000000031GAA")["Balance"] = 1
+        _row(data, "CreditMemo", "50g000000000011AAA")["Balance"] = 1
     report = _line(level="header", mutate=mutate)
     assert report["failed_checks"] == list(CHECK_NAMES)
 
@@ -1552,11 +1564,14 @@ def test_a_reversed_credit_pair_is_checked():
             "RelatedCrMemoLineInvcLineId": "4sG000000000001EAA"})
         _row(data, "Invoice", "3tt000000000003AAA").update(NetCreditsApplied=60, Balance=190)
         _row(data, "InvoiceLine", "5TV000000000031GAA").update(NetCreditsApplied=60, Balance=40)
+        _row(data, "CreditMemo", "50g000000000011AAA").update(NetCreditsApplied=0, Balance=40)
     report = _line(mutate=mutate)
     assert report["ok"] is True, report["failed_checks"]
     inv3 = [r for r in report["checks"] if r["subject"].startswith("3tt000000000003AAA")
             and r["check"] in ("invoice_balance", "invoice_line_balance")]
     assert inv3 and all(r["status"] == "pass" for r in inv3), inv3
+    memo = next(r for r in report["checks"] if r["subject"] == "50g000000000011AAA")
+    assert memo["status"] == "pass" and memo["detail"].endswith("40 = 40 - 0"), memo
 
 
 def test_a_credit_pair_on_another_memo_line_is_skipped():
@@ -1595,6 +1610,8 @@ def test_every_pair_reversed_on_one_invoice_checks_with_settlement_level_null():
         _row(data, "Invoice", "3tt000000000003AAA").update(
             NetCreditsApplied=0, Balance=250, SettlementLevel=None)
         _row(data, "InvoiceLine", "5TV000000000031GAA").update(NetCreditsApplied=0, Balance=100)
+        for memo, amount in (("50g000000000011AAA", 40), ("50g000000000012AAA", 60)):
+            _row(data, "CreditMemo", memo).update(NetCreditsApplied=0, Balance=amount)
     report = _line(mutate=mutate)
     assert report["ok"] is True, report["failed_checks"]
     inv3 = {(r["check"], r["subject"]): r["status"] for r in report["checks"]
