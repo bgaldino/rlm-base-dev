@@ -3,6 +3,7 @@ import { NavigationMixin } from 'lightning/navigation';
 import { gql, graphql } from 'lightning/graphql';
 import invoiceCardLogo from '@salesforce/resourceUrl/RLM_InvoiceCardLogo';
 import getRelatedNames from '@salesforce/apex/RLM_SplitInvoicesController.getRelatedNames';
+import { parseDateOnly } from 'c/rlmDateOnly';
 
 /**
  * Split Invoices Cards – card-based view of split invoices sharing the same CorrelationIdentifier.
@@ -198,7 +199,7 @@ export default class RlmSplitInvoicesCards extends NavigationMixin(LightningElem
             else formattedTotalWithTax = String(totalWithTax);
         }
         const formattedDate = invoiceDate
-            ? new Date(invoiceDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+            ? parseDateOnly(invoiceDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
             : '';
 
         return {

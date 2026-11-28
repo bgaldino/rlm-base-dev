@@ -46,6 +46,24 @@ that fails the build on any >40 value), so the map and the shipped class now agr
   `RLM_InvoiceBatchRunMonitorController`, `RLM_InvoiceSummaryController`,
   `RLM_OnAccountBillingController`.
 
+## Calendar dates
+
+Salesforce Date fields reach the components as `'YYYY-MM-DD'`. `new Date('YYYY-MM-DD')` reads
+that as midnight UTC, which is the day before in any browser behind UTC (all of the Americas): a
+date showed a day early, and the BSG overview's period table moved a schedule starting on the 1st
+into the previous month and left that row with no schedule link (todo 510). The hand-authored
+`lwc/rlmDateOnly` (no UI) reads such a value as that calendar day in the browser's zone. The BSG
+overview, consolidated timeline, schedules timeline and context panel, the billing status pill,
+dispute details, invoice health, the invoice product summary and the split invoice cards read their
+dates through it. Each has a `*.timezones.test.js` suite that sets the browser's zone per case.
+
+### Known limitations
+
+- The BSG hierarchy's status (Pending, Active, Expired) and the invoice aging chart's overdue count
+  still read dates as midnight UTC, so they can be a day off on the start, end or due date itself.
+- "Today" is the browser's date, not the date in the user's Salesforce time zone.
+- A schedule with no end date (evergreen) is not charted in the BSG overview's period table.
+
 ## Create Billing Schedule Group modal
 
 `rlmBillingScheduleGroupModal` calls `RLM_BillingScheduleGroupService`, which invokes

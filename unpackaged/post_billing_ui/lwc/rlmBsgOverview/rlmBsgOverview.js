@@ -3,6 +3,7 @@ import { refreshApex } from '@salesforce/apex';
 import { NavigationMixin } from 'lightning/navigation';
 import getBillingScheduleGroupData from '@salesforce/apex/RLM_BSGTimelineController.getBillingScheduleGroupData';
 import getConsolidatedTimeline from '@salesforce/apex/RLM_BSGTimelineController.getConsolidatedTimeline';
+import { parseDateOnly, dateOnlyKey } from 'c/rlmDateOnly';
 
 export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
     @api recordId;
@@ -162,8 +163,8 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
     get chartSuspensionOverlayStyle() {
         if (!this.hasSuspension || !this.chartGroups || this.chartGroups.length === 0) return '';
         const groups = this.chartGroups;
-        const suspStart = new Date(this.bsgData.suspensionDate);
-        const suspEnd = this.bsgData.resumptionDate ? new Date(this.bsgData.resumptionDate) : null;
+        const suspStart = parseDateOnly(this.bsgData.suspensionDate);
+        const suspEnd = this.bsgData.resumptionDate ? parseDateOnly(this.bsgData.resumptionDate) : null;
 
         if (this._isMilestoneBilling) {
             // Position based on bar indices relative to milestone sortDates
@@ -194,8 +195,8 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
         }
 
         const termUnit = this._getTermUnit();
-        const firstDate = new Date(groups[0].key);
-        const lastDate = new Date(groups[groups.length - 1].key);
+        const firstDate = parseDateOnly(groups[0].key);
+        const lastDate = parseDateOnly(groups[groups.length - 1].key);
         const lastPeriodEnd = this._periodEnd(lastDate, termUnit);
 
         const totalSpan = lastPeriodEnd.getTime() - firstDate.getTime();
@@ -220,12 +221,12 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
     get bsgEndDateChartStyle() {
         if (this._isMilestoneBilling) return '';
         if (!this.bsgData?.endDate || !this.chartGroups || this.chartGroups.length === 0) return '';
-        const endDate = new Date(this.bsgData.endDate);
+        const endDate = parseDateOnly(this.bsgData.endDate);
         const groups = this.chartGroups;
         const termUnit = this._getTermUnit();
 
-        const firstDate = new Date(groups[0].key);
-        const lastDate = new Date(groups[groups.length - 1].key);
+        const firstDate = parseDateOnly(groups[0].key);
+        const lastDate = parseDateOnly(groups[groups.length - 1].key);
         const lastPeriodEnd = this._periodEnd(lastDate, termUnit);
 
         if (endDate > lastPeriodEnd) return '';
@@ -244,8 +245,8 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
         let minDate = null;
         let maxDate = null;
         schedules.forEach(bs => {
-            const s = new Date(bs.startDate);
-            const e = new Date(bs.endDate);
+            const s = parseDateOnly(bs.startDate);
+            const e = parseDateOnly(bs.endDate);
             if (!minDate || s < minDate) minDate = s;
             if (!maxDate || e > maxDate) maxDate = e;
         });
@@ -254,7 +255,7 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
         const totalDays = this.daysBetween(minDate, maxDate);
         if (totalDays === 0) return '';
 
-        const endDate = new Date(this.bsgData.endDate);
+        const endDate = parseDateOnly(this.bsgData.endDate);
         if (endDate > maxDate) return '';
 
         const leftPct = (this.daysBetween(minDate, endDate) / totalDays) * 100;
@@ -273,19 +274,19 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
         let minDate = null;
         let maxDate = null;
         schedules.forEach(bs => {
-            const s = bs.startDate ? new Date(bs.startDate) : null;
-            const e = bs.endDate ? new Date(bs.endDate) : null;
+            const s = bs.startDate ? parseDateOnly(bs.startDate) : null;
+            const e = bs.endDate ? parseDateOnly(bs.endDate) : null;
             if (s && (!minDate || s < minDate)) minDate = s;
             if (e && (!maxDate || e > maxDate)) maxDate = e;
         });
 
         // For milestone BSGs with no end date, use resumption date or a reasonable range
         if (minDate && !maxDate) {
-            const suspEnd = this.bsgData.resumptionDate ? new Date(this.bsgData.resumptionDate) : null;
+            const suspEnd = this.bsgData.resumptionDate ? parseDateOnly(this.bsgData.resumptionDate) : null;
             const lastMilestone = this._isMilestoneBilling && this.milestoneChartItems?.length > 0
                 ? this.milestoneChartItems.reduce((latest, m) => {
                     if (!m.completionDate) return latest;
-                    const d = new Date(m.completionDate);
+                    const d = parseDateOnly(m.completionDate);
                     return (!latest || d > latest) ? d : latest;
                 }, null)
                 : null;
@@ -296,8 +297,8 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
         const totalDays = this.daysBetween(minDate, maxDate);
         if (totalDays === 0) return '';
 
-        const suspStart = new Date(this.bsgData.suspensionDate);
-        const suspEnd = this.bsgData.resumptionDate ? new Date(this.bsgData.resumptionDate) : maxDate;
+        const suspStart = parseDateOnly(this.bsgData.suspensionDate);
+        const suspEnd = this.bsgData.resumptionDate ? parseDateOnly(this.bsgData.resumptionDate) : maxDate;
 
         const leftPct = (this.daysBetween(minDate, suspStart) / totalDays) * 100;
         const widthPct = (this.daysBetween(suspStart, suspEnd) / totalDays) * 100;
@@ -407,7 +408,7 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
         const withDates = items.filter(i => i.completionDate);
         const noDates = items.filter(i => !i.completionDate);
 
-        withDates.sort((a, b) => new Date(a.completionDate) - new Date(b.completionDate));
+        withDates.sort((a, b) => parseDateOnly(a.completionDate) - parseDateOnly(b.completionDate));
 
         const allItems = [...withDates, ...noDates];
 
@@ -421,7 +422,7 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
 
             let label;
             if (item.completionDate) {
-                const d = new Date(item.completionDate);
+                const d = parseDateOnly(item.completionDate);
                 label = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: '2-digit' }).format(d);
             } else {
                 label = 'Event';
@@ -430,7 +431,7 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
             return {
                 key: item.id || String(idx),
                 label,
-                sortDate: item.completionDate ? new Date(item.completionDate) : new Date('2099-12-31'),
+                sortDate: item.completionDate ? parseDateOnly(item.completionDate) : parseDateOnly('2099-12-31'),
                 netAmount: amt,
                 billedAmount: isInvoiced ? amt : 0,
                 pendingAmount: isInvoiced ? 0 : amt,
@@ -568,8 +569,8 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
         let maxDate = null;
         schedules.forEach(bs => {
             if (!bs.startDate || !bs.endDate) return;
-            const s = new Date(bs.startDate);
-            const e = new Date(bs.endDate);
+            const s = parseDateOnly(bs.startDate);
+            const e = parseDateOnly(bs.endDate);
             if (!minDate || s < minDate) minDate = s;
             if (!maxDate || e > maxDate) maxDate = e;
         });
@@ -596,8 +597,8 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
         // billingPeriodAmount only in those buckets. A quarterly BS in a
         // monthly X-axis will show a bar every 3rd month.
         const bsContributions = schedules.map(bs => {
-            const bsStart     = new Date(bs.startDate);
-            const bsEnd       = new Date(bs.endDate);
+            const bsStart     = parseDateOnly(bs.startDate);
+            const bsEnd       = parseDateOnly(bs.endDate);
             const periodAmt   = Math.abs(bs.billingPeriodAmount != null ? bs.billingPeriodAmount : 0);
             const isCredit    = (bs.billingPeriodAmount || 0) < 0;
             const billedAmt   = Math.abs(bs.billedAmount  != null ? bs.billedAmount  : 0);
@@ -610,12 +611,12 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
             const billingBucketKeys = new Set();
             if (bsUnit === 'onetime') {
                 const snap = this._snapToPeriodStart(bsStart, termUnit);
-                billingBucketKeys.add(snap.toISOString().slice(0, 10));
+                billingBucketKeys.add(dateOnlyKey(snap));
             } else {
                 let bsCursor = new Date(bsStart);
                 while (bsCursor <= bsEnd) {
                     const snap = this._snapToPeriodStart(bsCursor, termUnit);
-                    billingBucketKeys.add(snap.toISOString().slice(0, 10));
+                    billingBucketKeys.add(dateOnlyKey(snap));
                     bsCursor = this._advancePeriodByN(bsCursor, bsUnit, bsTerm);
                 }
             }
@@ -627,7 +628,7 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
                 const pe = this._periodEnd(ps, termUnit);
                 if (ps > bsEnd || pe < bsStart) return;
 
-                const key = ps.toISOString().slice(0, 10);
+                const key = dateOnlyKey(ps);
 
                 if (!billingBucketKeys.has(key)) return;
 
@@ -651,8 +652,8 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
         });
 
         // ── Step 3: sum contributions per calendar period, handle suspension ──
-        const suspStart = this.bsgData?.suspensionDate ? new Date(this.bsgData.suspensionDate) : null;
-        const suspEnd   = this.bsgData?.resumptionDate ? new Date(this.bsgData.resumptionDate) : null;
+        const suspStart = this.bsgData?.suspensionDate ? parseDateOnly(this.bsgData.suspensionDate) : null;
+        const suspEnd   = this.bsgData?.resumptionDate ? parseDateOnly(this.bsgData.resumptionDate) : null;
 
         let suspendedBilled  = 0;
         let suspendedPending = 0;
@@ -661,13 +662,13 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
         // If there's a resumption date, find which bucket it falls in
         if (suspEnd) {
             const snap = this._snapToPeriodStart(suspEnd, termUnit);
-            resumptionBucketKey = snap.toISOString().slice(0, 10);
+            resumptionBucketKey = dateOnlyKey(snap);
         }
 
-        const bsgEndDate = this.bsgData?.endDate ? new Date(this.bsgData.endDate) : null;
+        const bsgEndDate = this.bsgData?.endDate ? parseDateOnly(this.bsgData.endDate) : null;
 
         const rawBuckets = periodStarts.map(ps => {
-            const key = ps.toISOString().slice(0, 10);
+            const key = dateOnlyKey(ps);
             const pe  = this._periodEnd(ps, termUnit);
 
             // Check if this period is fully within the suspension window
@@ -923,8 +924,8 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
         let maxDate = null;
 
         schedules.forEach(bs => {
-            const start = new Date(bs.startDate);
-            const end = new Date(bs.endDate);
+            const start = parseDateOnly(bs.startDate);
+            const end = parseDateOnly(bs.endDate);
             if (!minDate || start < minDate) minDate = start;
             if (!maxDate || end > maxDate) maxDate = end;
         });
@@ -939,8 +940,8 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
         const totalDays = this.daysBetween(minDate, maxDate);
 
         this.ganttSchedules = schedules.map(bs => {
-            const startDate = new Date(bs.startDate);
-            const endDate = new Date(bs.endDate);
+            const startDate = parseDateOnly(bs.startDate);
+            const endDate = parseDateOnly(bs.endDate);
 
             const startOffset = this.daysBetween(minDate, startDate);
             const duration = this.daysBetween(startDate, endDate);
@@ -1110,7 +1111,7 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
 
     formatDate(dateString) {
         if (!dateString) return '--';
-        const date = new Date(dateString);
+        const date = parseDateOnly(dateString);
         return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
     }
 

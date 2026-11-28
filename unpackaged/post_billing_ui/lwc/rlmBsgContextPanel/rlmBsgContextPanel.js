@@ -1,6 +1,7 @@
 import { LightningElement, api, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import getBSGContext from '@salesforce/apex/RLM_BSGContextController.getBSGContext';
+import { parseDateOnly } from 'c/rlmDateOnly';
 
 export default class RlmBsgContextPanel extends NavigationMixin(LightningElement) {
     @api recordId;
@@ -265,7 +266,7 @@ export default class RlmBsgContextPanel extends NavigationMixin(LightningElement
 
     _formatDate(dateString) {
         if (!dateString) return '--';
-        const date = new Date(dateString);
+        const date = parseDateOnly(dateString);
         return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
     }
 

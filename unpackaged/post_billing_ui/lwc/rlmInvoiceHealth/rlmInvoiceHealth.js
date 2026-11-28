@@ -1,6 +1,7 @@
 import { LightningElement, api, track, wire } from 'lwc';
 import { gql, graphql } from 'lightning/graphql';
 import { NavigationMixin } from 'lightning/navigation';
+import { parseDateOnly } from 'c/rlmDateOnly';
 
 /**
  * Invoice Health – displays invoice age, status flags, settlement progress, and disputes.
@@ -272,10 +273,11 @@ export default class RlmInvoiceHealth extends NavigationMixin(LightningElement) 
         if (dueDate) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            const due = new Date(dueDate);
+            const due = parseDateOnly(dueDate);
             due.setHours(0, 0, 0, 0);
             const diffMs = due - today;
-            daysUntilDue = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+            // Rounded, not ceiled: across a daylight-saving change two local midnights are 23 or 25 hours apart.
+            daysUntilDue = Math.round(diffMs / (1000 * 60 * 60 * 24));
             if (daysUntilDue < 0) {
                 daysUntilDueText = `${Math.abs(daysUntilDue)} days overdue`;
                 isOverdue = true;
@@ -320,7 +322,7 @@ export default class RlmInvoiceHealth extends NavigationMixin(LightningElement) 
         }
         const isFullySettled = balance === 0 && absTotalAmount > 0;
         const formattedSettlementDate = fullSettlementDate
-            ? new Date(fullSettlementDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+            ? parseDateOnly(fullSettlementDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
             : '';
 
         this.invoiceData = {
@@ -390,7 +392,7 @@ export default class RlmInvoiceHealth extends NavigationMixin(LightningElement) 
                 hasCaseLink: !!caseId,
                 statusClass: this.getDisputeStatusClass(caseStatus),
                 formattedDate: receivedDate
-                    ? new Date(receivedDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                    ? parseDateOnly(receivedDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
                     : ''
             };
         });

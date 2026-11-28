@@ -1,6 +1,7 @@
 import { LightningElement, api, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import getBillingScheduleGroupData from '@salesforce/apex/RLM_BSGTimelineController.getBillingScheduleGroupData';
+import { parseDateOnly } from 'c/rlmDateOnly';
 
 export default class RlmBsgSchedulesTimeline extends NavigationMixin(LightningElement) {
     @api recordId;
@@ -52,8 +53,8 @@ export default class RlmBsgSchedulesTimeline extends NavigationMixin(LightningEl
         let maxDate = null;
         
         schedules.forEach(bs => {
-            const start = new Date(bs.startDate);
-            const end = new Date(bs.endDate);
+            const start = parseDateOnly(bs.startDate);
+            const end = parseDateOnly(bs.endDate);
             
             if (!minDate || start < minDate) minDate = start;
             if (!maxDate || end > maxDate) maxDate = end;
@@ -64,8 +65,8 @@ export default class RlmBsgSchedulesTimeline extends NavigationMixin(LightningEl
         
         // Process each schedule for display
         this.billingSchedules = schedules.map(bs => {
-            const startDate = new Date(bs.startDate);
-            const endDate = new Date(bs.endDate);
+            const startDate = parseDateOnly(bs.startDate);
+            const endDate = parseDateOnly(bs.endDate);
             
             // Calculate position and width
             const totalDays = this.daysBetween(minDate, maxDate);
@@ -209,7 +210,7 @@ export default class RlmBsgSchedulesTimeline extends NavigationMixin(LightningEl
     
     formatDate(dateString) {
         if (!dateString) return '--';
-        const date = new Date(dateString);
+        const date = parseDateOnly(dateString);
         return new Intl.DateTimeFormat('en-US', {
             month: 'short',
             day: 'numeric',

@@ -2,6 +2,7 @@ import { LightningElement, api, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import getBillingScheduleGroupData from '@salesforce/apex/RLM_BSGTimelineController.getBillingScheduleGroupData';
 import getConsolidatedTimeline from '@salesforce/apex/RLM_BSGTimelineController.getConsolidatedTimeline';
+import { parseDateOnly, dateOnlyKey } from 'c/rlmDateOnly';
 
 export default class RlmBsgConsolidatedTimeline extends NavigationMixin(LightningElement) {
     @api recordId;
@@ -233,8 +234,8 @@ export default class RlmBsgConsolidatedTimeline extends NavigationMixin(Lightnin
         let maxDate = null;
         schedules.forEach(bs => {
             if (!bs.startDate || !bs.endDate) return;
-            const s = new Date(bs.startDate);
-            const e = new Date(bs.endDate);
+            const s = parseDateOnly(bs.startDate);
+            const e = parseDateOnly(bs.endDate);
             if (!minDate || s < minDate) minDate = s;
             if (!maxDate || e > maxDate) maxDate = e;
         });
@@ -260,8 +261,8 @@ export default class RlmBsgConsolidatedTimeline extends NavigationMixin(Lightnin
         // Walk its periods in order, filling billed "credit" chronologically.
         // Returns a Map: periodStartISO → { billedAmt, pendingAmt } for this BS
         const bsContributions = schedules.map(bs => {
-            const bsStart     = new Date(bs.startDate);
-            const bsEnd       = new Date(bs.endDate);
+            const bsStart     = parseDateOnly(bs.startDate);
+            const bsEnd       = parseDateOnly(bs.endDate);
             const periodAmt   = Math.abs(bs.billingPeriodAmount != null ? bs.billingPeriodAmount : 0);
             const isCredit    = (bs.billingPeriodAmount || 0) < 0;
             const billedAmt   = Math.abs(bs.billedAmount  != null ? bs.billedAmount  : 0);
@@ -276,7 +277,7 @@ export default class RlmBsgConsolidatedTimeline extends NavigationMixin(Lightnin
                 if (ps > bsEnd || pe < bsStart) return; // BS not active in this period
 
                 if (periodAmt === 0) {
-                    map.set(ps.toISOString().slice(0, 10), { billedAmt: 0, pendingAmt: 0, isCredit });
+                    map.set(dateOnlyKey(ps), { billedAmt: 0, pendingAmt: 0, isCredit });
                     return;
                 }
 
@@ -285,7 +286,7 @@ export default class RlmBsgConsolidatedTimeline extends NavigationMixin(Lightnin
                 const thisPending = periodAmt - thisBilled;
                 billedRemaining   = Math.max(0, billedRemaining - periodAmt);
 
-                map.set(ps.toISOString().slice(0, 10), {
+                map.set(dateOnlyKey(ps), {
                     billedAmt:  Math.round(thisBilled  * 100) / 100,
                     pendingAmt: Math.round(thisPending * 100) / 100,
                     isCredit
@@ -297,7 +298,7 @@ export default class RlmBsgConsolidatedTimeline extends NavigationMixin(Lightnin
 
         // ── Step 3: sum contributions per calendar period ──────────────────
         const buckets = periodStarts.map(ps => {
-            const key = ps.toISOString().slice(0, 10);
+            const key = dateOnlyKey(ps);
 
             let netBilled  = 0;
             let netPending = 0;
@@ -463,7 +464,7 @@ export default class RlmBsgConsolidatedTimeline extends NavigationMixin(Lightnin
 
     formatDate(dateString) {
         if (!dateString) return '--';
-        const date = new Date(dateString);
+        const date = parseDateOnly(dateString);
         return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
     }
 }
