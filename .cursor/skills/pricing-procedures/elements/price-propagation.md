@@ -2,7 +2,7 @@
 
 > Release 264 / API v68.0. Sources: `ind.pricing_price_propagation.htm`,
 > `ind.pricing_configure_the_price_propagation_element.htm`,
-> `ind.pricing_price_propagation_limits.htm`; shipped XML: none (the
+> `ind.pricing_price_propagation_limits.htm`, `ind.pricing_configure_pricing_procedure.htm`; shipped XML: none (the
 > `IsPropagationEnabled=false` flag ships on `PricingSettings` steps); core source
 > (behavior and, for the metadata shape, a test fixture).
 
@@ -32,11 +32,11 @@ Most configuration lives in the Pricing Setting element, not the Propagation ste
 | Use Zero for Null Values | table | | | On: null inputs treated as 0. Off: any formula with a null argument is skipped. [Help: ind.pricing_configure_the_price_propagation_element] |
 | Ascending propagation | table | | | Merged attribute, aggregation `Sum`, child field (e.g. `Sum(!Child.ItemTotalCost)`), up to 3 conditions (e.g. `SellingModelType = 'One Time'`), all must match; non-matching or null items are excluded. [Help: ind.pricing_configure_the_price_propagation_element] |
 | Table template | Builder | | no | Help offers template "Map sales SalesTransactionItem to SalesTransactionGroup" (predefined Sales Transaction Context) instead of a new table. [Help: ind.pricing_configure_the_price_propagation_element] |
-| Price Propagation element | `actionType=PricingPropagation` | | | All configuration is in the Pricing Setting table. [Help: ind.pricing_configure_the_price_propagation_element] |
+| Price Propagation element | `actionType=PricingPropagation` | | | The propagation table is in the Pricing Setting step; the step itself carries only three fixed Literals (see Metadata shape). [inferred] |
 
 ## Placement and ordering
 
-- Build order: Pricing Setting (tick Enable Propagation, map common variables), configure and save the table, add the Propagation element, save and activate. Permission: Salesforce Pricing Design Time. [Help: ind.pricing_configure_the_price_propagation_element]
+- Build order: Pricing Setting (tick Enable Propagation, map common variables), configure and save the table, add the Propagation element, save and activate. Permission: Salesforce Pricing Design Time User. [Help: ind.pricing_configure_the_price_propagation_element]
 - Prerequisite: a context definition with the nested group hierarchy (e.g. Sales Transaction Context) and the mappings that link the procedure to it. [Help: ind.pricing_configure_the_price_propagation_element] See `../../context-service/SKILL.md`.
 - Top-level only; not supported inside a ListGroup. [Help: ind.pricing_price_propagation_limits]
 - Price Propagation can't use local list variables. [Help: ind.pricing_configure_pricing_procedure]
@@ -51,7 +51,7 @@ Most configuration lives in the Pricing Setting element, not the Propagation ste
 | Not allowed inside a List Group (List Container). Save error: `Pricing Propagation element is not allowed in List Container element in the pricing procedure.` | [Core: pricing procedure save validator, 264] |
 | Must stay in sync with Pricing Setting > Enable Propagation, in both directions. Enabled with no element: `You must add Pricing Propagation element when propagation is enabled in the Pricing Settings element.` Element present, not enabled: `You must select Enable Propagation in the Pricing Settings element when the Pricing Propagation element is added.` | [Core: pricing procedure save validator, 264] |
 | Help names Derived Pricing, Map Line Item and Promotions elements as incompatible in the same procedure. | [Help: ind.pricing_price_propagation_limits] |
-| Map Line Item is `BreakdownLineMapping`, which the repo default ships. Core checks `PromotionExecution`, not `GPMPromotionExecution`; `AdvancedPromotionExecution` only for the Communications subtype. Save error: `Pricing Propagation element is not allowed with incompatible elements in the pricing procedure.` | [Core: pricing procedure save validator, 264] |
+| Map Line Item is `BreakdownLineMapping`, which the repo default ships [Repo: force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml]. Core checks `PromotionExecution`, not `GPMPromotionExecution`; `AdvancedPromotionExecution` only for the Communications subtype. Save error: `Pricing Propagation element is not allowed with incompatible elements in the pricing procedure.` | [Core: pricing procedure save validator, 264] |
 | A procedure containing Price Propagation runs sequentially: core marks the element not eligible for parallel execution, and one ineligible element makes the whole procedure sequential (see [../runtime-and-observability.md](../runtime-and-observability.md)). | [Core: pricing propagation runtime, 264] |
 | Do not use in amend, renew or cancel pricing procedures (inaccurate pricing). | [Help: ind.pricing_price_propagation_limits] |
 | Existing procedure must not already contain propagation, derived price or promotion elements before enabling. | [Help: ind.pricing_configure_the_price_propagation_element] |
@@ -89,7 +89,7 @@ The fixture names the steps `PricingSetting` and `PricingPropagation`, with Pric
 
 ## Shipped in this repo (snapshot)
 
-No `PricingPropagation` step in any procedure under `force-app`, `post_procedureplans` or `post_prm_pricing`. `IsPropagationEnabled=false` (seq 1 Pricing Settings step, Literal) ships in `RLM_DefaultPricingProcedure` and `RLM_ProductDiscoveryPricingProcedure` [Repo: force-app/main/default/expressionSetDefinition], `RLM_Revenue_Management_Recalc_Procedure` and `RLM_Price_Distribution_Procedure` [Repo: unpackaged/post_procedureplans/expressionSetDefinition], and `RLM_PRM_DISTI_Pricing_Procedure` [Repo: unpackaged/post_prm_pricing/expressionSetDefinition]. The Pricing Setting step is `PricingSetting` in `RLM_Price_Distribution_Procedure` and `RLM_ProductDiscoveryPricingProcedure`, and `Mapcontexttagstocommonpricingvariables` in `RLM_Revenue_Management_Recalc_Procedure`. No other procedure carries it. Snapshot only. Discover live:
+No `PricingPropagation` step in any procedure under `force-app`, `post_procedureplans` or `post_prm_pricing`. `IsPropagationEnabled=false` (seq 1 Pricing Settings step, Literal) ships in `RLM_DefaultPricingProcedure` and `RLM_ProductDiscoveryPricingProcedure` [Repo: force-app/main/default/expressionSetDefinition], `RLM_Revenue_Management_Recalc_Procedure` and `RLM_Price_Distribution_Procedure` [Repo: unpackaged/post_procedureplans/expressionSetDefinition], and `RLM_PRM_DISTI_Pricing_Procedure` [Repo: unpackaged/post_prm_pricing/expressionSetDefinition]. The Pricing Setting step is named `Mapcontexttagstocommonpricingvariables` in `RLM_DefaultPricingProcedure`, `RLM_PRM_DISTI_Pricing_Procedure` and `RLM_Revenue_Management_Recalc_Procedure`, and `PricingSetting` in `RLM_Price_Distribution_Procedure` and `RLM_ProductDiscoveryPricingProcedure`. No other procedure carries it. Snapshot only. Discover live:
 `python scripts/expression_sets/describe_expression_set.py --target-org <sf_alias> --developer-name <name> --params`
 
 ## Verify
@@ -115,31 +115,32 @@ No `PricingPropagation` step in any procedure under `force-app`, `post_procedure
 ## Runtime behavior
 
 - The step reads changed items from the context change list and builds change sets for propagation items. Only changed tags whose column in the propagation table is Number, Percent or Currency are eligible. [Core: pricing propagation runtime, 264]
-- When the procedure setting that ignores the change set is off and the context has no change list, the run fails with `IGNORE_CHANGE_SET_ERROR`. With that setting on, a separate sequential propagation path runs instead. [Core: pricing propagation runtime, 264]
+- When the procedure setting that ignores the change set is off and the context has no change list, the run fails with `IGNORE_CHANGE_SET_ERROR`. With that setting on, the core code takes a sequential path. [Core: pricing propagation runtime, 264] `ignoreChangeSet` is a field in the Pricing Setting step's waterfall output, set from that procedure setting; it is not a request flag. [inferred]
 
 ## Measured
 
-Procedure with Propagation on: a copy of the default procedure with `IsPropagationEnabled=true`, a small table (item and group nodes, parent-child join, one merged top-to-bottom column) and a `PricingPropagation` step placed right after the Pricing Setting step, created through the Connect expression-set POST (`import_expression_set.py`).
+Procedure with Propagation on: a copy of the default procedure with `IsPropagationEnabled=true`, a small table (item and group nodes, parent-child join, one merged top-to-bottom column) and a `PricingPropagation` step placed right after the Pricing Setting step, created through the Connect expression-set POST (`scripts/expression_sets/import_expression_set.py`). The merged column was `Discount`, merging `ItemDiscountPercentage` and `GroupDiscount__std`, with a top-to-bottom `Copy ( ! Parent )` formula; its variable was a Constant, not mapped to a pricing tag.
 
 - The Connect create accepted the table in the Metadata shape above. [Measured: 2026-11-27, 264, scratch org built from main]
 - The save error `Pricing Propagation element is not allowed with incompatible elements` came from the default's `BreakdownLineMapping` step; the copy saved once that step was removed. [Measured: 2026-11-27, 264, scratch org built from main]
 - With the Propagation step placed second, after the Pricing Setting step, the copy saved. With it last, the save failed with `You can add the Discount Distribution Service element only before the Rounding Rules and Aggregate elements...`, the Discount Distribution ordering rule in [../procedure-anatomy-and-ordering.md](../procedure-anatomy-and-ordering.md) (Rule 1). [Measured: 2026-11-27, 264, scratch org built from main]
 - Variables for merged columns that are not context tags were accepted as Constants in the `variables` list. [Measured: 2026-11-27, 264, scratch org built from main]
-- The create was accepted with top-level `sequenceNumber`s renumbered contiguously from 1. [Measured: 2026-11-27, 264, scratch org built from main]
-- A metadata deploy of a new `ExpressionSetDefinition` (dry run, real deploy, or an unmodified clone of the default) failed; the Connect POST worked. [Measured: 2026-11-27, 264, scratch org built from main]
-- Activating that procedure version with the activation script, `--no-cascade`, succeeded and touched only the expression-set version (no procedure-plan changes). [Measured: 2026-11-27, 264, scratch org built from main]
-- A headless pricing request against the activated copy returned Completed with no errors, and net prices equalled the default's. [Measured: 2026-11-27, 264, scratch org built from main]
-- A headless request needs the header `Pricebook` and `CurrencyIsoCode`; without them `ListPrice` comes back empty and net is 0. [Measured: 2026-11-27, 264, scratch org built from main]
-- A headless request does not run the Propagation step: the waterfall has no propagation entry (`ignoreChangeSet` is true and there is no change list). [Measured: 2026-11-27, 264, scratch org built from main]
-- On a real quote with a group Discount of 10 and two lines, the default procedure priced each line at the list price less 10 percent (list 3899, `NetUnitPrice` 3509.1, line Discount 10). [Measured: 2026-11-27, 264, scratch org built from main]
-- After switching the Revenue Settings pricing procedure to the copy and a Force reprice, the same lines priced at 3509.1 again, and the waterfall contained a `PricingPropagation` step whose output was `propagationId` only. [Measured: 2026-11-27, 264, scratch org built from main]
-- With this table propagation ran and did not change net prices; the group discount already reaches lines under the default procedure. [Measured: 2026-11-27, 264, scratch org built from main]
-- The Revenue Settings pricing procedure is switched with the Robot setup suite `configure_revenue_settings`, which picks the procedure by its Name label. [Measured: 2026-11-27, 264, scratch org built from main]
+- The create was accepted after the request builder renumbered the top-level `sequenceNumber`s contiguously from 1 before the POST. [Measured: 2026-11-27, 264, scratch org built from main]
+- On this scratch org, a metadata deploy of a new `ExpressionSetDefinition` (dry run, real deploy, and an unmodified clone of the default) failed with `couldn't find a record with the ID`, followed by a record id; the Connect POST of the same procedure worked. This does not show that deploying procedures fails elsewhere. [Measured: 2026-11-27, 264, scratch org built from main]
+- Activating that procedure version with `scripts/expression_sets/activate_expression_set.py --activate --no-cascade --confirm` succeeded and touched only the expression-set version (no procedure-plan changes). [Measured: 2026-11-27, 264, scratch org built from main]
+- A headless pricing request against the activated copy returned Completed with no errors, and net prices equalled the default's. [Measured: 2026-11-28, 264, scratch org built from main]
+- A headless request needs the header `Pricebook` and `CurrencyIsoCode`; without them `ListPrice` comes back empty and net is 0. [Measured: 2026-11-28, 264, scratch org built from main]
+- A headless request showed `ignoreChangeSet` true and no change list, and its waterfall had no `PricingPropagation` entry. [Measured: 2026-11-28, 264, scratch org built from main]
+- On a real quote with a group Discount of 10 and two lines, the default procedure priced each line at the list price less 10 percent (list 3899, `NetUnitPrice` 3509.1, line Discount 10). [Measured: 2026-11-28, 264, scratch org built from main]
+- After switching the Revenue Settings pricing procedure to the copy and a Force reprice, the same lines priced at 3509.1 again, and the waterfall contained a `PricingPropagation` step whose output was `propagationId` only; `ignoreChangeSet` was also true there. [Measured: 2026-11-28, 264, scratch org built from main]
+- The table's merged `Discount` column was not mapped to a pricing tag, so net prices were unchanged and nothing follows about whether propagation duplicates the default's group discount. [Measured: 2026-11-28, 264, scratch org built from main]
+- The waterfall gave no evidence of which core path (error or sequential) ran. [Measured: 2026-11-28, 264, scratch org built from main]
+- The Robot setup suite is the way to switch the Revenue Settings pricing procedure. It selects by exact Name label, so override `PRICING_PROCEDURE` with the copy's label. [Repo: robot/rlm-base/tests/setup/configure_revenue_settings.robot]
 
 ## Open questions
 
-- Whether any table makes a propagated group discount change line net prices beyond the default behavior. Check: reprice a quote under the copy with a table that propagates a group value onto lines the default does not discount, and compare line `NetUnitPrice` with the default.
-- Whether dropping `BreakdownLineMapping` changes breakdown lines on orders. Check: place an order from a quote priced by the copy and one priced by the default and compare `OrderItemDetail` rows; the copy also has propagation on, so repeat with a copy that only drops `BreakdownLineMapping`.
-- Why a metadata deploy of a new `ExpressionSetDefinition` fails on a fresh scratch org. Check: deploy an unmodified clone of the default with --dry-run on a second fresh scratch org and read the error.
-- Whether the fixture's tags and nodes (`SalesTransactionGroup`, `GroupSource`, `ParentSalesTransactionItemGroup__std`, the `Group*__std` columns) resolve against this repo's sales transaction context. Check: describe the repo context definition for those tags and nodes.
-- Whether other placements between the Pricing Setting step and Discount Distribution save and price the same. Check: create variants with the Propagation step at other positions before Discount Distribution and reprice.
+- Whether any table makes a propagated group discount change line net prices beyond the default behavior. [Open: reprice a quote under a copy whose propagated column is mapped to a pricing tag, and compare line `NetUnitPrice` with the default]
+- Whether dropping `BreakdownLineMapping` changes breakdown lines on orders. [Open: place an order from a quote priced by the copy and one priced by the default and compare `OrderItemDetail` rows; the copy also has propagation on, so repeat with a copy that only drops `BreakdownLineMapping`]
+- Why a metadata deploy of a new `ExpressionSetDefinition` fails on a fresh scratch org. [Open: deploy an unmodified clone of the default with --dry-run on a second fresh scratch org and read the error]
+- Whether the fixture's tags and nodes (`SalesTransactionGroup`, `GroupSource`, `ParentSalesTransactionItemGroup__std`, the `Group*__std` columns) resolve against this repo's sales transaction context. [Open: describe the repo context definition for those tags and nodes]
+- Whether other placements between the Pricing Setting step and Discount Distribution save and price the same. [Open: create variants with the Propagation step at other positions before Discount Distribution and reprice]
