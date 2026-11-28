@@ -96,6 +96,12 @@ ProductCategoryProduct.csv               # 72 records
   source org kept both from before the rule existed (todo 319, owner decision).
 - The source org's `Unit` UnitOfMeasureClass had no `Type`, which 264 requires. Nothing references
   it, so it was dropped (todo 319).
+- **Columns that never land are not carried**, as in qb-pcm (todo 345): `AttributePicklist.Code`
+  (absent on Revenue Cloud orgs) and the fields 264 describes as neither createable nor updateable:
+  `Product2.SpecificationType` (the CSV had `Commercial` on every row),
+  `ProductCategoryProduct.CatalogId`, `ProductClassificationAttr.UnitOfMeasureId` (three rows had a
+  unit), and `ProductRelatedComponent.ChildProductRole`, `ParentProductRole` and `UnitOfMeasureId`.
+  `Product2.CanRamp` is kept, as in qb-pcm.
 - **Product images use one shipped placeholder (todo 416).** All 78 products point
   `DisplayUrl` at `/resource/RLM_product_placeholder`, a neutral 200x200 image in
   `force-app/main/default/staticresources/` that `deploy_full` deploys on every build. That is

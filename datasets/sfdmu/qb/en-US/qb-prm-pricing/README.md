@@ -65,6 +65,10 @@ sample-data plan (`scratch_data`). Each record carries the same values in every 
 Reseller Program: Category `Reseller`; Apex Dynamics: BillingCountry `US`), so a reload of any one
 plan leaves them unchanged. `check_sfdmu_layering.py` fails if they drift apart again.
 
+`ChannelProgramLevel.RLM_Deal_Expiration_Days__c` and `RLM_Minimum_Deal_Size__c` come from
+`deploy_post_prm` (only with `prm_exp_bundle` and `tso`), not from this overlay's metadata. On other
+builds SFDMU drops the two columns; they stay because those builds load their values (todo 345).
+
 ## Idempotency
 
 This plan is verified idempotent. Running it multiple times against the same org

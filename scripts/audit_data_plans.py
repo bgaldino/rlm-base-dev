@@ -91,14 +91,11 @@ TRIAGED_VALUES: Dict[Tuple[str, str, str, str], frozenset] = {}
 # (plan, object, check, field): why it stands. Each entry is a finding the 264 audit triaged and
 # kept (todo 321); a fix removes its entry, and an entry that no longer matches is reported stale.
 KNOWN_FINDINGS: Dict[Tuple[str, str, str, str], str] = {
-    # AttributePicklist.Code is a B2B Commerce field, absent from Revenue Cloud orgs (todo 319);
-    # SFDMU drops it, so the plans load. Drop the column with the next pcm change (todo 345).
-    **{(plan, "AttributePicklist", "unknown-field", "Code"):
-       "B2B Commerce field, absent on RLM orgs; SFDMU drops it (todo 345)"
-       for plan in ("qb/en-US/qb-pcm", "qb/ja/qb-pcm", "q3/en-US/q3-pcm", "mfg/en-US/mfg-pcm")},
-    # Deployed by deploy_post_prm, which runs only with prm_exp_bundle and tso (todo 345).
+    # Deployed by deploy_post_prm, which runs only with prm_exp_bundle and tso. Kept on purpose
+    # (todo 345): those builds load the plans' values into them (Gold - Reseller: 60 days, 20000),
+    # and nothing a default build deploys reads them. Without the fields SFDMU drops the columns.
     **{(plan, "ChannelProgramLevel", "unknown-field", field):
-       "deployed only with prm_exp_bundle and tso; without them SFDMU drops the column (todo 345)"
+       "deployed only with prm_exp_bundle and tso, whose builds load these values; kept (todo 345)"
        for plan in ("qb/en-US/qb-prm", "qb/en-US/qb-prm-pricing")
        for field in ("RLM_Deal_Expiration_Days__c", "RLM_Minimum_Deal_Size__c")},
     # qb-accounting has no load task yet; its BillingBatchFilterCriteria key is a copy-paste of the
