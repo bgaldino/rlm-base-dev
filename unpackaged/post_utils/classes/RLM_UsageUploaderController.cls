@@ -856,7 +856,7 @@ public with sharing class RLM_UsageUploaderController {
             w.entitlementQuantity = tue.EntitlementQuantity;
             w.usageModelType = tue.UsageModelType;
             w.grantType = tue.GrantType;
-            w.chargeForOverage = overage.resolve(tue.ProductId, tue.UsageResourceId);
+            w.chargeForOverage = overage.resolve(tue.ProductId, tue.UsageResourceId, tue.EffectiveStartDateTime);
             w.startDate = tue.EffectiveStartDateTime;
             w.endDate = tue.EffectiveEndDateTime;
 
@@ -929,6 +929,11 @@ public with sharing class RLM_UsageUploaderController {
      * would not merely be stale — a disagreeing value trips the ambiguity guard and blanks the
      * Active answer. ProductUsageResourcePolicy has no status of its own, so the parent is the
      * only gate available.
+     *
+     * Active still does not mean one row per pair: activateRatingRecords keeps several Active
+     * associations for one product and resource when their effective periods do not overlap (a
+     * policy that changes over time). So each row's period is read too, and OverageLookup
+     * matches it against the entitlement's own start.
      */
     @TestVisible
     private static OverageLookup loadOverageLookup(Set<Id> usageResourceIds) {
@@ -940,6 +945,8 @@ public with sharing class RLM_UsageUploaderController {
             for (ProductUsageResourcePolicy purp : [
                 SELECT ProductUsageResource.ProductId,
                        ProductUsageResource.UsageResourceId,
+                       ProductUsageResource.EffectiveStartDate,
+                       ProductUsageResource.EffectiveEndDate,
                        UsageOveragePolicy.OverageChargeable
                 FROM ProductUsageResourcePolicy
                 WHERE ProductUsageResource.UsageResourceId IN :usageResourceIds
@@ -950,6 +957,8 @@ public with sharing class RLM_UsageUploaderController {
                 lookup.add(
                     purp.ProductUsageResource.ProductId,
                     purp.ProductUsageResource.UsageResourceId,
+                    purp.ProductUsageResource.EffectiveStartDate,
+                    purp.ProductUsageResource.EffectiveEndDate,
                     purp.UsageOveragePolicy.OverageChargeable
                 );
             }
@@ -971,62 +980,98 @@ public with sharing class RLM_UsageUploaderController {
      * *resource*, and a Pack or Commit entitlement has no policy row under its own product.
      * Resolution order follows from that:
      *
-     *   1. the entitlement's own product+resource row, when it has one (the Anchor case);
-     *   2. otherwise the resource's row, when exactly one overage value governs the resource;
+     *   1. the entitlement's own product+resource rows, when it has any (the Anchor case);
+     *   2. otherwise the resource's rows;
      *   3. otherwise null.
      *
      * Step 2 is what keeps a Pack or Commit grant showing the Yes/No the customer is actually
-     * subject to; without it every non-Anchor entitlement renders blank. Step 3 covers the two
-     * ways the answer is genuinely unknown — two Anchors disagreeing about one resource, or two
-     * selling-model rows disagreeing about one product+resource pair. Both are schema-legal, and
-     * a plausible-looking guess on a screen an end user trusts is worse than a blank.
+     * subject to; without it every non-Anchor entitlement renders blank.
+     *
+     * Within a step, rows are matched by period first: only the rows whose effective period
+     * contains the entitlement's start count. A policy that changes over time is several Active
+     * rows with non-overlapping periods (activateRatingRecords keeps them), and an entitlement
+     * belongs to one of them. The answer is the value the counted rows agree on, and null when
+     * they disagree: two Anchors, or two selling-model rows, giving different values for the
+     * same period. Both are schema-legal, and a plausible-looking guess on a screen an end user
+     * trusts is worse than a blank.
+     *
+     * When no row's period contains the start, or the entitlement has none, every row of the
+     * step counts, which is the period-blind rule this replaced. So an entitlement that resolved
+     * before period matching resolves to the same value now.
      */
     @TestVisible
     private class OverageLookup {
-        private Map<String, String> byProductResource = new Map<String, String>();
-        private Set<String> conflictingPairs = new Set<String>();
-        private Map<Id, String> byResource = new Map<Id, String>();
-        private Set<Id> conflictingResources = new Set<Id>();
+        private Map<String, List<OveragePeriod>> byProductResource = new Map<String, List<OveragePeriod>>();
+        private Map<Id, List<OveragePeriod>> byResource = new Map<Id, List<OveragePeriod>>();
 
         @TestVisible
-        private void add(Id productId, Id usageResourceId, String overageChargeable) {
+        private void add(Id productId, Id usageResourceId, Datetime startAt, Datetime endAt, String overageChargeable) {
             if (usageResourceId == null) {
                 return;
             }
-
-            String pair = productId == null ? null : productId + '|' + usageResourceId;
-            if (pair != null && !conflictingPairs.contains(pair)) {
+            OveragePeriod row = new OveragePeriod(startAt, endAt, overageChargeable);
+            if (productId != null) {
+                String pair = productId + '|' + usageResourceId;
                 if (!byProductResource.containsKey(pair)) {
-                    byProductResource.put(pair, overageChargeable);
-                } else if (byProductResource.get(pair) != overageChargeable) {
-                    conflictingPairs.add(pair);
-                    byProductResource.remove(pair);
+                    byProductResource.put(pair, new List<OveragePeriod>());
                 }
-            }
-
-            if (conflictingResources.contains(usageResourceId)) {
-                return;
+                byProductResource.get(pair).add(row);
             }
             if (!byResource.containsKey(usageResourceId)) {
-                byResource.put(usageResourceId, overageChargeable);
-            } else if (byResource.get(usageResourceId) != overageChargeable) {
-                conflictingResources.add(usageResourceId);
-                byResource.remove(usageResourceId);
+                byResource.put(usageResourceId, new List<OveragePeriod>());
             }
+            byResource.get(usageResourceId).add(row);
         }
 
         @TestVisible
-        private String resolve(Id productId, Id usageResourceId) {
+        private String resolve(Id productId, Id usageResourceId, Datetime asOf) {
             if (productId != null) {
-                String pair = productId + '|' + usageResourceId;
-                if (conflictingPairs.contains(pair)) {
-                    return null;
-                }
-                if (byProductResource.containsKey(pair)) {
-                    return byProductResource.get(pair);
+                List<OveragePeriod> pairRows = byProductResource.get(productId + '|' + usageResourceId);
+                if (pairRows != null) {
+                    return agreedValue(pairRows, asOf);
                 }
             }
-            return byResource.get(usageResourceId);
+            List<OveragePeriod> resourceRows = byResource.get(usageResourceId);
+            return resourceRows == null ? null : agreedValue(resourceRows, asOf);
+        }
+
+        private String agreedValue(List<OveragePeriod> rows, Datetime asOf) {
+            List<OveragePeriod> counted = new List<OveragePeriod>();
+            for (OveragePeriod row : rows) {
+                if (row.covers(asOf)) {
+                    counted.add(row);
+                }
+            }
+            if (counted.isEmpty()) {
+                counted = rows;
+            }
+            String value = counted[0].value;
+            for (OveragePeriod row : counted) {
+                if (row.value != value) {
+                    return null;
+                }
+            }
+            return value;
+        }
+    }
+
+    /** One policy row's value, with the effective period of the association that carries it. */
+    private class OveragePeriod {
+        private Datetime startAt;
+        private Datetime endAt;
+        private String value;
+
+        private OveragePeriod(Datetime startAt, Datetime endAt, String value) {
+            this.startAt = startAt;
+            this.endAt = endAt;
+            this.value = value;
+        }
+
+        // A null bound is open; both bounds are inclusive, as in activateRatingRecords.
+        private Boolean covers(Datetime asOf) {
+            return asOf != null
+                && (startAt == null || startAt <= asOf)
+                && (endAt == null || endAt >= asOf);
         }
     }
 }
