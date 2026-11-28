@@ -28,6 +28,7 @@ This plan is executed as **step 2** of the `prepare_billing` flow (when `billing
 | 16   | `prepare_billing_portal` (flow)         | see that flow      | Self-Service Billing Portal steps                                                       |
 | 17   | `recalculate_billing_psg_after_settings` | billing           | Recalculates `RLM_RCB` after the billing settings add fields                            |
 | 18   | `create_invoice_schedulers`             | billing+!refresh   | Creates the inactive sample invoice schedulers in `InvoiceSchedulers.json` via the Connect API; see [Sample invoice schedulers](#sample-invoice-schedulers-connect-api) |
+| 19   | `seed_billing_arrangement_sample`       | billing+qb+tax+sample_data+!refresh | Runs `seedBillingArrangementSample.apex`: sample accounts, a 40/30/30 billing arrangement and three standalone schedules with custom invoice group keys; see [Split billing and invoice grouping samples](#split-billing-and-invoice-grouping-samples-apex-seed) |
 
 ### Task Definition
 
@@ -128,6 +129,42 @@ The object reference names the two target-date fields `TargetDayOfMonth` and `Ta
 - **To demo:** App Launcher, Billing Batch Schedulers, open the sample. Before it is set Active, give it filter criteria (for example a billing account) so it invoices only demo data, and check its dates; editing in the UI was not checked here, so use the PUT above if the UI refuses. The UI path for a new scheduler is in Help: *Generate Invoices Automatically Based on Billing Schedules*. Don't start an invoice run while a catch-up run is in progress (Help: *Catch-Up Bill Runs*). Generate Invoice Documents needs batch document generation (deployed by `prepare_docgen`); a billing persona also needs the DocGen sets described in `docs/references/revenue-cloud-permissions.md` → *Billing personas and invoice documents*.
 - **Not measured:** a run of any sample. Each was created and read back only.
 
+## Split Billing and Invoice Grouping Samples (Apex seed)
+
+`seed_billing_arrangement_sample` (`scripts/apex/seedBillingArrangementSample.apex`, `prepare_billing` step 19) creates the setup a demo of split billing (Help: *Manage Billing Arrangements*) and of custom invoice grouping (Help: *Define Invoice Grouping on a Billing Schedule*) needs. It creates no invoice and starts no run.
+
+| Records | What the seed creates |
+|---------|-----------------------|
+| `Account`, `Contact` | `Sample Split Billing Owner`, `Sample Split Billing Partner A`, `Sample Split Billing Partner B` and `Sample Standalone Policyholder`, each with one contact |
+| `BillingAccount` | One default billing account (the billing profile) per sample account, with that contact as bill-to and the Default Payment Term |
+| `BillingArrangement` | `Sample Split Billing 40-30-30`, Active, attached to no order or schedule group |
+| `BillingArrangementLine` | Owner 40% (also bills any remainder), Partner A 30%, Partner B 30%, as in the Help example *Shared or Split Billing Across Accounts* |
+| `BillingSchedule` and its group | Three standalone schedules for the policyholder (`QB-API-FLEX`, 12 months at 100 a month, billed monthly in advance from the day of the build), Invoice Group Type Custom, keys `POLICY_1001` (two schedules) and `POLICY_1002` (one) |
+
+- **Why Apex.** Arrangement lines are added while the arrangement is Draft, and then it is activated. Billing schedules come only from an order or from the Create Standalone Billing Schedules action, which the script calls (`createBillingSchedulesFromTrxn`). `BillingAccount`, `BillingArrangement` and `BillingArrangementLine` are createable by DML; on `BillingSchedule`, `InvoiceGroupType` and `CustomInvoiceGroupKey` are updateable and `GroupingKey` is computed [Measured: 2026-11-28, 264, scratch].
+- **Why new accounts.** The shared sample accounts load later in the build (`prepare_scratch`), and the transaction harness relies on Global Media having no billing account.
+- **Idempotent.** Accounts are found by name, contacts and billing accounts by account, the arrangement by name (an existing one is left as it is) and the schedules by their transaction reference (`SAMPLE-POLICY-…`). A rerun created nothing [Measured: 2026-11-28, 264, scratch].
+- **Group key format.** A key may hold only letters, digits, underscores and periods; a hyphen is refused [Measured: 2026-11-28, 264, scratch].
+
+### Demo: split billing
+
+1. Create an order for `Sample Split Billing Owner`. With `billing_ui` on, set the order's **Billing Arrangement** field (`RLM_Billing_Arrangement__c`) to `Sample Split Billing 40-30-30` before activating it; `apply_context_billing_order` maps it onto the order's billing schedule group. Without `billing_ui`, open the schedule group after activation, then Billing Arrangements tab, Manage Billing Arrangements (Help: *Configure Billing Arrangements for Billing Schedule Groups*).
+2. Activate the order and use Preview Invoices on the order, either partner account or the schedule group. An order of 900 previewed as three invoices of 360, 270 and 270 before tax, one per billing account, each to that account's bill-to contact. A preview for Partner B, which owns nothing, returned the same three invoices [Measured: 2026-11-28, 264, scratch].
+3. Generate invoices for the order or one of the accounts, then open one invoice's Split Invoices tab. Posting, voiding or deleting one split invoice does the same to the others (Help: *Review Split Invoices Before Posting, Voiding, or Deleting*).
+
+### Demo: invoice grouping
+
+Preview the policyholder account, or the three schedules by id. The preview returned two invoices: `POLICY_1001` with two lines (200) and `POLICY_1002` with one line (100), each carrying its key in `customGroupingKey`. Before the keys were set, the same schedules previewed as one invoice [Measured: 2026-11-28, 264, scratch].
+
+Headless preview: `POST /services/data/v68.0/commerce/invoicing/invoices/collection/actions/preview` with `billingTransactionId` (an order, account or schedule group id) or `billingScheduleIds` (a list of schedule ids), plus `numberOfBillingPeriods` and `previewDate`. The 264 dev guide's input page lists only `billingTransactionId`; the list was accepted [Measured: 2026-11-28, 264, scratch].
+
+### Known limitations
+
+- The grouping schedules are real and due from the day of the build: an invoice run with no filter criteria (an activated sample scheduler, for example) or Generate Invoices on the policyholder account invoices them. A schedule group that was never invoiced can be deleted, and its schedule went with it [Measured: 2026-11-28, 264, scratch].
+- In the measured previews every split invoice carried the order's billing address, not the address on its own billing account, although Help says the billing profile's address takes precedence. Not investigated.
+- The four billing accounts make the sample accounts billing-ready for the transaction harness. With no `account:` pinned, the harness takes the first billing account its query returns, which may now be a sample account; the bundled scenarios all pin one.
+- Not measured here: an invoice run of either sample, the Split Invoices tab, and an amendment of an arrangement order.
+
 ## Apex Activation Scripts
 
 ### `activateDefaultPaymentTerm.apex`
@@ -214,6 +251,10 @@ Chart of accounts (51 GL accounts) with 8 assignment rules mapping transaction t
 ### Sample Invoice Schedulers (Connect-API task, not SFDMU)
 
 4 inactive `BillingBatchScheduler` records, each with its `InvoiceBatchRunCriteria`, created by `create_invoice_schedulers` (`prepare_billing` step 18) from `InvoiceSchedulers.json` — see [Sample Invoice Schedulers (Connect API)](#sample-invoice-schedulers-connect-api).
+
+### Split Billing and Invoice Grouping Samples (Apex seed, not SFDMU)
+
+4 sample accounts with contacts and billing accounts, 1 billing arrangement with 3 lines, and 3 standalone billing schedules with custom invoice group keys, created by `seed_billing_arrangement_sample` (`prepare_billing` step 19) — see [Split Billing and Invoice Grouping Samples](#split-billing-and-invoice-grouping-samples-apex-seed).
 
 ## Composite External IDs
 

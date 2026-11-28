@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**271 tasks** across **9 groups**.
+**272 tasks** across **9 groups**.
 
 **Options** lists the defaults `cumulusci.yml` sets. Every option a task takes, and which are required: `cci task info <task>`.
 
@@ -875,7 +875,7 @@
 
 ## Revenue Lifecycle Management
 
-*179 task(s)*
+*180 task(s)*
 
 ### `activate_agents`
 
@@ -3013,6 +3013,18 @@
 **Description:** Restore the placeholder siteAdmin and siteGuestRecordDefaultOwner in Payments_Webhook.site-meta.xml after deploy_post_payments_site so the repo never stores the target org's real username. Run AFTER deploy_post_payments_site.
 
 **Class:** `tasks.rlm_community.RevertPaymentsSiteAfterDeploy`
+
+---
+
+### `seed_billing_arrangement_sample`
+
+**Description:** Seed the split billing and invoice grouping samples: four sample accounts with contacts and billing accounts, an Active billing arrangement billed 40/30/30 (attached to nothing), and three standalone billing schedules (Create Standalone Billing Schedules action) with custom invoice group keys POLICY_1001 and POLICY_1002. Creates no invoice. Idempotent. See scripts/apex/seedBillingArrangementSample.apex and the qb-billing README.
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/seedBillingArrangementSample.apex`
 
 ---
 
