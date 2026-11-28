@@ -1,0 +1,674 @@
+{
+  "provenance": {
+    "release": "264",
+    "apiVersion": "68.0",
+    "verifiedOn": "2026-08-15",
+    "method": "describe extraction from fresh ent-shape orgs; custom fields excluded",
+    "coreSourceValidated": false
+  },
+  "objects": {
+    "RatingRequestBatchJob": {
+      "domain": "Rate Management",
+      "fields": {
+        "BatchJobId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "ID of the batch job that triggered the rating request on the aggregated records. This field is a relationship field.",
+          "relationshipName": "BatchJob",
+          "refersTo": "BatchJob",
+          "type": "reference"
+        },
+        "ErrorCode": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "Error code that defines the batch job failure.",
+          "type": "string"
+        },
+        "ErrorMessage": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "Error message that describes the cause of the batch job failure.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Timestamp for when the current user last referred to this record.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Timestamp for when the current user last viewed a record related to this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "Name of the rating request batch job record.",
+          "type": "string"
+        },
+        "RatingRequestId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "ID of the rating request record associated with the batch job. This field is a relationship field.",
+          "relationshipName": "RatingRequest",
+          "type": "reference",
+          "refersTo": "RatingRequest"
+        }
+      },
+      "domainShort": "Rates",
+      "isStandard": false
+    },
+    "RateAdjustmentByTier": {
+      "domain": "Rate Management",
+      "fields": {
+        "AdjustmentType": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "Type of rate adjustment. Valid values are: • Amount • Override",
+          "type": "picklist"
+        },
+        "AdjustmentValue": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "Value of the rate adjustment based on the selected adjustment type.",
+          "type": "dateTime"
+        },
+        "EffectiveFrom": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Date and time until when the associated rate card entry remains effective.",
+          "type": "dateTime"
+        },
+        "EffectiveTo": {},
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Timestamp for when the current user last referred to this record.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Timestamp for when the current user last viewed a record related to this record.",
+          "type": "double"
+        },
+        "LowerBound": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "Minimum quantity of the rate adjustment value that can be applied to the record. This value must be a positive integer and must be less than the upper bound of the tier.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "Auto-generated identifier for the rate adjustment by tier record.",
+          "type": "string"
+        },
+        "ProductId": {
+          "properties": "Filter, Group, Nillable, Sort",
+          "description": "ID of the product whose resource is being used as the associated rate card entry. This field is a relationship field.",
+          "relationshipName": "Product",
+          "refersTo": "Product2",
+          "type": "reference"
+        },
+        "ProductSellingModelId": {
+          "properties": "Filter, Group, Nillable, Sort",
+          "description": "ID of the product selling model for the associated rate card entry record. This field is a relationship field.",
+          "relationshipName": "ProductSellingModel",
+          "refersTo": "ProductSellingModel",
+          "type": "reference"
+        },
+        "RateCardEntryId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "ID of the rate card entry associated with this rate adjustment by tier record. This field is a relationship field.",
+          "relationshipName": "RateCardEntry",
+          "relationshipType": "Master-detail",
+          "refersTo": "RateCardEntry",
+          "type": "reference"
+        },
+        "RateCardEntryStatus": {
+          "properties": "Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort",
+          "description": "Status of the rate card entry associated with this rate adjustment by tier. Valid values are: • Active • Draft • Inactive The default value is Draft. Available in API version 63.0 and later.",
+          "type": "picklist"
+        },
+        "RateCardId": {
+          "properties": "Filter, Group, Sort",
+          "description": "ID of the rate card of the associated rate card entry. This field is a relationship field.",
+          "relationshipName": "RateCard",
+          "refersTo": "RateCard",
+          "type": "reference"
+        },
+        "RateUnitOfMeasureId": {
+          "properties": "Filter, Group, Sort",
+          "description": "ID of the standard unit of measure record of the associated rate card entry. This field is a relationship field.",
+          "relationshipName": "RateUnitOfMeasure",
+          "refersTo": "UnitOfMeasure",
+          "type": "reference"
+        },
+        "RateUnitOfMeasureName": {
+          "properties": "Filter, Group, Sort",
+          "description": "Name of the standard unit of measure record of the associated rate card entry.",
+          "type": "double"
+        },
+        "UpperBound": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "Maximum quantity of the rate adjustment value that can be applied to the record. This value must be a positive double and must be greater than the lower bound of the tier."
+        },
+        "UsageResourceId": {
+          "description": "Reference to UsageResource",
+          "type": "reference",
+          "refersTo": "UsageResource",
+          "relationshipType": "lookup"
+        }
+      },
+      "pages": [
+        852,
+        855
+      ],
+      "domainShort": "Rates",
+      "isStandard": false
+    },
+    "BindingObjectCustomExt": {
+      "domain": "Rate Management",
+      "fields": {
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date when this record was last referenced.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed a record related to this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "The name of the binding custom object record.",
+          "type": "string"
+        },
+        "OwnerId": {
+          "type": "reference",
+          "refersTo": "Group, User"
+        }
+      },
+      "domainShort": "Rates",
+      "isStandard": false
+    },
+    "RateAdjustmentByAttribute": {
+      "domain": "Rate Management",
+      "description": "Represents the adjustments that determine the rate of a resource based on its rate-impacting attributes.",
+      "fields": {
+        "AdjustmentType": {
+          "type": "picklist",
+          "description": "Type of rate adjustment."
+        },
+        "AdjustmentValue": {
+          "type": "double",
+          "description": "Value of the rate adjustment based on the selected adjustment type."
+        },
+        "AttributeBasedAdjRuleId": {
+          "type": "reference",
+          "refersTo": "AttributeBasedAdjRule",
+          "description": "ID of the attribute based adjustment rule associated with this rate adjustment by attribute record."
+        },
+        "EffectiveFrom": {
+          "type": "dateTime",
+          "description": "Date and time when the associated rate card entry comes into effect."
+        },
+        "EffectiveTo": {
+          "type": "dateTime",
+          "description": "Date and time until when the associated rate card entry remains effective."
+        },
+        "Name": {
+          "type": "string",
+          "description": "Auto-generated identifier for the rate adjustment by attribute record."
+        },
+        "ProductId": {
+          "type": "reference",
+          "refersTo": "Product2",
+          "description": "ID of the product whose resource is being used as the associated rate card entry."
+        },
+        "ProductSellingModelId": {
+          "type": "reference",
+          "refersTo": "ProductSellingModel",
+          "description": "ID of the product selling model for the associated rate card entry."
+        },
+        "RateCardEntryId": {
+          "type": "reference",
+          "refersTo": "RateCardEntry",
+          "description": "ID of the rate card entry associated with this rate adjustment by attribute record."
+        },
+        "RateCardEntryStatus": {
+          "type": "picklist",
+          "description": "Status of the rate card entry associated with this rate adjustment by attribute."
+        },
+        "RateCardId": {
+          "type": "reference",
+          "refersTo": "RateCard",
+          "description": "ID of the rate card of the associated rate card entry."
+        },
+        "RateUnitOfMeasureId": {
+          "type": "reference",
+          "refersTo": "UnitOfMeasure",
+          "description": "ID of the standard unit of measure record of the associated rate card entry."
+        },
+        "RateUnitOfMeasureName": {
+          "type": "string",
+          "description": "Name of the standard unit of measure record of the associated rate card entry."
+        },
+        "UsageResourceId": {
+          "type": "reference",
+          "refersTo": "UsageResource",
+          "description": "ID of the resource selected for the associated rate card entry."
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "AttributeAdjConditionsHash": {
+          "description": "Attribute Adjustment Conditions Hash",
+          "type": "string"
+        },
+        "AttributeCount": {
+          "description": "Attribute Count",
+          "type": "int"
+        }
+      },
+      "domainShort": "Rates",
+      "isStandard": false
+    },
+    "BindingObjectRateCardEntry": {
+      "domain": "Rate Management",
+      "fields": {
+        "BindingObjectId": {
+          "properties": "Filter, Group, Sort",
+          "description": "The object associated with the entitlements that are granted with the sellable product. This field is a polymorphic relationship field.",
+          "relationshipName": "BindingObject",
+          "refersTo": "Account, BindingObjectCustomExt, Contract",
+          "type": "reference"
+        },
+        "BindingObjectRateOrder": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The order that determines the applicable binding object rate when multiple rates are defined for an Anchor target within an effective period. Available in API version 65.0 and later.",
+          "type": "string"
+        },
+        "BindingObjectUsageResourceKey": {
+          "properties": "Filter, Group, idLookup, Nillable, Sort",
+          "description": "Specifies the autogenerated composite key combining the BindingObjectId and UsageResourceId fields. The format used is BindingObjectId_UsageResourceId and must be within 18 characters. The key is generated on saving the BindingObjectRateCardEntry record. For example,001xx000003Gc4FAAS_1BRxx0000004C95GAE. Available in API version 66.0 and later.",
+          "type": "dateTime"
+        },
+        "EffectiveFrom": {},
+        "Name": {
+          "description": "The autogenerated identifier for the binding object rate adjustment record.",
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "type": "double"
+        },
+        "RateCardEntryId": {
+          "description": "Rate Card Entry ID",
+          "type": "reference",
+          "refersTo": "RateCardEntry",
+          "relationshipType": "lookup"
+        },
+        "SourceAssetId": {
+          "description": "Asset ID",
+          "type": "reference",
+          "refersTo": "Asset",
+          "relationshipType": "lookup"
+        },
+        "RateCardId": {
+          "description": "Rate Card ID",
+          "type": "reference",
+          "refersTo": "RateCard",
+          "relationshipType": "lookup"
+        },
+        "UsageResourceId": {
+          "description": "Usage Resource ID",
+          "type": "reference",
+          "refersTo": "UsageResource",
+          "relationshipType": "lookup"
+        },
+        "RateUnitOfMeasureId": {
+          "description": "Unit of Measure ID",
+          "type": "reference",
+          "refersTo": "UnitOfMeasure",
+          "relationshipType": "lookup"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "NegotiatedRate": {
+          "description": "Negotiated Rate",
+          "type": "double"
+        },
+        "EffectiveTo": {
+          "description": "Effective To",
+          "type": "datetime"
+        },
+        "RateCardType": {
+          "description": "Rate Card Type",
+          "type": "picklist"
+        }
+      },
+      "domainShort": "Rates",
+      "isStandard": false
+    },
+    "RatingFrequencyPolicy": {
+      "domain": "Rate Management",
+      "fields": {
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Timestamp for when the current user last referred to this record.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Timestamp for when the current user last viewed a record related to this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "Auto-generated identifier for the rating frequency policy record.",
+          "type": "string"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "ID of the user who created the record. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "refersTo": "Group, User",
+          "type": "reference"
+        },
+        "RatingDelayDuration": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "Duration of delay—in hours—post the billing period after which the rating is to be triggered.",
+          "type": "picklist"
+        },
+        "RatingDelayDurationUnit": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "Specifies the unit for the specified rating delay duration. Available in API version 65.0 and later. Valid values are: • Days"
+        },
+        "RatingPeriod": {
+          "description": "",
+          "type": "picklist"
+        }
+      },
+      "pages": [
+        864,
+        865
+      ],
+      "domainShort": "Rates",
+      "isStandard": false
+    },
+    "PriceBookRateCard": {
+      "domain": "Rate Management",
+      "fields": {
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Timestamp for when the current user last referred to this record.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "type": "dateTime"
+        },
+        "RateCardType": {
+          "description": "",
+          "type": "string"
+        },
+        "PriceBookId": {
+          "description": "Reference to Pricebook2",
+          "type": "reference",
+          "refersTo": "Pricebook2",
+          "relationshipType": "lookup"
+        },
+        "RateCardId": {
+          "description": "Reference to RateCard",
+          "type": "reference",
+          "refersTo": "RateCard",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        }
+      },
+      "domainShort": "Rates",
+      "isStandard": false
+    },
+    "BindingObjectRateAdjustment": {
+      "domain": "Rate Management",
+      "fields": {
+        "AdjustmentType": {
+          "properties": "Filter, Group, Restricted picklist, Sort",
+          "description": "The type of rate adjustment related to the associated rate card entry. Valid values are: • Amount • Override • Percentage",
+          "type": "picklist"
+        },
+        "AdjustmentValue": {
+          "properties": "Filter, Sort",
+          "description": "The value of the rate adjustment based on the adjustment type.",
+          "type": "double"
+        },
+        "BindingObjectRateCardEntryId": {
+          "properties": "Filter, Group, Sort",
+          "description": "The binding object rate card entry associated with the binding object rate adjustment. This field is a relationship field.",
+          "relationshipName": "BindingObjectRateCardEntry",
+          "relationshipType": "Master-detail",
+          "refersTo": "BindingObjectRateCardEntry",
+          "type": "reference"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Timestamp for when the current user last referred to this record.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Timestamp for when the current user last viewed a record related to this record.",
+          "type": "double"
+        },
+        "LowerBound": {
+          "properties": "Filter, Sort"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "UpperBound": {
+          "description": "Upper Bound",
+          "type": "double"
+        }
+      },
+      "domainShort": "Rates",
+      "isStandard": false
+    },
+    "RateCardEntry": {
+      "domain": "Rate Management",
+      "description": "Represents a rule that determines the charge rate for using a product's resource.",
+      "fields": {
+        "DefaultUnitOfMeasureClassId": {
+          "type": "reference",
+          "refersTo": "UnitOfMeasureClass",
+          "description": "ID of the default unit of measure classification record associated with this rate card entry."
+        },
+        "DefaultUnitOfMeasureId": {
+          "type": "reference",
+          "refersTo": "UnitOfMeasure",
+          "description": "ID of the default unit of measure record associated with this rate card entry."
+        },
+        "EffectiveFrom": {
+          "type": "dateTime",
+          "description": "Date and time when the rate card entry comes into effect."
+        },
+        "EffectiveTo": {
+          "type": "dateTime",
+          "description": "Date and time until when the rate card entry remains effective."
+        },
+        "Name": {
+          "type": "string",
+          "description": "Autogenerated identifier for the rate card entry record."
+        },
+        "ProductId": {
+          "type": "reference",
+          "refersTo": "Product2",
+          "description": "ID of the product associated with the resource for which the rate is specified."
+        },
+        "ProductSellingModelId": {
+          "type": "reference",
+          "refersTo": "ProductSellingModel",
+          "description": "ID of the product selling model associated with this rate card entry."
+        },
+        "Rate": {
+          "type": "double",
+          "description": "Value of the rate card entry."
+        },
+        "RateCardId": {
+          "type": "reference",
+          "refersTo": "RateCard",
+          "description": "ID of the rate card associated with this rate card entry."
+        },
+        "RateCardType": {
+          "type": "picklist",
+          "description": "Type of rate card associated with this rate card entry."
+        },
+        "RateNegotiation": {
+          "type": "picklist",
+          "description": "Type of rate negotiation applicable to the rate card entry."
+        },
+        "RateUnitOfMeasureClassId": {
+          "type": "reference",
+          "refersTo": "UnitOfMeasureClass",
+          "description": "ID of the unit of measure classification record associated with this rate card entry."
+        },
+        "RateUnitOfMeasureId": {
+          "type": "reference",
+          "refersTo": "UnitOfMeasure",
+          "description": "ID of the standard unit of measure record associated with this rate card entry."
+        },
+        "RateUnitOfMeasureName": {
+          "type": "string",
+          "description": "Name of the standard unit of measure record of the associated rate card entry."
+        },
+        "Status": {
+          "type": "picklist",
+          "description": "Status of the rate card entry."
+        },
+        "UsageProductId": {
+          "type": "reference",
+          "refersTo": "Product2",
+          "description": "ID of the product associated with the resource for which the rate is specified."
+        },
+        "UsageResourceId": {
+          "type": "reference",
+          "refersTo": "UsageResource",
+          "description": "ID of the resource associated with this rate card entry."
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        }
+      },
+      "domainShort": "Rates",
+      "isStandard": false
+    },
+    "RateCard": {
+      "domain": "Rate Management",
+      "fields": {
+        "EffectiveFrom": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "Date and time when the rate card becomes effective.",
+          "type": "dateTime"
+        },
+        "EffectiveTo": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "Date and time until when the rate card remains effective.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Timestamp for when the current user last referred to this record.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Timestamp for when the current user last viewed a record related to this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "Name of the rate card.",
+          "type": "string"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "ID of the user who created the record.",
+          "type": "reference",
+          "refersTo": "Group, User"
+        },
+        "Description": {
+          "type": "string",
+          "description": "Description about the rate card."
+        },
+        "Type": {
+          "type": "picklist",
+          "description": "Type of rate card."
+        }
+      },
+      "domainShort": "Rates",
+      "isStandard": false
+    },
+    "RatingRequest": {
+      "domain": "Rate Management",
+      "fields": {
+        "ContextDefinition": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "Context definition that's used for context instance creation, which encapsulates all aggregated records that are stamped for the rating request.",
+          "type": "string"
+        },
+        "ContextMapping": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "Context mapping that's used for context instance creation, which encapsulates all aggregated records that are stamped for the rating request. If no ID is provided, default context mapping is used.",
+          "type": "boolean"
+        },
+        "DoesExcludeWaterfall": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "Indicates whether the waterfall isn't generated for the rating request (true) or is generated (false). The default value is false. Available in API version 64.0 and later.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Timestamp for when the current user last referred to this record.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Timestamp for when the current user last viewed a record related to this record.",
+          "type": "dateTime"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "Auto-generated identifier for the rating request record.",
+          "type": "string"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "ID of the user who created the record. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "refersTo": "Group, User",
+          "type": "reference"
+        },
+        "RatingProcedureName": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "Procedure name that's used to rate the aggregated records that are stamped for rating request.",
+          "type": "picklist"
+        },
+        "Status": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "Status of the rating request. Valid values are: • Failed • Pending • RatingComplete • RatingInProgress • ReadyForRating",
+          "type": "picklist"
+        }
+      },
+      "domainShort": "Rates",
+      "isStandard": false
+    }
+  }
+}

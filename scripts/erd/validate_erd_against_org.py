@@ -22,6 +22,10 @@ Options:
     --objects OBJ,OBJ     Comma-separated list of objects to validate (default: all)
     --domain DOMAIN       Only validate objects in this domain
     --patch               Auto-patch erd-data.json with discovered fields/relationships
+    --add-objects OBJ,OBJ Describe these objects in the org and add them to the ERD
+                          (needs --add-domain); writes erd-data.json and the shards
+    --add-domain DOMAIN   ERD domain label for --add-objects, e.g.
+                          "Transaction Management (Core Object)"
     --report PATH         Write markdown gap report to file
     --verbose             Show per-object detail during scan
     --concurrency N       Parallel describe calls (default: 10)
@@ -41,6 +45,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
+
+import erd_shards  # sibling module: writes erd-data.json and the per-domain shards
 
 
 # ── Domain color mapping (must match build_erds.py / erd-data.json) ──────────
@@ -98,6 +104,9 @@ class ObjectDiff:
     erd_field_count: int = 0
     org_field_count: int = 0
     error: Optional[str] = None
+    # Platform spelling when it differs from the ERD key. Object describe is
+    # case-insensitive, so without this a wrong-cased key reads as "present".
+    canonical_name: Optional[str] = None
 
 
 def describe_sobject(org_alias: str, object_name: str) -> Optional[dict]:
@@ -180,6 +189,9 @@ def diff_object(
         diff.error = f"Could not describe {object_name} (may not exist in org)"
         return diff
 
+    if describe.get("name") and describe["name"] != object_name:
+        diff.canonical_name = describe["name"]
+
     org_fields = parse_org_fields(describe, skip_custom=skip_custom)
     diff.org_field_count = len(org_fields)
 
@@ -208,47 +220,88 @@ def diff_object(
     return diff
 
 
+def link_new_objects(erd_data: dict, new_names: set = None) -> int:
+    """Add the relationship rows touching `new_names` that are missing: the new objects' own
+    reference fields and existing objects' fields that point at them. `None` means every
+    object (a backfill). Every target of a polymorphic field is linked; targets must exist in the
+    ERD. Returns rows added; a second run adds 0."""
+    objects, rels = erd_data["objects"], erd_data["relationships"]
+    seen = {(r["source"], r["target"], r.get("field", "")) for r in rels}
+    added = 0
+    for name, obj in objects.items():
+        for fname, f in obj["fields"].items():
+            targets = f.get("refersTo") or []
+            if isinstance(targets, str):  # a polymorphic field's targets are comma-joined
+                targets = [t.strip() for t in targets.split(",")]
+            for target in targets:
+                if (new_names is None or name in new_names or target in new_names) and target in objects \
+                        and (name, target, fname) not in seen:
+                    seen.add((name, target, fname))
+                    rels.append({"source": name, "target": target, "field": fname,
+                                 "type": f.get("relationshipType", "lookup").lower()})
+                    added += 1
+    return added
+
+
+def build_object_entries(erd_data: dict, describes: Dict[str, dict], domain: str,
+                         skip_custom: bool = True) -> Tuple[int, int]:
+    """Add whole objects, from org describes, to `erd_data`. Returns (objects, relationships).
+
+    `describes` maps a requested name to its describe result; the entry is keyed by the
+    describe's canonical `name`, never the spelling that was asked for.
+    """
+    short = DOMAIN_MAP.get(domain, {}).get("short")
+    if short is None:
+        raise ValueError(f"unknown ERD domain {domain!r}; known: {sorted(DOMAIN_MAP)}")
+    objects, rels = erd_data["objects"], erd_data["relationships"]
+    entries = {}
+    for describe in describes.values():
+        name = describe["name"]
+        if name in objects:
+            raise ValueError(f"{name} is already in the ERD; use --objects/--patch to refresh it")
+        raw = {f["name"]: f for f in describe.get("fields", [])}
+        fields = {}
+        for fi in parse_org_fields(describe, skip_custom=skip_custom):
+            entry = {"description": fi.label or "", "type": fi.type or "string"}
+            if fi.reference_to:
+                entry["refersTo"] = ", ".join(fi.reference_to)
+                entry["relationshipName"] = fi.relationship_name
+                entry["relationshipType"] = (
+                    "Master-Detail" if raw[fi.name].get("cascadeDelete") else "Lookup")
+            fields[fi.name] = entry
+        entries[name] = {"domain": domain, "domainShort": short,
+                         "isStandard": "(Core Object)" in domain, "fields": fields}
+    objects.update(entries)
+    return len(entries), link_new_objects(erd_data, set(entries))
+
+
 def patch_erd(erd_data: dict, diffs: List[ObjectDiff]) -> Tuple[int, int, int]:
     """Apply org discoveries back into erd-data.json. Returns (fields_added, rels_added, fields_removed)."""
     objects = erd_data["objects"]
     relationships = erd_data["relationships"]
-    existing_rels = {(r["source"], r["target"], r.get("field", "")) for r in relationships}
 
     fields_added = 0
-    rels_added = 0
     fields_removed = 0
+    patched = set()
 
     for diff in diffs:
         if not diff.org_exists or diff.error:
             continue
-        obj = objects.get(diff.object_name, {})
-        obj_fields = obj.get("fields", {})
+        if diff.object_name not in objects:  # new objects go through --add-objects
+            continue
+        obj_fields = objects[diff.object_name]["fields"]
 
         # Add missing reference fields (relationships)
         for f in diff.rels_in_org_not_erd:
             if f.name not in obj_fields:
-                targets = f.reference_to
-                target = targets[0] if targets else "Unknown"
                 obj_fields[f.name] = {
                     "description": f.label or "",
                     "type": "reference",
-                    "refersTo": target,
+                    "refersTo": ", ".join(f.reference_to),
                     "relationshipType": "lookup",
                 }
                 fields_added += 1
-
-                # Also add relationship link
-                if target in objects:
-                    key = (diff.object_name, target, f.name)
-                    if key not in existing_rels:
-                        relationships.append({
-                            "source": diff.object_name,
-                            "target": target,
-                            "field": f.name,
-                            "type": "lookup",
-                        })
-                        existing_rels.add(key)
-                        rels_added += 1
+                patched.add(diff.object_name)
 
         # Add missing data fields
         for f in diff.fields_in_org_not_erd:
@@ -259,6 +312,9 @@ def patch_erd(erd_data: dict, diffs: List[ObjectDiff]) -> Tuple[int, int, int]:
                 }
                 obj_fields[f.name] = entry
                 fields_added += 1
+
+    # Link the patched objects' reference fields, and any pointing at them
+    rels_added = link_new_objects(erd_data, patched)
 
     # Update stats
     total_fields = sum(len(o.get("fields", {})) for o in objects.values())
@@ -388,6 +444,8 @@ def main():
     parser.add_argument("--objects", help="Comma-separated object names to validate")
     parser.add_argument("--domain", help="Only validate objects in this domain")
     parser.add_argument("--patch", action="store_true", help="Auto-patch erd-data.json")
+    parser.add_argument("--add-objects", help="Comma-separated objects to describe and add")
+    parser.add_argument("--add-domain", help="ERD domain label for --add-objects")
     parser.add_argument("--report", help="Write markdown report to file")
     parser.add_argument("--verbose", action="store_true", help="Show per-object progress")
     parser.add_argument("--concurrency", type=int, default=10, help="Parallel describe calls")
@@ -416,6 +474,24 @@ def main():
 
     objects = erd_data["objects"]
     relationships = erd_data["relationships"]
+
+    if args.add_objects:
+        if not args.add_domain:
+            print("ERROR: --add-objects needs --add-domain")
+            sys.exit(2)
+        describes = {}
+        for name in (n.strip() for n in args.add_objects.split(",") if n.strip()):
+            describes[name] = describe_sobject(args.org, name)
+            if describes[name] is None:
+                print(f"ERROR: could not describe {name} in org '{args.org}'")
+                sys.exit(1)
+        n_obj, n_rel = build_object_entries(erd_data, describes, args.add_domain, skip_custom)
+        erd_shards.save(erd_data, erd_path, verified={
+            "release": erd_data["metadata"].get("release", ""),
+            "apiVersion": erd_data["metadata"].get("apiVersion", "")})
+        print(f"Added {n_obj} objects and {n_rel} relationships to {erd_path}")
+        print("Run `python scripts/erd/build_erds.py` to rebuild the HTML ERD")
+        return 0
 
     # Filter objects
     if args.objects:
@@ -478,6 +554,10 @@ def main():
 
     print(f"  Objects not in org: {missing}")
     print(f"  Objects with gaps: {with_gaps}")
+    miscased = [d for d in diffs if d.canonical_name]
+    print(f"  ERD keys whose casing differs from the platform name: {len(miscased)}")
+    for d in miscased:
+        print(f"    {d.object_name} -> {d.canonical_name}")
     print(f"  Fields in org missing from ERD: {new_fields}")
     print(f"  Relationships in org missing from ERD: {new_rels}")
     print(f"  ERD fields not in org: {extra_erd}")
@@ -486,8 +566,11 @@ def main():
     if args.patch and (new_fields > 0 or new_rels > 0):
         print(f"\nPatching {erd_path}...")
         fa, ra, fr = patch_erd(erd_data, diffs)
-        with open(erd_path, "w") as f:
-            json.dump(erd_data, f, indent=2)
+        # Writes erd-data.json and the per-domain shards; only shards whose objects changed
+        # get a fresh provenance stamp.
+        erd_shards.save(erd_data, erd_path, verified={
+            "release": erd_data["metadata"].get("release", ""),
+            "apiVersion": erd_data["metadata"].get("apiVersion", "")})
         print(f"  Added {fa} fields, {ra} relationships")
         print(f"  Run `python scripts/erd/build_erds.py` to rebuild the HTML ERD")
 
@@ -501,7 +584,7 @@ def main():
         print(f"\nReport written to {report_path}")
 
     # Exit code
-    if missing > 0 or with_gaps > 0:
+    if missing > 0 or with_gaps > 0 or miscased:
         sys.exit(1)
     return 0
 

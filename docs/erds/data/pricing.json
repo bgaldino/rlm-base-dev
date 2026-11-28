@@ -1,0 +1,1638 @@
+{
+  "provenance": {
+    "release": "264",
+    "apiVersion": "68.0",
+    "verifiedOn": "2026-08-15",
+    "method": "describe extraction from fresh ent-shape orgs; custom fields excluded",
+    "coreSourceValidated": false
+  },
+  "objects": {
+    "ContractItemPrice": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "ContractId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "ID of the contract. This field is a relationship field.",
+          "relationshipName": "Contract",
+          "relationshipType": "Master-detail",
+          "refersTo": "Contract",
+          "type": "reference"
+        },
+        "CurrencyIsoCode": {
+          "properties": "Defaulted on create, Filter, Group, Restricted picklist, Sort",
+          "description": "Contains the ISO code for any currency allowed by the organization. Available only if the multicurrency feature is enabled. Valid value is: • USD—U.S. Dollar The default value is USD.",
+          "type": "picklist"
+        },
+        "DiscountType": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "The type of discount applied, a percentage of the price or an amount. Valid values are: • AdjustmentAmount",
+          "type": "picklist"
+        },
+        "DiscountValue": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The value of the discount applied, based on the discount type.",
+          "type": "dateTime"
+        },
+        "EndDate": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "End date and time of the relationship between the contract and contract item price.",
+          "type": "dateTime"
+        },
+        "ItemId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "ID of the product or product category related to a price in a contract. This field is a polymorphic relationship field.",
+          "relationshipName": "Item",
+          "relationshipType": "Lookup",
+          "refersTo": "Product2, ProductCategory",
+          "type": "reference"
+        },
+        "AdjustmentMethod": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "Method used to apply discount. Valid values are: • Range—Apply the discount to all items after you reach the discount tier. For example, suppose that you give a 10% discount for 50 or more items. If a customer orders 50 products, and the type is range, apply the 10% discount to all 50 items. • Slab—Apply discounts in tiers. For example, suppose that you order 30 products, and the type is slab, you can apply a 10% discount to units 1–9, a 20% discount to units 10–19, and a 30% discount to units 20–30.",
+          "type": "picklist"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Timestamp when the current user last accessed this record, a record related to this record, or a list view.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Timestamp when the current user last viewed this record or list view. If this value is null, the user accessed this record or list view (LastReferencedDate) but didn’t view it.",
+          "type": "currency"
+        },
+        "ListPrice": {
+          "properties": "Filter, Nillable",
+          "description": "The list price of the product. This value is read-only and inherited from the price book related to the contract when the contract item price is created. Use the list price to compare the advertised price to prices that customers receive during contract negotiations. This field is available in API version 66.0 and later.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "The name of the contract item price record.",
+          "type": "currency"
+        },
+        "Price": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "Unit price for the product sold as part of the contract.",
+          "type": "currency"
+        },
+        "ProductSellingModelId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "Product selling model for the product associated with the price. This field is a relationship field.",
+          "relationshipName": "ProductSellingModel",
+          "relationshipType": "Lookup",
+          "refersTo": "ProductSellingModel",
+          "type": "reference"
+        },
+        "SellingModelType": {
+          "properties": "Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort",
+          "description": "Selling mode type to specify whether the product sold is a one-time sale, an evergreen subscription, or a subscription with a defined term. Valid values are: • Evergreen • OneTime • TermDefined The value derived from the product selling model.",
+          "type": "dateTime"
+        },
+        "StartDate": {
+          "description": "Start Date",
+          "type": "datetime"
+        }
+      },
+      "pages": [
+        620,
+        622
+      ],
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "ProductSellingModel": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Indicates when the user last referred to this record.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Indicates when the user last viewed this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "The name given to the product selling model.",
+          "type": "int"
+        },
+        "PricingTerm": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The number of pricing term units in the pricing term. Used with PricingTermUnit to define the length of the pricing term. For example, if PricingTermUnit is Months and this field is 1, the subscription is priced monthly.If the selling model is one-time, this field must be null.",
+          "type": "picklist"
+        },
+        "PricingTermUnit": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "The unit of time used to define the pricing term. Used with PricingTerm to define the length of the pricing term. For example, if this field is Months and PricingTerm is 1, the subscription is priced monthly. If the selling model is one-time, this field must be null. Possible values are: • Months"
+        },
+        "SellingModelType": {
+          "properties": "Create, Defaulted on create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "Indicates whether the product is sold as a one-time sale, an evergreen subscription, or a subscription with a defined term. Possible values are: • Evergreen • OneTime • TermDefined The default value is OneTime.",
+          "type": "picklist"
+        },
+        "Status": {
+          "properties": "Create, Defaulted on create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The status of the product selling model. Possible values are: • Active • Draft • Inactive The default value is Draft.",
+          "type": "picklist"
+        },
+        "DoesAutoRenewAssetByDefault": {
+          "description": "",
+          "type": "boolean"
+        }
+      },
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "PricingApiExecution": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "ApiEndpoint": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "ExecutionKey": {
+          "description": "Execution Key",
+          "type": "string"
+        },
+        "Status": {
+          "description": "Status",
+          "type": "picklist"
+        },
+        "ReferenceKey": {
+          "description": "Reference Key",
+          "type": "string"
+        },
+        "ApiType": {
+          "description": "API Type",
+          "type": "picklist"
+        }
+      },
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "AttributeBasedAdjRule": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "AttributeCount": {
+          "properties": "Filter, Group, Nillable, Sort",
+          "description": "The number of attributes.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date the attribute based adjustment rule was last referenced.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed a record related to this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "Name of the attribute based adjustment rule.",
+          "type": "string"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "ID of the owner of the attribute based adjustment rule. This field is a polymorphic relationship field.",
+          "type": "reference",
+          "refersTo": "Group, User"
+        },
+        "UsageType": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The type of record where the attribute-based adjustment rule is used. Possible values are: • Pricing • Rating",
+          "type": "picklist"
+        }
+      },
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "ProcedurePlanCriterion": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "ActualValue": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The user-defined value that is compared to the value of the SObject field value.",
+          "type": "picklist"
+        },
+        "DataType": {
+          "type": "picklist"
+        },
+        "FieldPath": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The path of the field used in a procedure in relation to the object that the field belongs to.",
+          "type": "string"
+        },
+        "ObjectField": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The object field value used to resolve the procedure plan option.",
+          "type": "picklist"
+        },
+        "Operator": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "Specifies the operator used by the procedure plan criterion. Possible values are: • Equals • GreaterThan • GreaterThanOrEquals • In • IsNotNull • IsNull • LessThan • LessThanOrEquals • NotEquals"
+        },
+        "ProcedurePlanOptionId": {
+          "description": "Procedure Plan Option ID",
+          "type": "reference",
+          "refersTo": "ProcedurePlanOption",
+          "relationshipType": "lookup"
+        },
+        "Sequence": {
+          "description": "Sequence",
+          "type": "int"
+        }
+      },
+      "pages": [
+        675,
+        676
+      ],
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "ProductSellingModelOption": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "Increment": {
+          "description": "The number of pricing term units that can be used to increase a subscription term.",
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "type": "boolean"
+        },
+        "IsDefault": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "Indcates the default product selling model for a product. Setting a default is optional. A product can only have one default product selling model. The default value is false. This field requires Industries EPC.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp when the current user last accessed this record, a record related to this record, or a list view.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp when the current user last viewed this record or list view. If this value is null, the user might have only accessed this record or list view but not viewed it.",
+          "type": "int"
+        },
+        "Maximum": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The maximum number of pricing term units for a subscription term.",
+          "type": "int"
+        },
+        "Minimum": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The minimum number of pricing term units for a subscription term.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "The name of the product selling model option.",
+          "type": "string"
+        },
+        "Product2Id": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "The ID of the Product2 record associated with this ProductSellingModelOption record. This field is a relationship field.",
+          "relationshipName": "Product2",
+          "relationshipType": "Lookup",
+          "refersTo": "Product2",
+          "type": "reference"
+        },
+        "ProductSellingModelId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "The ID of the ProductSellingModel record associated with this ProductSellingModelOption record. This field is a relationship field.",
+          "relationshipName": "ProductSellingModel",
+          "type": "reference",
+          "refersTo": "ProductSellingModel"
+        },
+        "OwnerId": {
+          "type": "reference",
+          "description": "The owner of the record.",
+          "refersTo": [
+            "Group",
+            "User"
+          ]
+        },
+        "ProrationPolicyId": {
+          "description": "Reference to ProrationPolicy",
+          "type": "reference",
+          "refersTo": "ProrationPolicy",
+          "relationshipType": "lookup"
+        }
+      },
+      "pages": [
+        672,
+        674
+      ],
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "BundleBasedAdjustment": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "AdjustmentType": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The type of pricing adjustment being made. Possible values are: • Amount • Override",
+          "type": "picklist"
+        },
+        "AdjustmentValue": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The type of pricing adjustment being made.",
+          "type": "picklist"
+        },
+        "CurrencyIsoCode": {
+          "properties": "Create, Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "ISO code of the currency. Must be one of the valid alphabetic, three-letter currency ISO codes defined by the ISO 4217 standard, such as USD, GBP, or JPY. Must be unique within your organization. Possible values are: • BHD—Bahraini Dinar • JPY—Japanese Yen • USD—U.S. Dollar The default value is USD.",
+          "type": "dateTime"
+        },
+        "EffectiveFrom": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The date and time when the bundle based adjustment comes into effect."
+        },
+        "EffectiveTo": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time till when the bundle based adjustment remains effective.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date the bundle based adjustment was last referenced.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date the bundle based adjustment was last viewed.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "The name of the bundle based adjustment record.",
+          "type": "string"
+        },
+        "ParentProductId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "Represents the immediate parent in the product bundle that the price is configured for. This field is a relationship field.",
+          "relationshipName": "ParentProduct",
+          "type": "reference",
+          "refersTo": "Product2"
+        },
+        "ScheduleType": {
+          "description": "",
+          "type": "string"
+        },
+        "PricingTermUnit": {
+          "description": "",
+          "type": "string"
+        },
+        "SellingModelType": {
+          "description": "",
+          "type": "picklist"
+        },
+        "PricingTerm": {
+          "description": "",
+          "type": "string"
+        },
+        "ParentProductSellingModelId": {
+          "description": "Reference to ProductSellingModel",
+          "type": "reference",
+          "refersTo": "ProductSellingModel",
+          "relationshipType": "lookup"
+        },
+        "PriceAdjustmentScheduleId": {
+          "description": "Reference to PriceAdjustmentSchedule",
+          "type": "reference",
+          "refersTo": "PriceAdjustmentSchedule",
+          "relationshipType": "lookup"
+        },
+        "ProductId": {
+          "description": "Reference to Product2",
+          "type": "reference",
+          "refersTo": "Product2",
+          "relationshipType": "lookup"
+        },
+        "ProductSellingModelId": {
+          "description": "Reference to ProductSellingModel",
+          "type": "reference",
+          "refersTo": "ProductSellingModel",
+          "relationshipType": "lookup"
+        },
+        "RootBundleId": {
+          "description": "Reference to Product2",
+          "type": "reference",
+          "refersTo": "Product2",
+          "relationshipType": "lookup"
+        },
+        "RootProductSellingModelId": {
+          "description": "Reference to ProductSellingModel",
+          "type": "reference",
+          "refersTo": "ProductSellingModel",
+          "relationshipType": "lookup"
+        }
+      },
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "AttributeBasedAdjustment": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "AdjustmentType": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The type of pricing adjustment being made. Possible values are: • Amount • Override",
+          "type": "picklist"
+        },
+        "AdjustmentValue": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The value of the adjustment being made based on the adjustment type.",
+          "type": "double"
+        },
+        "AttributeBasedAdjRuleId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "The attribute based adjustment rule associated with this attribute based adjustment record. This field is a relationship field.",
+          "relationshipName": "AttributeBasedAdjRule",
+          "type": "reference",
+          "refersTo": "AttributeBasedAdjRule"
+        },
+        "AttributeCount": {
+          "properties": "Filter, Group, Nillable, Sort",
+          "description": "The number of attributes.",
+          "type": "int"
+        },
+        "CurrencyIsoCode": {
+          "properties": "Create, Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "ISO code of the currency. Must be one of the valid alphabetic, three-letter currency ISO codes defined by the ISO 4217 standard, such as USD, GBP, or JPY. Must be unique within your organization. Possible values are: • BHD—Bahraini Dinar • JPY—Japanese Yen • USD—U.S. Dollar The default value is USD.",
+          "type": "dateTime"
+        },
+        "EffectiveFrom": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The date and time when the price list entry comes into effect.",
+          "type": "dateTime"
+        },
+        "EffectiveTo": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time till when the price list entry remains effective.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date the attribute based adjustment was last referenced.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed a record related to this record.",
+          "type": "dateTime"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "Name of the attribute based adjustment.",
+          "type": "string"
+        },
+        "PriceAdjustmentScheduleId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "The price adjustment schedule associated with the attribute based adjustment record. This field is a relationship field.",
+          "relationshipName": "PriceAdjustmentSchedule",
+          "type": "reference",
+          "refersTo": "PriceAdjustmentSchedule"
+        },
+        "PricingTerm": {
+          "properties": "Filter, Group, Nillable, Sort",
+          "description": "The number of pricing term units in the pricing term. Used with PricingTermUnit to define the length of the pricing term. For example, if PricingTermUnit is Months and this field is 1, the subscription is priced monthly.If the selling model is one-time, this field must be null.",
+          "type": "picklist"
+        },
+        "PricingTermUnit": {
+          "properties": "Filter, Group, Nillable, Restricted picklist, Sort",
+          "description": "The unit of time used to define the pricing term. Used with PricingTerm to define the length of the pricing term. For example, if this field is Months and PricingTerm is 1, the subscription is priced monthly. If the selling model is one-time, this field must be null. Possible values are: • Annual—Years • Months"
+        },
+        "ProductId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "The ID of the product associated with the product attribute set. This field is a relationship field.",
+          "relationshipName": "Product",
+          "type": "reference",
+          "refersTo": "Product2"
+        },
+        "ProductSellingModelId": {
+          "properties": "Create, Filter, Group, Nillable, Sort",
+          "description": "The ID of the ProductSellingModel record associated with this attribute based adjustment record. This field is a relationship field.",
+          "relationshipName": "ProductSellingModel",
+          "type": "reference",
+          "refersTo": "ProductSellingModel"
+        },
+        "SellingModelType": {
+          "properties": "Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort",
+          "description": "Indicates whether the product is sold as a one-time sale, an evergreen subscription, or a subscription with a defined term. Possible values are: • Evergreen",
+          "type": "picklist"
+        },
+        "ScheduleType": {
+          "description": "",
+          "type": "string"
+        },
+        "AttributeAdjConditionsHash": {
+          "description": "",
+          "type": "string"
+        }
+      },
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "PriceRevisionPolicy": {
+      "domain": "Salesforce Pricing",
+      "description": "Represents the guidelines and methods used to modify product or service prices, incorporating formulas based on price revision entries.",
+      "fields": {
+        "EffectiveFrom": {
+          "type": "date",
+          "description": "The date and time when the price revision policy comes into effect."
+        },
+        "EffectiveTo": {
+          "type": "date",
+          "description": "The date and time when the price revision policy is no longer in effect."
+        },
+        "Formula": {
+          "type": "string",
+          "description": "The coded format of the formula used to calculate the revised price."
+        },
+        "Name": {
+          "type": "string",
+          "description": "The name of the price revision policy."
+        },
+        "OwnerId": {
+          "type": "reference",
+          "refersTo": "Group, User",
+          "description": "ID of the user who created the record."
+        },
+        "PolicyType": {
+          "type": "picklist",
+          "description": "The type of price revision policy."
+        },
+        "Region": {
+          "type": "picklist",
+          "description": "The region where the price revision policy is valid."
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        }
+      },
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "PricingAdjBatchJobLog": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "AdjustedValue": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The adjusted value of a record. The stored value is used even if another pricing adjustment batch job is triggered again.",
+          "type": "dateTime"
+        },
+        "EffectiveFrom": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time when the failed versioned record is generated. This is only applicable for Price Adjustment records.",
+          "type": "dateTime"
+        },
+        "EffectiveTo": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time until when the failed versioned record is available. This is applicable only for Price Adjustment records.",
+          "type": "string"
+        },
+        "ErrorCode": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The error code for the failure during the record update process.",
+          "type": "textarea"
+        },
+        "ErrorMessage": {
+          "properties": "Create, Update",
+          "description": "The error message that’s generated for the failure during the record update process.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Indicates whether the pricing adjustment batch job has been archived (true) or not (false). This field is read-only.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed this record. If this value is null, it’s possible that this record was referenced (LastReferencedDate) and not viewed.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "Required. The name of the pricing adjustment batch job.",
+          "type": "string"
+        },
+        "PricingAdjBatchJobId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "The pricing adjustment batch job associated with the pricing adjustment batch job log. This field is a relationship field.",
+          "type": "reference",
+          "refersTo": "PricingAdjBatchJob"
+        },
+        "TargetRecord": {
+          "description": "Target Record",
+          "type": "string"
+        }
+      },
+      "pages": [
+        653,
+        654
+      ],
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "IndexRate": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "Region": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "Specified the region associated with the given rate.",
+          "type": "picklist"
+        },
+        "UsageType": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "Resource Get the log details of a pricing API execution record by using the execution ID. /connect/core-pricing/apiexecutionlogs/executionId (GET) Get the execution details of a pricing process by using the execution ID. /connect/core-pricing/pricing-process-execution/executionId (GET) Get the pricing execution details for the line items of a pricing /connect/core-pricing/pricing-process-execution/lineitems/executionId/executionType (GET) process by using the execution ID and execution type. Get details of the pricing simulation input variables along with associated data. /connect/core-pricing/simulationInputVariablesWithData (GET) This section lists the available Procedure Plan Definition-related resources. Use procedure plan definitions to define criteria for all pricing process-related requirements in one central location, and to set up the procedures based on these requirements. Description Resource Get the records of procedure plan definitions. Additionally, /connect/procedure-plan-definitions (GET, POST) create a record of a procedure plan definition. Get, update, or delete a procedure plan definition record by using the record ID. /connect/procedure-plan-definitions/procedurePlanDefinitionId (GET, PATCH, DELETE) Evaluate a procedure plan definition based on a primary /connect/procedure-plan-definitions/evaluate (POST) object to check for prerequisites such as usage type and context mapping details. Evaluate a procedure plan definition based on the name /connect/procedure-plan-definitions/evaluate/procedurePlanDefinitionName (POST) of a definition to check for prerequisites such as usage type and context mapping details. Create records of a procedure plan version with details. /connect/procedure-plan-definitions/procedurePlanDefinitionId/version (POST) Get, update, or delete a procedure plan definition /connect/procedure-plan-definitions/versions/procedurePlanVersionId (GET, PATCH, DELETE) version record by using the record ID. 668 Salesforce Pricing Business APIs Salesforce Pricing",
+          "type": "picklist"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "Rate": {
+          "description": "Rate",
+          "type": "percent"
+        },
+        "ValidStartDate": {
+          "description": "Valid Start Date",
+          "type": "date"
+        },
+        "ValidEndDate": {
+          "description": "Valid End Date",
+          "type": "date"
+        },
+        "IsActive": {
+          "description": "Active",
+          "type": "boolean"
+        }
+      },
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "ProductPriceRange": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "CurrencyIsoCode": {
+          "properties": "Create, Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "ISO code for any currency allowed by the organization. Available only for organizations with the multicurrency feature enabled. Valid values are: • BHD—Bahraini Dinar • JPY—Japanese Yen • USD—U.S. Dollar The default value is USD.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Indicates whether the product price range has been archived (true) or not (false). This field is read-only.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed this record. If this value is null, it’s possible that this record was referenced (LastReferencedDate) and not viewed.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "Required. The name of the product price range.",
+          "type": "reference"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "The Salesforce ID of the sales representative who owns the product price range. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "refersTo": "Group, User",
+          "type": "reference"
+        },
+        "ProductId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The product for which the price range is being determined. This field is a relationship field.",
+          "relationshipName": "Product",
+          "refersTo": "Product2",
+          "type": "reference"
+        },
+        "ProductSellingModelId": {
+          "type": "reference"
+        },
+        "RecordedPrice": {
+          "type": "currency",
+          "description": "The selected price of the product over a range of prices."
+        }
+      },
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "PricebookEntry": {
+      "domain": "Salesforce Pricing",
+      "description": "Represents a product entry (an association between a Pricebook2 and Product2) in a price book.",
+      "fields": {
+        "CurrencyIsoCode": {
+          "type": "picklist",
+          "description": "Available only for organizations with the multicurrency feature enabled."
+        },
+        "IsActive": {
+          "type": "boolean",
+          "description": "Indicates whether this price book entry is active (true) or not (false)."
+        },
+        "IsArchived": {
+          "type": "boolean",
+          "description": "Indicates whether the PricebookEntry has been archived (true) or not (false)."
+        },
+        "Name": {
+          "type": "string",
+          "description": "Name of this price book entry record, referencing the Product2 record Name."
+        },
+        "Pricebook2Id": {
+          "type": "reference",
+          "refersTo": "Pricebook2",
+          "description": "Required. ID of the Pricebook2 record with which this record is associated."
+        },
+        "Product2Id": {
+          "type": "reference",
+          "refersTo": "Product2",
+          "description": "Required. ID of the Product2 record with which this record is associated."
+        },
+        "ProductCode": {
+          "type": "string",
+          "description": "Product code for this record, referencing the ProductCode field of the associated Product2."
+        },
+        "ProductSellingModelId": {
+          "type": "reference",
+          "refersTo": "ProductSellingModel",
+          "description": "The ID of the related product selling model."
+        },
+        "UnitPrice": {
+          "type": "currency",
+          "description": "Required. Unit price for this price book entry."
+        },
+        "UseStandardPrice": {
+          "type": "boolean",
+          "description": "Indicates whether this price book entry uses the standard price defined in the standard Pricebook2."
+        },
+        "IsDerived": {
+          "description": "",
+          "type": "boolean"
+        }
+      },
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "PricingProcessExecution": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "CurrencyIsoCode": {
+          "properties": "Create, Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "Available only if the multicurrency feature is enabled. Contains the ISO code for any currency allowed by the organization. Possible values are: • BHD—Bahraini Dinar • JPY—Japanese Yen • USD—U.S. Dollar The default value is USD.",
+          "type": "string"
+        },
+        "ExecutionKey": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "The unique execution ID generated each time a pricing API runs.",
+          "type": "picklist"
+        },
+        "ExecutionType": {
+          "properties": "Create, Defaulted on create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The type of execution defined internally within the pricing API. Possible values are: • Api_Execution—Api Execution • Discovery • Discovery_Line—Discovery Line • Pricing • Pricing_Line—Pricing Line The default value is Pricing.",
+          "type": "string"
+        },
+        "ExecutionTypeKey": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The unique execution type ID generated internally for procedure executions, such as pricing or discovery procedures.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed a record related to this record.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed this record. If this value is null, it’s possible that this record was referenced (LastReferencedDate) and not viewed.",
+          "type": "textarea"
+        },
+        "Message": {
+          "properties": "Create, Nillable, Update",
+          "description": "The message generated upon running a pricing process.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "The name of the record.",
+          "type": "string"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "The Salesforce ID of the sales representative who owns the pricing procedure resolution. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "refersTo": "Group, User",
+          "type": "reference"
+        },
+        "Status": {
+          "properties": "Create, Defaulted on create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "Specifies the status of the execution type. Possible values are: • Failure • Partial_Success—Partial Success • Success The default value is Success.",
+          "type": "picklist"
+        }
+      },
+      "pages": [
+        661,
+        663
+      ],
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "CostBookEntry": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "Cost": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "Total cost of the product.",
+          "type": "currency"
+        },
+        "CostBookId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "ID of the Cost Book record with which this record is associated. This field is a relationship field.",
+          "relationshipName": "CostBook",
+          "refersTo": "CostBook",
+          "type": "reference"
+        },
+        "CurrencyIsoCode": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "",
+          "type": "textarea"
+        },
+        "Description": {
+          "description": "",
+          "type": "textarea"
+        },
+        "ProductId": {
+          "description": "",
+          "type": "reference",
+          "refersTo": "Product2"
+        },
+        "EffectiveTo": {
+          "description": "",
+          "type": "string"
+        },
+        "EffectiveFrom": {
+          "description": "",
+          "type": "string"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        }
+      },
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "AttributeAdjustmentCondition": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "AttributeBasedAdjRuleId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "Specifies the attribute adjustment rule record for which the condition is to be applied. This field is a relationship field.",
+          "relationshipName": "AttributeBasedAdjRule",
+          "relationshipType": "Lookup",
+          "refersTo": "AttributeBasedAdjRule",
+          "type": "reference"
+        },
+        "AttributeDefinitionId": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "Specifies the boolean value of the operator. Possible values are: • False",
+          "relationshipName": "AttributeDefinition",
+          "relationshipType": "Lookup",
+          "refersTo": "AttributeDefinition",
+          "type": "reference"
+        },
+        "BooleanValue": {},
+        "DateTimeValue": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date time value of the attribute.",
+          "type": "date"
+        },
+        "DateValue": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The date value of the attribute.",
+          "type": "double"
+        },
+        "DoubleValue": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The double value of the attribute.",
+          "type": "int"
+        },
+        "IntegerValue": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The integer value of the attribute.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last referred to this record.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed a record related to this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "Name of the attribute adjustment condition.",
+          "type": "picklist"
+        },
+        "Operator": {
+          "properties": "Create, Defaulted on create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "Operator used by the attribute. Possible values are: • doesnotexistin—Does Not Exist In • equals—Equals • existsin—Exists In • greaterorequal—Greater Or Equal • greaterthan—Greater Than • lessorequal—Less Or Equal • lessthan—Less Than • matches—Matches • notequals—Not Equals The default value is equals.",
+          "type": "picklist"
+        },
+        "ProductId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "type": "reference",
+          "refersTo": "Product2"
+        },
+        "StringValue": {
+          "description": "",
+          "type": "string"
+        },
+        "UsageType": {
+          "description": "Usage Type",
+          "type": "picklist"
+        }
+      },
+      "pages": [
+        598,
+        600
+      ],
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "PriceBookEntryDerivedPrice": {
+      "domain": "Salesforce Pricing",
+      "description": "Represents the price of a product that's derived from another source such as a product or an asset.",
+      "fields": {
+        "ContributingProductId": {
+          "type": "reference",
+          "refersTo": "Product2",
+          "description": "Source product from which the derived price is calculated."
+        },
+        "CurrencyIsoCode": {
+          "type": "picklist",
+          "description": "ISO code for any currency allowed by the organization."
+        },
+        "DerivedPricingScope": {
+          "type": "picklist",
+          "description": "Scope of the product based on which the derived price is calculated."
+        },
+        "EffectiveFrom": {
+          "type": "dateTime",
+          "description": "Date and time when the derived pricing comes into effect."
+        },
+        "EffectiveTo": {
+          "type": "dateTime",
+          "description": "Date and time when the derived pricing is no longer in effect."
+        },
+        "Formula": {
+          "type": "string",
+          "description": "Coded format of the formula used to calculate the derived price."
+        },
+        "Name": {
+          "type": "string",
+          "description": "Name of the derived price record."
+        },
+        "OwnerId": {
+          "type": "reference",
+          "refersTo": "Group, User",
+          "description": "ID of the user who created the record."
+        },
+        "PricebookEntryId": {
+          "type": "reference",
+          "refersTo": "PricebookEntry",
+          "description": "Price book entry associated with the source product."
+        },
+        "PricebookId": {
+          "type": "reference",
+          "refersTo": "Pricebook2",
+          "description": "Price book associated with the source product."
+        },
+        "PricingSource": {
+          "type": "picklist",
+          "description": "Pricing type used to calculate the derived price of the product."
+        },
+        "ProductId": {
+          "type": "reference",
+          "refersTo": "Product2",
+          "description": "Product associated with the derived pricing."
+        },
+        "ProductSellingModelId": {
+          "type": "reference",
+          "refersTo": "ProductSellingModel",
+          "description": "Product selling model associated with this record."
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        }
+      },
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "ProductSellingModelDataTranslation": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "IsOutOfDate": {
+          "properties": "Defaulted on create, Filter, Group, Sort",
+          "description": "Indicates whether the translation is out-of-date (true) or current (false). A translation is out-of-date if the parent Product2 record is updated after the last translation was filed.",
+          "type": "boolean"
+        },
+        "Language": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort",
+          "description": "The language for these translated values.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "The translated value for the ProductSellingModel record name. This field is required to translate the text in other fields.",
+          "type": "reference"
+        },
+        "ParentId": {
+          "type": "reference"
+        }
+      },
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "PriceAdjustmentTier": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "AdjustmentType": {
+          "properties": "Create, Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "The type of price adjustment.",
+          "type": "picklist"
+        },
+        "CurrencyIsoCode": {
+          "properties": "Create, Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "Available only if the multicurrency feature is enabled. Contains the ISO code for any currency allowed by the organization. Possible values are: • BHD—Bahraini Dinar • JPY—Japanese Yen • USD—U.S. Dollar The default value is USD.",
+          "type": "dateTime"
+        },
+        "EffectiveFrom": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time when the price adjustment tier comes into effect.",
+          "type": "dateTime"
+        },
+        "EffectiveTo": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time when the price adjustment tier remains effective.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Indicates when the user last referred to this record.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed this record. If this value is null, it’s possible that this record was referenced (LastReferencedDate) and not viewed.",
+          "type": "double"
+        },
+        "LowerBound": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The minimum quantity the discount can be applied to. It must be a positive integer and less than or equal to the upper bound of the tier.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "The name of the price adjustment tier.",
+          "type": "string"
+        },
+        "PriceAdjustmentScheduleId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "The ID of the price adjustment schedule that the discount is applied to. This field is a relationship field.",
+          "relationshipName": "PriceAdjustmentSchedule",
+          "relationshipType": "Lookup",
+          "refersTo": "PriceAdjustmentSchedule",
+          "type": "reference"
+        },
+        "PricingTerm": {
+          "properties": "Filter, Group, Nillable, Sort",
+          "description": "The number of pricing term units in the pricing term. Used with PricingTermUnit to define the length of the pricing term. For example, if PricingTermUnit is Months and this field is 1, the subscription is priced monthly.If the selling model is one-time, this field must be null.",
+          "type": "picklist"
+        },
+        "PricingTermUnit": {
+          "properties": "Filter, Group, Nillable, Restricted picklist, Sort",
+          "description": "The unit of time used to define the pricing term. Used with PricingTerm to define the length of the pricing term. For example, if this field is Months and PricingTerm is 1, the subscription is priced monthly. If the selling model is one-time, this field must be null. Possible values are: • Annual—Years"
+        },
+        "Product2Id": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The ID of the product associated with the price adjustment tier. This field is a relationship field.",
+          "relationshipName": "Product2",
+          "relationshipType": "Lookup",
+          "refersTo": "Product2",
+          "type": "reference"
+        },
+        "ProductSellingModelId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The ID of the ProductSellingModel record associated with this price adjustment tier record. This field is a relationship field.",
+          "relationshipName": "ProductSellingModel",
+          "relationshipType": "Lookup",
+          "refersTo": "ProductSellingModel",
+          "type": "reference"
+        },
+        "SellingModelType": {
+          "properties": "Defaulted on create, Filter, Group, Restricted picklist, Sort",
+          "description": "Indicates whether the product is sold as a one-time sale, an evergreen subscription, or a subscription with a defined term. Possible values are: • Evergreen • OneTime—One Time • TermDefined—Term-Defined The default value is OneTime.",
+          "type": "picklist"
+        },
+        "TierType": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The unit of the discount. Possible values are: • AdjustmentAmount—An amount discounted from an item’s list price • AdjustmentPercentage—A percentage discounted from an item’s list price Possible values are: • AdjustmentAmount—Amount • AdjustmentPercentage—Percentage • OverrideAmount—Override",
+          "type": "picklist"
+        },
+        "ScheduleType": {
+          "description": "",
+          "type": "string"
+        },
+        "TierValue": {
+          "description": "",
+          "type": "string"
+        },
+        "UpperBound": {
+          "description": "",
+          "type": "string"
+        }
+      },
+      "pages": [
+        630,
+        633
+      ],
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "PriceAdjustmentSchedule": {
+      "domain": "Salesforce Pricing",
+      "description": "Represents a series of tiered discounts based on the number of items purchased.",
+      "fields": {
+        "AdjustmentMethod": {
+          "type": "picklist",
+          "description": "The method for applying tiered pricing."
+        },
+        "CurrencyIsoCode": {
+          "type": "picklist",
+          "description": "Available only if the multicurrency feature is enabled."
+        },
+        "Description": {
+          "type": "textarea",
+          "description": "Text description of the price adjustment schedule."
+        },
+        "EffectiveFrom": {
+          "type": "dateTime",
+          "description": "The date and time when the price adjustment schedule comes into effect."
+        },
+        "EffectiveTo": {
+          "type": "dateTime",
+          "description": "The date and time when the price adjustment schedule remains effective."
+        },
+        "IsActive": {
+          "type": "boolean",
+          "description": "Indicates whether the price adjustment schedule is active (true) or not (false)."
+        },
+        "Name": {
+          "type": "string",
+          "description": "Required. The name of the price adjustment schedule."
+        },
+        "OwnerId": {
+          "type": "reference",
+          "refersTo": "Group, User",
+          "description": "The Salesforce ID of the sales representative who owns the price adjustment schedule."
+        },
+        "Pricebook2Id": {
+          "type": "reference",
+          "refersTo": "Pricebook2",
+          "description": "The price book associated with this price adjustment schedule record."
+        },
+        "ScheduleType": {
+          "type": "picklist",
+          "description": "The type of price adjustment schedule."
+        },
+        "ContractId": {
+          "description": "Contract ID",
+          "type": "reference",
+          "refersTo": "Contract",
+          "relationshipType": "lookup"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "GlobalKey": {
+          "description": "Global Key",
+          "type": "string"
+        }
+      },
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "Pricebook2": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "CurrencyIsoCode": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "Text description of the price book.",
+          "type": "boolean"
+        },
+        "IsActive": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "Indicates whether the price book is active (true) or not (false). Inactive price books are hidden in many areas in the user interface. You can change this field’s value as often as necessary. Label is Active. The default value is false.",
+          "type": "boolean"
+        },
+        "IsArchived": {
+          "properties": "Defaulted on create, Filter, Group, Sort",
+          "description": "Indicates whether the price book has been archived (true) or not (false). This field is read only. The default value is false. 622 Pricebook2 Salesforce Pricing",
+          "type": "boolean"
+        },
+        "IsStandard": {
+          "properties": "Defaulted on create, Filter, Group, Sort",
+          "description": "Indicates whether the price book is the standard price book for the org (true) or not (false). Every org has one standard price book—all other price books are custom price books. The default value is false.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed a record related to this record.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed this record. If this value is null, it’s possible that this record was referenced (LastReferencedDate) and not viewed.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "Required. Name of this object. This field is read-only for the standard price book.",
+          "type": "dateTime"
+        },
+        "ValidFrom": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time when a price book is initially valid. If this field is null, the price book is valid immediately when active.",
+          "type": "dateTime"
+        },
+        "ValidTo": {},
+        "Description": {
+          "description": "",
+          "type": "textarea"
+        },
+        "CostBookId": {
+          "description": "Reference to CostBook",
+          "type": "reference",
+          "refersTo": "CostBook",
+          "relationshipType": "lookup"
+        },
+        "GlobalKey": {
+          "description": "Global Key",
+          "type": "string"
+        }
+      },
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "CostBook": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "EffectiveFrom": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "Date and time when the cost book comes into effect.",
+          "type": "dateTime"
+        },
+        "EffectiveTo": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "Date and time till when the cost book is no longer in effect.",
+          "type": "boolean"
+        },
+        "IsDefault": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "Indicates whether the cost book is default (true) or not (false). The default value is true.",
+          "type": "boolean"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Timestamp for when the current user last referred to this record.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Timestamp for when the current user last viewed a record related to this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "Name of the cost book.",
+          "type": "string"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "ID of the user who created the record. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "type": "reference",
+          "refersTo": "Group, User"
+        }
+      },
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "ProductPriceHistoryLog": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "CurrencyIsoCode": {
+          "properties": "Create, Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "ISO code for any currency allowed by the organization. Available only for organizations with the multicurrency feature enabled. Valid values are: • BHD—Bahraini Dinar • JPY—Japanese Yen • USD—U.S. Dollar The default value is USD.",
+          "type": "date"
+        },
+        "Date": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The date when the product price history log record is created.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Indicates whether the product price history log has been archived (true) or not (false). This field is read-only.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed this record. If this value is null, it’s possible that this record was referenced (LastReferencedDate) and not viewed.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "Required. The name of the product price history log.",
+          "type": "reference"
+        },
+        "ProductPriceRangeId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "The product price range associated with this product price history log record. This field is a relationship field.",
+          "relationshipName": "ProductPriceRange",
+          "relationshipType": "Master-detail",
+          "refersTo": "ProductPriceRange",
+          "type": "currency"
+        },
+        "TrackedPrice": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The price for a product recorded for a particular date.",
+          "type": "currency"
+        }
+      },
+      "pages": [
+        664,
+        665
+      ],
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "ProrationPolicy": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "ArePartialPeriodsAllowed": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort",
+          "description": "Indicates whether partial periods should be allowed for standard time periods. The default value is false."
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date the proration policy was last referenced.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date the proration policy was last viewed.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort",
+          "description": "The name of the proration policy.",
+          "type": "picklist"
+        },
+        "ProrationPolicyType": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort",
+          "description": "The type of proration policy to be used. Possible values are: • StandardTimePeriods—Standard Time Periods",
+          "type": "picklist"
+        },
+        "RemainderStrategy": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort",
+          "description": "The type of remainder strategy to be used."
+        }
+      },
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "PricingAdjBatchJob": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "EffectiveFrom": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time when the updated value can be considered for a pricing adjustment batch job.",
+          "type": "dateTime"
+        },
+        "EffectiveTo": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time until when the updated value is effective and can be considered for a pricing adjustment batch job.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Indicates whether the pricing adjustment batch job has been archived (true) or not (false). This field is read-only.",
+          "type": "dateTime"
+        },
+        "LastTriggeredDate": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time when the pricing adjustment batch job was last triggered.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed this record. If this value is null, it’s possible that this record was referenced (LastReferencedDate) and not viewed.",
+          "type": "dateTime"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "The name of the pricing adjustment batch job.",
+          "type": "string"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "The Salesforce ID of the sales representative who owns the pricing procedure resolution. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "refersTo": "Group, User",
+          "type": "reference"
+        },
+        "ProcessedRecordsCount": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The total number of records that were successfully updated.",
+          "type": "long"
+        },
+        "RecordCount": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The total number of records that have been processed.",
+          "type": "textarea"
+        },
+        "RecordList": {
+          "properties": "Create",
+          "description": "The list of record IDs eligible for a pricing adjustment batch job."
+        },
+        "ShouldSkipBulkRetry": {
+          "properties": "Create, Filter, Group, Nillable, Sort",
+          "description": "For internal use only.",
+          "type": "picklist"
+        },
+        "Status": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The processing status of the pricing adjustment batch job. Valid values are: • Completed • Failed • InProgress • New • PartiallyCompleted",
+          "type": "picklist"
+        },
+        "TargetObject": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort",
+          "description": "The target object of the pricing adjustment batch job. Valid values are: • AttributeBasedAdjustment • BundleBasedAdjustment • PriceAdjustmentTier"
+        },
+        "UpdateType": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The type of update being made by the pricing adjustment batch job. Valid values are:",
+          "type": "picklist"
+        },
+        "UpdateValue": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The numerical value of the update. Usage To execute a pricing adjustment batch job through an API request, make a POST request to the /services/data/v66.0/sobjects/PricingAdjBatchJob resource. Here's a sample request payload. { \"TargetObject\": \"PriceAdjustmentTier\", \"UpdateType\": \"Amount\", \"UpdateValue\": \"10\", \"RecordList\": \"84YDU00000010ig2AA,84YDU00000010ig2AB,84YDU00000010ig2AC\", \"EffectiveFrom\": \"2024-08-01T10:07:09.000+0000\", \"EffectiveTo\": \"2024-08-05T10:07:09.000+0000\" } You can specify a comma-separated list of record IDs that are eligible for a pricing adjustment batch job. To rerun a pricing adjustment batch job, make a PATCH request to the /services/data/v66.0/sobjects/PricingAdjBatchJob/pricingAdjBatchJobID resource. Here's a sample request payload."
+        }
+      },
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "PricingProcedureResolution": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "CurrencyIsoCode": {
+          "properties": "Create, Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "Available only if the multicurrency feature is enabled. Contains the ISO code for any currency allowed by the organization.",
+          "type": "string"
+        },
+        "EffectiveFrom": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The date and time when the pricing procedure resolution comes into effect.",
+          "type": "dateTime"
+        },
+        "EffectiveTo": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time till when the pricing procedure resolution remains effective.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Indicates whether the pricing procedure resolution has been archived (true) or not (false). This field is read-only.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed this record. If this value is null, it’s possible that this record was referenced (LastReferencedDate) and not viewed.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "Required. The name of the pricing procedure resolution.",
+          "type": "reference"
+        },
+        "OwnerId": {
+          "type": "reference"
+        },
+        "PricingProcedureId": {
+          "type": "reference",
+          "refersTo": "ExpressionSet",
+          "description": "The pricing procedure record associated with this pricing procedure resolution."
+        },
+        "ProcedureType": {
+          "type": "picklist",
+          "description": "The pricing data store associated with this pricing recipe field mappings."
+        }
+      },
+      "domainShort": "Pricing",
+      "isStandard": false
+    },
+    "ProductRampSegment": {
+      "domain": "Salesforce Pricing",
+      "fields": {
+        "DurationType": {
+          "description": "",
+          "type": "string"
+        },
+        "SegmentType": {
+          "description": "",
+          "type": "string"
+        },
+        "TrialDuration": {
+          "description": "",
+          "type": "string"
+        },
+        "ProductId": {
+          "description": "Reference to Product2",
+          "type": "reference",
+          "refersTo": "Product2",
+          "relationshipType": "lookup"
+        },
+        "ProductSellingModelId": {
+          "description": "Reference to ProductSellingModel",
+          "type": "reference",
+          "refersTo": "ProductSellingModel",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        }
+      },
+      "relationships": [],
+      "domainShort": "Pricing"
+    }
+  }
+}

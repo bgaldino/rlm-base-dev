@@ -129,7 +129,7 @@ WINDOW = 3
 # citation, row, headline or whole file leaving the audit shows up as a smaller
 # number instead of as "all checks passed" — the failure mode the per-site guards
 # above exist to prevent, and the reason `tests/test_branch_scope.py` pins its own.
-EXPECTED_CHECKS = 107
+EXPECTED_CHECKS = 119
 
 ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "erd-data.json")
 CLM_ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "contracts-erd-data.json")
@@ -325,6 +325,110 @@ def main():
         )
 
     print()
+    print("erd-data.json is the composition of docs/erds/data/ shards")
+    for sub in ("", "schema_diff"):
+        sys.path.insert(0, os.path.join(REPO_ROOT, "scripts", "erd", sub))
+    import erd_shards
+    problems = erd_shards.check()
+    check("shards_compose_to_erd_data", not problems, "; ".join(problems[:3]))
+
+    # A shard missing a stamp key must fail check(); work on a copy of the shards.
+    import copy
+    shards = erd_shards.read_shards()
+    dom = next(n for n in shards if n not in erd_shards.RESERVED)
+    broken = copy.deepcopy(shards)
+    del broken[dom]["provenance"]["verifiedOn"]
+    check("shards_missing_stamp_is_reported", bool(erd_shards.shape_problems(broken)))
+
+    print("object discovery from committed snapshots")
+    import diff_schemas
+    sd = os.path.join(REPO_ROOT, "scripts", "erd", "schema_diff")
+    snap = {n: json.loads(open(os.path.join(sd, f"{n}-schema.json"), encoding="utf-8").read())
+            for n in ("262", "264")}
+    found = diff_schemas.discovered_objects(snap["262"], snap["264"])
+    committed = json.loads(open(os.path.join(sd, "262-vs-264-diff.json"), encoding="utf-8").read())
+    check("object_discovery_matches_committed_diff",
+          found["added"] == committed["objects_discovered_added"]
+          and found["removed"] == committed["objects_discovered_removed"],
+          f"recomputed +{len(found['added'])}/-{len(found['removed'])}; regenerate the diff")
+
+    print("skill-manifest erd_data block")
+    mtxt = open(os.path.join(REPO_ROOT, ".claude", "skill-manifest.yml"), encoding="utf-8").read()
+    block = mtxt[mtxt.index("    erd_data:"):mtxt.index("    qb_scenario:")]
+    for key, want in (("object_count", totals["objects"]), ("field_count", totals["fields"]),
+                      ("relationship_count", totals["relationships"])):
+        got = re.search(rf"^\s+{key}:\s*(\d+)", block, re.M)
+        check(f"manifest_erd_{key}", bool(got) and int(got.group(1)) == want,
+              f"manifest says {got.group(1) if got else 'nothing'}, erd-data.json has {want}")
+
+    print("adding whole objects from a describe")
+    import validate_erd_against_org as validator
+    fake = {"name": "ZzRecipient", "fields": [
+        {"name": "Id", "type": "id", "label": "Id", "referenceTo": []},
+        {"name": "QuoteId", "type": "reference", "label": "Quote ID", "referenceTo": ["Quote"],
+         "relationshipName": "Quote", "cascadeDelete": True},
+        {"name": "ServiceAddress", "type": "address", "label": "Addr", "referenceTo": []},
+        {"name": "Note__c", "type": "string", "label": "Custom", "referenceTo": []},
+        {"name": "Kind", "type": "picklist", "label": "Kind", "referenceTo": []}]}
+    # Quote already has a field pointing at the new object: its incoming edge must be added too.
+    sample = {"objects": {"Quote": {"domain": "x", "domainShort": "x", "fields": {
+        "ZzId": {"refersTo": "ZzRecipient", "relationshipType": "Lookup"}}}}, "relationships": []}
+    n_obj, n_rel = validator.build_object_entries(
+        sample, {"zzrecipient": fake}, "Transaction Management (Core Object)")
+    entry = sample["objects"]["ZzRecipient"]
+    check("add_objects_builds_entries_and_edges",
+          (n_obj, n_rel) == (1, 2) and set(entry["fields"]) == {"QuoteId", "ServiceAddress", "Kind"}
+          and entry["fields"]["QuoteId"]["relationshipType"] == "Master-Detail"
+          and {(r["source"], r["target"], r["field"]) for r in sample["relationships"]}
+          == {("ZzRecipient", "Quote", "QuoteId"), ("Quote", "ZzRecipient", "ZzId")}
+          and entry["domainShort"] == "Transactions")
+
+    rel_keys = {(r["source"], r["target"], r.get("field")) for r in erd["relationships"]}
+    missing = [(n, f) for n, o in erd["objects"].items() for f, x in o["fields"].items()
+               if x.get("refersTo") in ("QuoteLineItemRecipient", "OrderItemRecipient", "ServiceAddress") and (n, x["refersTo"], f) not in rel_keys]
+    check("recipient_fields_have_relationship_rows", not missing, f"no edge for {missing}")
+
+    import copy
+    again = copy.deepcopy(erd)
+    check("every_reference_field_has_a_relationship_row_and_relinking_adds_zero",
+          validator.link_new_objects(again) == 0)
+    # On fields the 264 snapshot also has, the ERD agrees with it on reference-ness: a refersTo
+    # the snapshot lacks is stale doc metadata that relinking turns into a false edge, and a
+    # real reference must carry the reference type.
+    snap_objects = snap["264"]["objects"]
+    def agrees(x, snap_field):
+        if snap_field.get("referenceTo"):
+            return bool(x.get("refersTo")) and x.get("type") == "reference"
+        return not x.get("refersTo") and x.get("type") != "reference"
+    disagree = [(n, f) for n, o in erd["objects"].items() for f, x in o["fields"].items()
+                if f in snap_objects.get(n, {}).get("fields", {})
+                and not agrees(x, snap_objects[n]["fields"][f])]
+    check("reference_type_and_refersTo_agree_with_the_snapshot", not disagree,
+          f"disagree: {disagree}")
+
+    # An org patch keeps every target of a polymorphic field and links the ones that are ERD nodes.
+    sample = {"objects": {"Quote": {"domain": "x", "fields": {}}}, "relationships": []}
+    poly = validator.FieldInfo("ZzWhatId", "reference", "What", ["Quote", "NotInErd"],
+                               None, True, True, False)
+    diff = validator.ObjectDiff("Quote", "x", rels_in_org_not_erd=[poly])
+    first = validator.patch_erd(sample, [diff])
+    # An object missing from the ERD is left to --add-objects.
+    absent = validator.ObjectDiff("NotInErd", "x", rels_in_org_not_erd=[poly])
+    check("patch_links_every_polymorphic_target_once",
+          first == (1, 1, 0) and validator.patch_erd(sample, [diff, absent]) == (0, 0, 0)
+          and validator.link_new_objects(sample, {"Quote"}) == 0 and "NotInErd" not in sample["objects"]
+          and sample["objects"]["Quote"]["fields"]["ZzWhatId"]["refersTo"] == "Quote, NotInErd"
+          and sample["stats"]["totalRelationships"] == 1)
+
+    real_describe = validator.describe_sobject
+    validator.describe_sobject = lambda org, name: {"name": "PricebookEntry", "fields": []}
+    try:
+        d = validator.diff_object("PriceBookEntry", {"domain": "x", "fields": {}}, "o", [])
+    finally:
+        validator.describe_sobject = real_describe
+    check("validator_reports_wrong_cased_erd_key",
+          d.org_exists and d.canonical_name == "PricebookEntry")
+
     print("domain color mappings")
     maps = []
     for script in ("scripts/erd/build_erds.py", "scripts/erd/validate_erd_against_org.py"):

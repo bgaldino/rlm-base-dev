@@ -1,0 +1,2016 @@
+{
+  "provenance": {
+    "release": "264",
+    "apiVersion": "68.0",
+    "verifiedOn": "2026-08-15",
+    "method": "describe extraction from fresh ent-shape orgs; custom fields excluded",
+    "coreSourceValidated": false
+  },
+  "objects": {
+    "AttrPicklistExcludedValue": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "AttributeId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "The ID of the product classification attribute or the product attribute definition of the picklist data type. This field is a polymorphic relationship field.",
+          "relationshipName": "Attribute",
+          "type": "reference",
+          "refersTo": "ProductAttributeDefinition, ProductClassificationAttr"
+        },
+        "AttributePicklistValueId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "The ID of the attribute picklist value that’s excluded in the product classification attribute or product attribute definition. This field is a relationship field.",
+          "relationshipName": "AttributePicklistValue",
+          "type": "reference",
+          "refersTo": "AttributePicklistValue"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date the product related component override record was last referenced.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date the product ramp segment was last viewed.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "The name of the product related component override. The maximum length is 255 characters (of any type).",
+          "type": "string"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "The owner ID of the product related component override record. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "refersTo": "Group, User",
+          "type": "reference"
+        },
+        "RecordTypeId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "type": "reference"
+        }
+      },
+      "domainShort": "PCM",
+      "isStandard": false
+    },
+    "AttributeDefinition": {
+      "domain": "Product Catalog Management",
+      "description": "Represents the definition of an attribute that can be reused across products and classifications",
+      "fields": {
+        "Code": {
+          "type": "string",
+          "description": "The unique code for the attribute definition."
+        },
+        "DataType": {
+          "type": "picklist",
+          "description": "The data type of the attribute."
+        },
+        "DefaultValue": {
+          "type": "string",
+          "description": "The default value for this attribute."
+        },
+        "Description": {
+          "type": "textarea",
+          "description": "The description of the attribute definition."
+        },
+        "LastReferencedDate": {
+          "type": "dateTime",
+          "description": "The date the attribute definition was last referenced."
+        },
+        "LastViewedDate": {
+          "type": "dateTime",
+          "description": "The date the attribute definition was last viewed."
+        },
+        "Name": {
+          "type": "string",
+          "description": "The unique name of the attribute definition."
+        },
+        "OwnerId": {
+          "type": "reference",
+          "description": "The owner of the attribute definition.",
+          "refersTo": [
+            "Group",
+            "User"
+          ]
+        },
+        "PicklistId": {
+          "type": "reference",
+          "description": "The ID of the attribute picklist with the valid values for this attribute.",
+          "refersTo": [
+            "AttributePicklist"
+          ]
+        },
+        "Label": {
+          "description": "",
+          "type": "textarea"
+        },
+        "SourceSystemIdentifier": {
+          "description": "",
+          "type": "string"
+        },
+        "IsRequired": {
+          "description": "",
+          "type": "boolean"
+        },
+        "DeveloperName": {
+          "description": "",
+          "type": "string"
+        },
+        "DefaultHelpText": {
+          "description": "",
+          "type": "string"
+        },
+        "IsActive": {
+          "description": "",
+          "type": "boolean"
+        },
+        "ValueDescription": {
+          "description": "",
+          "type": "string"
+        },
+        "UnitOfMeasureId": {
+          "description": "Reference to UnitOfMeasure",
+          "type": "reference",
+          "refersTo": "UnitOfMeasure",
+          "relationshipType": "lookup"
+        }
+      },
+      "domainShort": "PCM",
+      "isStandard": false
+    },
+    "AttributeCategory": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "Code": {
+          "properties": "Create, Nillable, Update",
+          "description": "The description of the attribute category that's used only during design time.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date the attribute category attribute was last referenced.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date the attribute category was last viewed.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "A unique name for the attribute. The maximum length is 80 characters (of any type).",
+          "type": "string"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "The owner of the attribute category attribute. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "type": "reference",
+          "refersTo": "Group, User"
+        },
+        "Description": {
+          "type": "textarea",
+          "description": "The description of the attribute category that's used only during design time."
+        }
+      },
+      "domainShort": "PCM",
+      "isStandard": false
+    },
+    "Product2": {
+      "domain": "Product Catalog Management (Core Object)",
+      "fields": {
+        "CanRamp": {
+          "description": "Indicates whether the product’s terms, volumes, and other commitments can be ramped (true) at run time or not (false) The default value is false.",
+          "properties": "Defaulted on create, Filter, Group, Sort",
+          "type": "boolean"
+        },
+        "DecompositionScope": {
+          "description": "The number of fulfillment order line items that must be generated. Available in API version 61.0 and later. Valid values are: • Account • Bundle • Order",
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update"
+        },
+        "FulfillmentQtyCalcMethod": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "Determines whether the quantity of fulfillment order line items must always be one or must be aggregated from the source line items. Available in API version 61.0 and later."
+        },
+        "UsageModelType": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "The type of usage model for a product or service. Anchor is the main subscription product or service. Pack is the add-on product or service that grants additional usage resources for consumption. Available in API version 62.0 and later. Valid values are: • Anchor • Pack",
+          "type": "string"
+        },
+        "Description": {
+          "description": "",
+          "type": "textarea"
+        },
+        "Type": {
+          "description": "",
+          "type": "picklist"
+        },
+        "CustomDecompositionScope": {
+          "description": "",
+          "type": "string"
+        },
+        "IsAssetizable": {
+          "description": "",
+          "type": "boolean"
+        },
+        "DisplayUrl": {
+          "description": "",
+          "type": "string"
+        },
+        "QuantityUnitOfMeasure": {
+          "description": "",
+          "type": "string"
+        },
+        "SpecificationType": {
+          "description": "",
+          "type": "string"
+        },
+        "IsSoldOnlyWithOtherProds": {
+          "description": "",
+          "type": "boolean"
+        },
+        "ConfigureDuringSale": {
+          "description": "",
+          "type": "string"
+        },
+        "ProductCode": {
+          "description": "",
+          "type": "string"
+        },
+        "IsActive": {
+          "description": "",
+          "type": "boolean"
+        },
+        "Family": {
+          "description": "",
+          "type": "string"
+        },
+        "StockKeepingUnit": {
+          "description": "",
+          "type": "string"
+        },
+        "BillingPolicyId": {
+          "description": "Reference to BillingPolicy",
+          "type": "reference",
+          "refersTo": "BillingPolicy",
+          "relationshipType": "lookup"
+        },
+        "UnitOfMeasureId": {
+          "description": "Reference to UnitOfMeasure",
+          "type": "reference",
+          "refersTo": "UnitOfMeasure",
+          "relationshipType": "lookup"
+        },
+        "TaxPolicyId": {
+          "description": "Reference to TaxPolicy",
+          "type": "reference",
+          "refersTo": "TaxPolicy",
+          "relationshipType": "lookup"
+        },
+        "ExternalDataSourceId": {
+          "description": "External Data Source ID",
+          "type": "reference",
+          "refersTo": "ExternalDataSource",
+          "relationshipType": "lookup"
+        },
+        "BasedOnId": {
+          "description": "Product Classification ID",
+          "type": "reference",
+          "refersTo": "ProductClassification",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Product Name",
+          "type": "string"
+        },
+        "ExternalId": {
+          "description": "External ID",
+          "type": "string"
+        },
+        "IsArchived": {
+          "description": "Archived",
+          "type": "boolean"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "ProductClass": {
+          "description": "Product Class",
+          "type": "picklist"
+        },
+        "AvailabilityDate": {
+          "description": "Availability Date",
+          "type": "datetime"
+        },
+        "DiscontinuedDate": {
+          "description": "Discontinued Date",
+          "type": "datetime"
+        },
+        "EndOfLifeDate": {
+          "description": "End Of Life Date",
+          "type": "datetime"
+        },
+        "HelpText": {
+          "description": "Help Text",
+          "type": "textarea"
+        },
+        "UsedFor": {
+          "description": "Used for",
+          "type": "picklist"
+        },
+        "UniversalProductCode": {
+          "description": "Universal Product Code",
+          "type": "string"
+        }
+      },
+      "is_standard": true,
+      "domainShort": "PCM",
+      "isStandard": true
+    },
+    "AttributePicklist": {
+      "domain": "Product Catalog Management",
+      "description": "Represents the picklist values available for an attribute",
+      "fields": {
+        "Code": {
+          "type": "string",
+          "description": "The unique code for the attribute picklist."
+        },
+        "Description": {
+          "type": "textarea",
+          "description": "The description of the attribute picklist."
+        },
+        "LastReferencedDate": {
+          "type": "dateTime",
+          "description": "The date the attribute picklist was last referenced."
+        },
+        "LastViewedDate": {
+          "type": "dateTime",
+          "description": "The date the attribute picklist was last viewed."
+        },
+        "Name": {
+          "type": "string",
+          "description": "The unique name of the attribute picklist."
+        },
+        "OwnerId": {
+          "type": "reference",
+          "description": "The owner of the attribute picklist.",
+          "refersTo": [
+            "Group",
+            "User"
+          ]
+        },
+        "Status": {
+          "description": "",
+          "type": "picklist"
+        },
+        "DataType": {
+          "description": "",
+          "type": "string"
+        },
+        "UnitOfMeasureId": {
+          "description": "Reference to UnitOfMeasure",
+          "type": "reference",
+          "refersTo": "UnitOfMeasure",
+          "relationshipType": "lookup"
+        }
+      },
+      "domainShort": "PCM",
+      "isStandard": false
+    },
+    "AttributePicklistValue": {
+      "domain": "Product Catalog Management",
+      "description": "Represents a picklist value available for an attribute",
+      "fields": {
+        "Code": {
+          "type": "string",
+          "description": "The unique code for the attribute picklist value."
+        },
+        "LastReferencedDate": {
+          "type": "dateTime",
+          "description": "The date the attribute picklist value was last referenced."
+        },
+        "LastViewedDate": {
+          "type": "dateTime",
+          "description": "The date the attribute picklist value was last viewed."
+        },
+        "Name": {
+          "type": "string",
+          "description": "The unique name of the attribute picklist value."
+        },
+        "OwnerId": {
+          "type": "reference",
+          "description": "The owner of the attribute picklist value.",
+          "refersTo": [
+            "Group",
+            "User"
+          ]
+        },
+        "Value": {
+          "description": "",
+          "type": "string"
+        },
+        "Status": {
+          "description": "",
+          "type": "picklist"
+        },
+        "Abbreviation": {
+          "description": "",
+          "type": "string"
+        },
+        "IsDefault": {
+          "description": "",
+          "type": "boolean"
+        },
+        "DisplayValue": {
+          "description": "",
+          "type": "string"
+        },
+        "Sequence": {
+          "description": "",
+          "type": "string"
+        },
+        "PicklistId": {
+          "description": "Reference to AttributePicklist",
+          "type": "reference",
+          "refersTo": "AttributePicklist",
+          "relationshipType": "lookup"
+        }
+      },
+      "domainShort": "PCM",
+      "isStandard": false
+    },
+    "ProductAttributeDefinition": {
+      "domain": "Product Catalog Management",
+      "description": "Represents the relationship between a product and its attributes",
+      "fields": {
+        "AttributeCategoryId": {
+          "type": "reference",
+          "description": "The ID of the attribute category assigned to the parent object.",
+          "refersTo": [
+            "AttributeCategory"
+          ]
+        },
+        "AttributeDefinitionId": {
+          "type": "reference",
+          "description": "The ID of the attribute associated with the product.",
+          "refersTo": [
+            "AttributeDefinition"
+          ]
+        },
+        "AttributeNameOverride": {
+          "type": "string",
+          "description": "The name to display for the attribute when shown for this object."
+        },
+        "DefaultValue": {
+          "type": "string",
+          "description": "The default value for the product attribute."
+        },
+        "Description": {
+          "type": "textarea",
+          "description": "A description of the attribute definition."
+        },
+        "DisplayType": {
+          "type": "picklist",
+          "description": "The type to display data for the selected data type."
+        },
+        "HelpText": {
+          "type": "textarea",
+          "description": "The help text to display when end users are configuring this attribute."
+        },
+        "IsHidden": {
+          "type": "boolean",
+          "description": "Indicates if this product attribute is hidden from end users."
+        },
+        "IsPriceImpacting": {
+          "type": "boolean",
+          "description": "Indicates whether this attribute dictates the price of a product."
+        },
+        "IsReadOnly": {
+          "type": "boolean",
+          "description": "Indicates whether the attribute is read-only for users."
+        },
+        "IsRequired": {
+          "type": "boolean",
+          "description": "Indicates whether this attribute requires a value."
+        },
+        "LastReferencedDate": {
+          "type": "dateTime",
+          "description": "The date the product attribute was last referenced."
+        },
+        "LastViewedDate": {
+          "type": "dateTime",
+          "description": "The date the product attribute was last viewed."
+        },
+        "MaximumCharacterCount": {
+          "type": "int",
+          "description": "The maximum number of characters that can be entered for an attribute value."
+        },
+        "MaximumValue": {
+          "type": "string",
+          "description": "The maximum value that can be entered as an attribute value."
+        },
+        "MinimumCharacterCount": {
+          "type": "int",
+          "description": "The minimum number of characters that can be entered for an attribute value."
+        },
+        "MinimumValue": {
+          "type": "string",
+          "description": "The minimum value that can be entered as an attribute value."
+        },
+        "Name": {
+          "type": "string",
+          "description": "The name of the product attribute."
+        },
+        "OwnerId": {
+          "type": "reference",
+          "description": "The owner of the product attribute definition.",
+          "refersTo": [
+            "Group",
+            "User"
+          ]
+        },
+        "Product2Id": {
+          "type": "reference",
+          "description": "The product ID associated with the product attribute definition.",
+          "refersTo": [
+            "Product2"
+          ]
+        },
+        "Sequence": {
+          "type": "int",
+          "description": "The display sequence of the attribute when configuring the product."
+        },
+        "Status": {
+          "type": "picklist",
+          "description": "The lifecycle state of the product attribute definition."
+        },
+        "StepValue": {
+          "type": "string",
+          "description": "The increment or decrement by which a slider's value changes."
+        },
+        "ValueDescription": {
+          "type": "textarea",
+          "description": "The description of the value assigned to this attribute."
+        },
+        "OverriddenProductAttributeDefinitionId": {
+          "description": "Reference to ProductAttributeDefinition",
+          "type": "reference",
+          "refersTo": "ProductAttributeDefinition",
+          "relationshipType": "lookup"
+        },
+        "ProductClassificationAttributeId": {
+          "description": "Reference to ProductClassificationAttr",
+          "type": "reference",
+          "refersTo": "ProductClassificationAttr",
+          "relationshipType": "lookup"
+        },
+        "UnitOfMeasureId": {
+          "description": "Reference to UnitOfMeasure",
+          "type": "reference",
+          "refersTo": "UnitOfMeasure",
+          "relationshipType": "lookup"
+        },
+        "OverrideContextId": {
+          "description": "Override Context ID",
+          "type": "reference",
+          "refersTo": "Product2",
+          "relationshipType": "lookup"
+        },
+        "CategorySequence": {
+          "description": "Category Sequence",
+          "type": "int"
+        }
+      },
+      "domainShort": "PCM",
+      "isStandard": false
+    },
+    "ProductCategory": {
+      "domain": "Product Catalog Management",
+      "description": "Represents a product category",
+      "fields": {
+        "Code": {
+          "type": "string",
+          "description": "The unique code for the product category."
+        },
+        "Description": {
+          "type": "textarea",
+          "description": "The description of the product category."
+        },
+        "LastReferencedDate": {
+          "type": "dateTime",
+          "description": "The date the product category was last referenced."
+        },
+        "LastViewedDate": {
+          "type": "dateTime",
+          "description": "The date the product category was last viewed."
+        },
+        "Name": {
+          "type": "string",
+          "description": "The name of the product category."
+        },
+        "OwnerId": {
+          "type": "reference",
+          "description": "The owner of the product category.",
+          "refersTo": [
+            "Group",
+            "User"
+          ]
+        },
+        "SortOrder": {
+          "description": "",
+          "type": "string"
+        },
+        "IsNavigational": {
+          "description": "",
+          "type": "boolean"
+        },
+        "CatalogId": {
+          "description": "Reference to ProductCatalog",
+          "type": "reference",
+          "refersTo": "ProductCatalog",
+          "relationshipType": "lookup"
+        },
+        "ParentCategoryId": {
+          "description": "Reference to ProductCategory",
+          "type": "reference",
+          "refersTo": "ProductCategory",
+          "relationshipType": "lookup"
+        },
+        "NumberOfProducts": {
+          "description": "Number of Products",
+          "type": "int"
+        }
+      },
+      "domainShort": "PCM",
+      "isStandard": false
+    },
+    "ProductCategoryProduct": {
+      "domain": "Product Catalog Management",
+      "description": "Represents the association between a product and a product category",
+      "fields": {
+        "LastReferencedDate": {
+          "type": "dateTime",
+          "description": "The date the record was last referenced."
+        },
+        "LastViewedDate": {
+          "type": "dateTime",
+          "description": "The date the record was last viewed."
+        },
+        "Name": {
+          "type": "string",
+          "description": "The name of the product category product."
+        },
+        "OwnerId": {
+          "type": "reference",
+          "description": "The owner of the record.",
+          "refersTo": [
+            "Group",
+            "User"
+          ]
+        },
+        "ProductId": {
+          "type": "reference",
+          "description": "The ID of the product.",
+          "refersTo": [
+            "Product2"
+          ]
+        },
+        "IsPrimaryCategory": {
+          "description": "",
+          "type": "boolean"
+        },
+        "CatalogId": {
+          "description": "Reference to ProductCatalog",
+          "type": "reference",
+          "refersTo": "ProductCatalog",
+          "relationshipType": "lookup"
+        },
+        "ProductCategoryId": {
+          "description": "Reference to ProductCategory",
+          "type": "reference",
+          "refersTo": "ProductCategory",
+          "relationshipType": "lookup"
+        },
+        "ProductToCategory": {
+          "description": "Product/Category Concatenation",
+          "type": "string"
+        }
+      },
+      "domainShort": "PCM",
+      "isStandard": false
+    },
+    "ProductRelatedComponent": {
+      "domain": "Product Catalog Management",
+      "description": "Represents a component in a product bundle relationship",
+      "fields": {
+        "LastReferencedDate": {
+          "type": "dateTime",
+          "description": "The date the product related component was last referenced."
+        },
+        "LastViewedDate": {
+          "type": "dateTime",
+          "description": "The date the product related component was last viewed."
+        },
+        "MaxQuantity": {
+          "type": "double",
+          "description": "The maximum quantity for the product component."
+        },
+        "MinQuantity": {
+          "type": "double",
+          "description": "The minimum quantity for the product component."
+        },
+        "Name": {
+          "type": "string",
+          "description": "The name of the product related component."
+        },
+        "OwnerId": {
+          "type": "reference",
+          "description": "The owner of the product related component.",
+          "refersTo": [
+            "Group",
+            "User"
+          ]
+        },
+        "ParentProductId": {
+          "type": "reference",
+          "description": "The ID of the parent product.",
+          "refersTo": [
+            "Product2"
+          ]
+        },
+        "ProductComponentGroupId": {
+          "type": "reference",
+          "description": "The ID of the product component group.",
+          "refersTo": [
+            "ProductComponentGroup"
+          ]
+        },
+        "ProductRelationshipTypeId": {
+          "type": "reference",
+          "description": "The ID of the product relationship type.",
+          "refersTo": [
+            "ProductRelationshipType"
+          ]
+        },
+        "Quantity": {
+          "type": "double",
+          "description": "The default quantity for this component."
+        },
+        "IsComponentRequired": {
+          "description": "",
+          "type": "boolean"
+        },
+        "ParentProductRole": {
+          "description": "",
+          "type": "string"
+        },
+        "QuantityScaleMethod": {
+          "description": "",
+          "type": "string"
+        },
+        "QuoteVisibility": {
+          "description": "",
+          "type": "string"
+        },
+        "IsDefaultComponent": {
+          "description": "",
+          "type": "boolean"
+        },
+        "Sequence": {
+          "description": "",
+          "type": "string"
+        },
+        "ChildProductRole": {
+          "description": "",
+          "type": "string"
+        },
+        "DoesBundlePriceIncludeChild": {
+          "description": "",
+          "type": "boolean"
+        },
+        "IsQuantityEditable": {
+          "description": "",
+          "type": "boolean"
+        },
+        "ChildProductId": {
+          "description": "Reference to Product2",
+          "type": "reference",
+          "refersTo": "Product2",
+          "relationshipType": "lookup"
+        },
+        "ChildProductClassificationId": {
+          "description": "Reference to ProductClassification",
+          "type": "reference",
+          "refersTo": "ProductClassification",
+          "relationshipType": "lookup"
+        },
+        "ChildSellingModelId": {
+          "description": "Reference to ProductSellingModel",
+          "type": "reference",
+          "refersTo": "ProductSellingModel",
+          "relationshipType": "lookup"
+        },
+        "ParentSellingModelId": {
+          "description": "Reference to ProductSellingModel",
+          "type": "reference",
+          "refersTo": "ProductSellingModel",
+          "relationshipType": "lookup"
+        },
+        "UnitOfMeasureId": {
+          "description": "Reference to UnitOfMeasure",
+          "type": "reference",
+          "refersTo": "UnitOfMeasure",
+          "relationshipType": "lookup"
+        }
+      },
+      "domainShort": "PCM",
+      "isStandard": false
+    },
+    "ProductRelationshipType": {
+      "domain": "Product Catalog Management",
+      "description": "Represents a type of relationship between products",
+      "fields": {
+        "LastReferencedDate": {
+          "type": "dateTime",
+          "description": "The date the record was last referenced."
+        },
+        "LastViewedDate": {
+          "type": "dateTime",
+          "description": "The date the record was last viewed."
+        },
+        "Name": {
+          "type": "string",
+          "description": "The name of the product relationship type."
+        },
+        "OwnerId": {
+          "type": "reference",
+          "description": "The owner of the record.",
+          "refersTo": [
+            "Group",
+            "User"
+          ]
+        },
+        "MainProductRoleCat": {
+          "description": "",
+          "type": "string"
+        },
+        "AssociatedProductRoleCat": {
+          "description": "",
+          "type": "string"
+        },
+        "GlobalKey": {
+          "description": "Global Key",
+          "type": "string"
+        }
+      },
+      "domainShort": "PCM",
+      "isStandard": false
+    },
+    "ProductCatalog": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "CatalogType": {
+          "description": "",
+          "type": "string"
+        },
+        "Code": {
+          "description": "",
+          "type": "string"
+        },
+        "Description": {
+          "description": "",
+          "type": "textarea"
+        },
+        "EffectiveEndDate": {
+          "description": "",
+          "type": "dateTime"
+        },
+        "EffectiveStartDate": {
+          "description": "",
+          "type": "dateTime"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "NumberOfCategories": {
+          "description": "Number of Categories",
+          "type": "int"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "ProductCategoryDisqual": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "CategoryId": {
+          "description": "",
+          "type": "reference",
+          "refersTo": "ProductCategory"
+        },
+        "EffectiveFromDate": {
+          "description": "",
+          "type": "dateTime"
+        },
+        "EffectiveToDate": {
+          "description": "",
+          "type": "dateTime"
+        },
+        "IsDisqualified": {
+          "description": "",
+          "type": "boolean"
+        },
+        "Reason": {
+          "description": "",
+          "type": "string"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "ProductCategoryQualification": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "CategoryId": {
+          "description": "",
+          "type": "reference",
+          "refersTo": "ProductCategory"
+        },
+        "EffectiveFromDate": {
+          "description": "",
+          "type": "dateTime"
+        },
+        "EffectiveToDate": {
+          "description": "",
+          "type": "dateTime"
+        },
+        "IsQualified": {
+          "description": "",
+          "type": "boolean"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "ProductDisqualification": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "EffectiveFromDate": {
+          "description": "",
+          "type": "dateTime"
+        },
+        "EffectiveToDate": {
+          "description": "",
+          "type": "dateTime"
+        },
+        "IsDisqualified": {
+          "description": "",
+          "type": "boolean"
+        },
+        "ParentProductId": {
+          "description": "",
+          "type": "reference",
+          "refersTo": "Product2"
+        },
+        "ProductId": {
+          "description": "",
+          "type": "reference",
+          "refersTo": "Product2"
+        },
+        "Reason": {
+          "description": "",
+          "type": "string"
+        },
+        "RootProductId": {
+          "description": "",
+          "type": "reference",
+          "refersTo": "Product2"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "ProductQualification": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "EffectiveFromDate": {
+          "description": "",
+          "type": "dateTime"
+        },
+        "EffectiveToDate": {
+          "description": "",
+          "type": "dateTime"
+        },
+        "IsQualified": {
+          "description": "",
+          "type": "boolean"
+        },
+        "ParentProductId": {
+          "description": "",
+          "type": "reference",
+          "refersTo": "Product2"
+        },
+        "ProductId": {
+          "description": "",
+          "type": "reference",
+          "refersTo": "Product2"
+        },
+        "RootProductId": {
+          "description": "",
+          "type": "reference",
+          "refersTo": "Product2"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "ProductClassification": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "Code": {
+          "description": "",
+          "type": "string"
+        },
+        "Status": {
+          "description": "",
+          "type": "picklist"
+        },
+        "ParentProductClassificationId": {
+          "description": "Reference to ProductClassification",
+          "type": "reference",
+          "refersTo": "ProductClassification",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Product Classification Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "ProductClassificationAttr": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "AttributeNameOverride": {
+          "description": "",
+          "type": "string"
+        },
+        "DefaultValue": {
+          "description": "",
+          "type": "string"
+        },
+        "Description": {
+          "description": "",
+          "type": "textarea"
+        },
+        "DisplayType": {
+          "description": "",
+          "type": "string"
+        },
+        "HelpText": {
+          "description": "",
+          "type": "textarea"
+        },
+        "IsHidden": {
+          "description": "",
+          "type": "boolean"
+        },
+        "IsPriceImpacting": {
+          "description": "",
+          "type": "boolean"
+        },
+        "IsReadOnly": {
+          "description": "",
+          "type": "boolean"
+        },
+        "IsRequired": {
+          "description": "",
+          "type": "boolean"
+        },
+        "MaximumCharacterCount": {
+          "description": "",
+          "type": "string"
+        },
+        "MaximumValue": {
+          "description": "",
+          "type": "string"
+        },
+        "MinimumCharacterCount": {
+          "description": "",
+          "type": "string"
+        },
+        "MinimumValue": {
+          "description": "",
+          "type": "string"
+        },
+        "Sequence": {
+          "description": "",
+          "type": "string"
+        },
+        "Status": {
+          "description": "",
+          "type": "picklist"
+        },
+        "StepValue": {
+          "description": "",
+          "type": "string"
+        },
+        "ValueDescription": {
+          "description": "",
+          "type": "string"
+        },
+        "AttributeCategoryId": {
+          "description": "Reference to AttributeCategory",
+          "type": "reference",
+          "refersTo": "AttributeCategory",
+          "relationshipType": "lookup"
+        },
+        "AttributeDefinitionId": {
+          "description": "Reference to AttributeDefinition",
+          "type": "reference",
+          "refersTo": "AttributeDefinition",
+          "relationshipType": "lookup"
+        },
+        "ProductClassificationId": {
+          "description": "Reference to ProductClassification",
+          "type": "reference",
+          "refersTo": "ProductClassification",
+          "relationshipType": "lookup"
+        },
+        "UnitOfMeasureId": {
+          "description": "Reference to UnitOfMeasure",
+          "type": "reference",
+          "refersTo": "UnitOfMeasure",
+          "relationshipType": "lookup"
+        },
+        "OverriddenInheritedAttributeId": {
+          "description": "Product Classification Attribute ID",
+          "type": "reference",
+          "refersTo": "ProductClassificationAttr",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "CategorySequence": {
+          "description": "Category Sequence",
+          "type": "int"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "ProductComponentGroup": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "Code": {
+          "description": "",
+          "type": "string"
+        },
+        "Description": {
+          "description": "",
+          "type": "textarea"
+        },
+        "MaxBundleComponents": {
+          "description": "",
+          "type": "string"
+        },
+        "MinBundleComponents": {
+          "description": "",
+          "type": "string"
+        },
+        "Sequence": {
+          "description": "",
+          "type": "string"
+        },
+        "ParentGroupId": {
+          "description": "Reference to ProductComponentGroup",
+          "type": "reference",
+          "refersTo": "ProductComponentGroup",
+          "relationshipType": "lookup"
+        },
+        "ParentProductId": {
+          "description": "Reference to Product2",
+          "type": "reference",
+          "refersTo": "Product2",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Group Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "ProductComponentGrpOverride": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "OverrideContextId": {
+          "description": "Override Context ID",
+          "type": "reference",
+          "refersTo": "Product2",
+          "relationshipType": "lookup"
+        },
+        "ProductComponentGroupId": {
+          "description": "Product Component Group ID",
+          "type": "reference",
+          "refersTo": "ProductComponentGroup",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "IsExcluded": {
+          "description": "Exclude",
+          "type": "boolean"
+        },
+        "MinBundleComponents": {
+          "description": "Minimum Bundle Components",
+          "type": "int"
+        },
+        "MaxBundleComponents": {
+          "description": "Maximum Bundle Components",
+          "type": "int"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "ProductRelComponentOverride": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "ProductRelatedComponentId": {
+          "description": "Product Related Component ID",
+          "type": "reference",
+          "refersTo": "ProductRelatedComponent",
+          "relationshipType": "lookup"
+        },
+        "OverrideContextId": {
+          "description": "Override Context ID",
+          "type": "reference",
+          "refersTo": "Product2",
+          "relationshipType": "lookup"
+        },
+        "UnitOfMeasureId": {
+          "description": "Unit of Measure ID",
+          "type": "reference",
+          "refersTo": "UnitOfMeasure",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "MaxQuantity": {
+          "description": "Max Quantity",
+          "type": "double"
+        },
+        "MinQuantity": {
+          "description": "Min Quantity",
+          "type": "double"
+        },
+        "Quantity": {
+          "description": "Quantity",
+          "type": "double"
+        },
+        "IsExcluded": {
+          "description": "Exclude",
+          "type": "boolean"
+        },
+        "IsComponentRequired": {
+          "description": "Require this component",
+          "type": "boolean"
+        },
+        "IsQuantityEditable": {
+          "description": "Allow quantity changes",
+          "type": "boolean"
+        },
+        "IsDefaultComponent": {
+          "description": "Include component by default",
+          "type": "boolean"
+        },
+        "DoesBundlePriceIncludeChild": {
+          "description": "Price includes component",
+          "type": "boolean"
+        },
+        "QuantityScaleMethod": {
+          "description": "Quantity Scaling Method",
+          "type": "picklist"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "ProdtAttrScope": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "Scope": {
+          "description": "",
+          "type": "string"
+        },
+        "UsageType": {
+          "description": "",
+          "type": "string"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "AttributeCategoryAttribute": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "AttributeCategoryId": {
+          "description": "Reference to AttributeCategory",
+          "type": "reference",
+          "refersTo": "AttributeCategory",
+          "relationshipType": "lookup"
+        },
+        "AttributeDefinitionId": {
+          "description": "Reference to AttributeDefinition",
+          "type": "reference",
+          "refersTo": "AttributeDefinition",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "OmniProcess": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "CustomJavaScript": {
+          "description": "",
+          "type": "string"
+        },
+        "Description": {
+          "description": "",
+          "type": "textarea"
+        },
+        "DesignerCustomizationType": {
+          "description": "",
+          "type": "string"
+        },
+        "ElementTypeComponentMapping": {
+          "description": "",
+          "type": "string"
+        },
+        "IsIntegrationProcedure": {
+          "description": "",
+          "type": "boolean"
+        },
+        "IsMetadataCacheDisabled": {
+          "description": "",
+          "type": "boolean"
+        },
+        "IsOmniScriptEmbeddable": {
+          "description": "",
+          "type": "boolean"
+        },
+        "IsTestProcedure": {
+          "description": "",
+          "type": "boolean"
+        },
+        "IsWebCompEnabled": {
+          "description": "",
+          "type": "boolean"
+        },
+        "Language": {
+          "description": "",
+          "type": "string"
+        },
+        "LastPreviewPage": {
+          "description": "",
+          "type": "string"
+        },
+        "Namespace": {
+          "description": "",
+          "type": "string"
+        },
+        "OmniProcessKey": {
+          "description": "",
+          "type": "string"
+        },
+        "OmniProcessType": {
+          "description": "",
+          "type": "string"
+        },
+        "OverrideKey": {
+          "description": "",
+          "type": "string"
+        },
+        "PropertySetConfig": {
+          "description": "",
+          "type": "string"
+        },
+        "RequiredPermission": {
+          "description": "",
+          "type": "string"
+        },
+        "ResponseCacheType": {
+          "description": "",
+          "type": "string"
+        },
+        "SubType": {
+          "description": "",
+          "type": "string"
+        },
+        "Type": {
+          "description": "",
+          "type": "picklist"
+        },
+        "UniqueName": {
+          "description": "",
+          "type": "string"
+        },
+        "VersionNumber": {
+          "description": "",
+          "type": "string"
+        },
+        "WebComponentKey": {
+          "description": "",
+          "type": "string"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "IsActive": {
+          "description": "Active",
+          "type": "boolean"
+        },
+        "CustomHtmlTemplates": {
+          "description": "Custom HTML Templates",
+          "type": "textarea"
+        },
+        "DiscoveryFrameworkUsageType": {
+          "description": "Discovery Framework Usage Type",
+          "type": "picklist"
+        },
+        "IsManagedUsingStdDesigner": {
+          "description": "Managed Using Standard Designer",
+          "type": "boolean"
+        },
+        "IsIntegProcdSignatureAvl": {
+          "description": "Integration Procedure Signature Available",
+          "type": "boolean"
+        },
+        "IntegrationProcedureInput": {
+          "description": "Integration Procedure Input",
+          "type": "textarea"
+        },
+        "IntegrationProcedureOutput": {
+          "description": "Integration Procedure Output",
+          "type": "textarea"
+        },
+        "AiGeneratedDescription": {
+          "description": "AI Generated Description",
+          "type": "textarea"
+        },
+        "EmbeddingPayload": {
+          "description": "Embedding Payload",
+          "type": "textarea"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "OmniProcessElement": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "Description": {
+          "description": "",
+          "type": "textarea"
+        },
+        "DesignerCustomizationType": {
+          "description": "",
+          "type": "string"
+        },
+        "DiscoveryFrameworkUsageType": {
+          "description": "",
+          "type": "string"
+        },
+        "EmbeddedOmniScriptKey": {
+          "description": "",
+          "type": "string"
+        },
+        "IsActive": {
+          "description": "",
+          "type": "boolean"
+        },
+        "IsOmniScriptEmbeddable": {
+          "description": "",
+          "type": "boolean"
+        },
+        "Level": {
+          "description": "",
+          "type": "string"
+        },
+        "OmniProcessVersionNumber": {
+          "description": "",
+          "type": "string"
+        },
+        "ParentElementName": {
+          "description": "",
+          "type": "string"
+        },
+        "ParentElementType": {
+          "description": "",
+          "type": "string"
+        },
+        "PropertySetConfig": {
+          "description": "",
+          "type": "string"
+        },
+        "SequenceNumber": {
+          "description": "",
+          "type": "string"
+        },
+        "Type": {
+          "description": "",
+          "type": "picklist"
+        },
+        "OmniProcessId": {
+          "description": "Reference to OmniProcess",
+          "type": "reference",
+          "refersTo": "OmniProcess",
+          "relationshipType": "lookup"
+        },
+        "ParentElementId": {
+          "description": "Reference to OmniProcessElement",
+          "type": "reference",
+          "refersTo": "OmniProcessElement",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "API Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "OmniProcessAsmtQuestionVer": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "IsPrefill": {
+          "description": "",
+          "type": "boolean"
+        },
+        "AssessmentQuestionVersionId": {
+          "description": "Reference to AssessmentQuestionVersion",
+          "type": "reference",
+          "refersTo": "AssessmentQuestionVersion",
+          "relationshipType": "lookup"
+        },
+        "OmniProcessId": {
+          "description": "Reference to OmniProcess",
+          "type": "reference",
+          "refersTo": "OmniProcess",
+          "relationshipType": "lookup"
+        },
+        "OmniProcessElementId": {
+          "description": "Reference to OmniProcessElement",
+          "type": "reference",
+          "refersTo": "OmniProcessElement",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "OmniScriptConfig": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "DeveloperName": {
+          "description": "",
+          "type": "string"
+        },
+        "Language": {
+          "description": "",
+          "type": "string"
+        },
+        "MasterLabel": {
+          "description": "",
+          "type": "string"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "AssessmentQuestion": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "CurrencyIsoCode": {
+          "description": "",
+          "type": "string"
+        },
+        "DataType": {
+          "description": "",
+          "type": "string"
+        },
+        "Description": {
+          "description": "",
+          "type": "textarea"
+        },
+        "DeveloperName": {
+          "description": "",
+          "type": "string"
+        },
+        "QuestionCategory": {
+          "description": "",
+          "type": "string"
+        },
+        "QuestionText": {
+          "description": "",
+          "type": "string"
+        },
+        "UniqueIndex": {
+          "description": "",
+          "type": "string"
+        },
+        "ActiveVersionId": {
+          "description": "Reference to AssessmentQuestionVersion",
+          "type": "reference",
+          "refersTo": "AssessmentQuestionVersion",
+          "relationshipType": "lookup"
+        },
+        "RelatedQuestionId": {
+          "description": "Reference to AssessmentQuestion",
+          "type": "reference",
+          "refersTo": "AssessmentQuestion",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "FormulaResponseDataType": {
+          "description": "Formula Response Data Type",
+          "type": "picklist"
+        },
+        "Namespace": {
+          "description": "Namespace",
+          "type": "string"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "AssessmentQuestionVersion": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "AdditionalInformation": {
+          "description": "",
+          "type": "string"
+        },
+        "CurrencyIsoCode": {
+          "description": "",
+          "type": "string"
+        },
+        "DataType": {
+          "description": "",
+          "type": "string"
+        },
+        "DeactivationDateTime": {
+          "description": "",
+          "type": "dateTime"
+        },
+        "Description": {
+          "description": "",
+          "type": "textarea"
+        },
+        "GuidanceInformation": {
+          "description": "",
+          "type": "string"
+        },
+        "HelpText": {
+          "description": "",
+          "type": "textarea"
+        },
+        "IsActive": {
+          "description": "",
+          "type": "boolean"
+        },
+        "IsOptionSourceResponseValue": {
+          "description": "",
+          "type": "boolean"
+        },
+        "QuestionText": {
+          "description": "",
+          "type": "string"
+        },
+        "ResponseValues": {
+          "description": "",
+          "type": "string"
+        },
+        "Status": {
+          "description": "",
+          "type": "picklist"
+        },
+        "VersionNumber": {
+          "description": "",
+          "type": "string"
+        },
+        "AssessmentQuestionId": {
+          "description": "Reference to AssessmentQuestion",
+          "type": "reference",
+          "refersTo": "AssessmentQuestion",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "ActivationDateTime": {
+          "description": "Activation Date",
+          "type": "datetime"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "AssessmentQuestionSet": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "DeveloperName": {
+          "description": "",
+          "type": "string"
+        },
+        "UniqueIndex": {
+          "description": "",
+          "type": "string"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "Namespace": {
+          "description": "Namespace",
+          "type": "string"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "AssessmentQuestionAssignment": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "AssessmentQuestionId": {
+          "description": "Reference to AssessmentQuestion",
+          "type": "reference",
+          "refersTo": "AssessmentQuestion",
+          "relationshipType": "lookup"
+        },
+        "AssessmentQuestionSetId": {
+          "description": "Reference to AssessmentQuestionSet",
+          "type": "reference",
+          "refersTo": "AssessmentQuestionSet",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "AssessmentQuestionConfig": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "DeveloperName": {
+          "description": "",
+          "type": "string"
+        },
+        "Language": {
+          "description": "",
+          "type": "string"
+        },
+        "MasterLabel": {
+          "description": "",
+          "type": "string"
+        },
+        "NamespacePrefix": {
+          "description": "Namespace Prefix",
+          "type": "string"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    },
+    "AssessmentQuestionSetConfig": {
+      "domain": "Product Catalog Management",
+      "fields": {
+        "DeveloperName": {
+          "description": "",
+          "type": "string"
+        },
+        "Language": {
+          "description": "",
+          "type": "string"
+        },
+        "MasterLabel": {
+          "description": "",
+          "type": "string"
+        },
+        "NamespacePrefix": {
+          "description": "Namespace Prefix",
+          "type": "string"
+        }
+      },
+      "relationships": [],
+      "domainShort": "PCM"
+    }
+  }
+}

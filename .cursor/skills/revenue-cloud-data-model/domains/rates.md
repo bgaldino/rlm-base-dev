@@ -34,7 +34,7 @@ Product2 ← RateCardEntry (ProductId)
 ProductSellingModel ← RateCardEntry (ProductSellingModelId)
 UsageResource ← RateCardEntry (UsageResourceId)
 RatingFrequencyPolicy ← ProductUsageResourcePolicy (RatingFrequencyPolicyId, Usage domain)
-PriceBook2 ← PriceBookRateCard (PriceBookId)
+Pricebook2 ← PriceBookRateCard (PriceBookId)
 RateCard ← PriceBookRateCard (RateCardId)
 BindingObjectCustomExt ← BindingObjectRateCardEntry (BindingObjectId)
 ```
@@ -43,7 +43,7 @@ BindingObjectCustomExt ← BindingObjectRateCardEntry (BindingObjectId)
 
 - **From PCM**: Product2, ProductSellingModel, UnitOfMeasure, UnitOfMeasureClass
 - **From Usage**: UsageResource, ProductUsageResource (PUR) — rate cards reference the same usage resources as PURs
-- **From Pricing**: PriceBook2 — PriceBookRateCard links rate cards to price books
+- **From Pricing**: Pricebook2 — PriceBookRateCard links rate cards to price books
 
 ## SFDMU Data Plan: `qb-rates`
 

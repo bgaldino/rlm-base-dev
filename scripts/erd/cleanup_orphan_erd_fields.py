@@ -98,6 +98,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
+import erd_shards  # sibling module: writes erd-data.json and the per-domain shards
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 ERD_DATA = REPO_ROOT / "docs" / "erds" / "erd-data.json"
 
@@ -504,8 +506,7 @@ def main():
 
         # Apply
         f_removed, r_removed = apply_removals(erd_data, orphans, classes_to_remove)
-        with open(ERD_DATA, "w") as f:
-            json.dump(erd_data, f, indent=2)
+        erd_shards.save(erd_data, ERD_DATA)  # erd-data.json plus the per-domain shards
 
         print(f"\nApplied to {ERD_DATA}:")
         print(f"  Fields removed: {f_removed}")

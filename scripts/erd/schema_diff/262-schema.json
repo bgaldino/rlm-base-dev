@@ -51026,7 +51026,7 @@
       "queryable": true,
       "updateable": true
     },
-    "PriceBook2": {
+    "Pricebook2": {
       "createable": true,
       "deletable": true,
       "fieldCount": 9,
@@ -51179,11 +51179,11 @@
       },
       "keyPrefix": "01s",
       "label": "Price Book",
-      "name": "PriceBook2",
+      "name": "Pricebook2",
       "queryable": true,
       "updateable": true
     },
-    "PriceBookEntry": {
+    "PricebookEntry": {
       "createable": true,
       "deletable": true,
       "fieldCount": 11,
@@ -51370,7 +51370,7 @@
       },
       "keyPrefix": "01u",
       "label": "Price Book Entry",
-      "name": "PriceBookEntry",
+      "name": "PricebookEntry",
       "queryable": true,
       "updateable": true
     },
@@ -51835,7 +51835,7 @@
       "queryable": true,
       "updateable": true
     },
-    "PricingAPIExecution": {
+    "PricingApiExecution": {
       "createable": true,
       "deletable": true,
       "fieldCount": 8,
@@ -51980,7 +51980,7 @@
       },
       "keyPrefix": "1NI",
       "label": "Pricing API Execution",
-      "name": "PricingAPIExecution",
+      "name": "PricingApiExecution",
       "queryable": true,
       "updateable": true
     },

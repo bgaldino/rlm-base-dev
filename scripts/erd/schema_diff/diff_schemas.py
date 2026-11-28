@@ -144,6 +144,27 @@ def objects_measured(baseline: dict, target: dict) -> bool:
     return not bounded_sides(baseline, target)
 
 
+def referenced_objects(snapshot: dict) -> set:
+    """Every object name that any field in the snapshot points at via `referenceTo`.
+
+    Polymorphic lookups (`ApprovalSubmission.RelatedRecordId` alone names hundreds) make
+    this a much wider universe than the snapshot's own key set, and it needs no org.
+    """
+    return {ref for obj in snapshot["objects"].values()
+            for f in obj["fields"].values() for ref in (f.get("referenceTo") or [])}
+
+
+def discovered_objects(baseline: dict, target: dict) -> dict:
+    """Objects the target release added or dropped, derived from reference targets only.
+
+    A lower bound, not a census: an object nothing else points at stays invisible, so
+    this complements an org-wide `sf sobject list` rather than replacing it. It is pure
+    file arithmetic over two committed snapshots, so it can be gated without an org.
+    """
+    b, t = referenced_objects(baseline), referenced_objects(target)
+    return {"added": sorted(t - b), "removed": sorted(b - t)}
+
+
 def diff_schemas(baseline: dict, target: dict) -> dict:
     """Produce a full diff between two schema snapshots."""
     b_objects = set(baseline["objects"].keys())
@@ -151,6 +172,8 @@ def diff_schemas(baseline: dict, target: dict) -> dict:
 
     objects_added = sorted(t_objects - b_objects)
     objects_removed = sorted(b_objects - t_objects)
+
+    discovered = discovered_objects(baseline, target)
 
     object_diffs = {}
     for obj_name in sorted(b_objects & t_objects):
@@ -173,6 +196,8 @@ def diff_schemas(baseline: dict, target: dict) -> dict:
             # selection modes are exhaustive, and the safe reading of a bare
             # `objects_added: 0` is not obvious enough to leave implicit.
             "objects_measured": objects_measured(baseline, target),
+            "objects_discovered_added": len(discovered["added"]),
+            "objects_discovered_removed": len(discovered["removed"]),
             "objects_added": len(objects_added),
             "objects_removed": len(objects_removed),
             "objects_changed": len(object_diffs),
@@ -206,6 +231,8 @@ def diff_schemas(baseline: dict, target: dict) -> dict:
         },
         "objects_added": objects_added,
         "objects_removed": objects_removed,
+        "objects_discovered_added": discovered["added"],
+        "objects_discovered_removed": discovered["removed"],
         "object_diffs": object_diffs,
     }
 
@@ -371,12 +398,14 @@ def generate_markdown_report(diff: dict, impacts: Optional[dict] = None) -> str:
     # construction. Shares bounded_sides() with the JSON's `objects_measured` flag so the
     # two renderings of the same fact cannot drift apart.
     bounded = bounded_sides({"metadata": b_meta}, {"metadata": t_meta})
-    obj_note = " *(not measured)*" if bounded else ""
+    obj_note = " *(fixed list: see discovered rows)*" if bounded else ""
 
     lines.append(f"| Metric | Count |")
     lines.append(f"|--------|-------|")
     lines.append(f"| Objects added | {summary['objects_added']}{obj_note} |")
     lines.append(f"| Objects removed | {summary['objects_removed']}{obj_note} |")
+    lines.append(f"| Objects discovered added (lower bound) | {summary.get('objects_discovered_added', 0)} |")
+    lines.append(f"| Objects discovered removed (lower bound) | {summary.get('objects_discovered_removed', 0)} |")
     lines.append(f"| Objects with field changes | {summary['objects_changed']} |")
     lines.append(f"| Objects unchanged | {summary['objects_unchanged']} |")
     lines.append(f"| Total fields added | {summary['total_fields_added']} |")
@@ -393,14 +422,27 @@ def generate_markdown_report(diff: dict, impacts: Optional[dict] = None) -> str:
             f"> **Object additions and removals are not measured by this report.** "
             f"These snapshots were enumerated from a fixed object list ({which}), so "
             f"their key sets were decided before either org was queried and the object "
-            f"rows above can only ever be 0. To find objects the target release added, "
-            f"enumerate them independently — "
+            f"rows above can only ever be 0. The discovered rows come from `referenceTo` "
+            f"targets and are a lower bound: an added object that nothing points at stays "
+            f"invisible. For a census, enumerate independently — "
             f"`sf sobject list --sobject all --target-org <alias> --json`, which unlike "
             f"`--all-objects` has no ID limit and returns canonical API names — then "
             f"re-extract and re-diff. Field-level rows below are unaffected: they are "
             f"measured per object from full describes."
         )
         lines.append("")
+
+    for key, title in (("objects_discovered_added", "Objects Discovered Added (referenced in target only)"),
+                       ("objects_discovered_removed", "Objects Discovered Removed (referenced in baseline only)")):
+        if diff.get(key):
+            lines.append(f"## {title}")
+            lines.append("")
+            lines.append("Derived from `referenceTo` targets of the two snapshots; a lower bound, "
+                         "and a referenced object may be adjacent-cloud rather than in ERD scope.")
+            lines.append("")
+            for obj in diff[key]:
+                lines.append(f"- `{obj}`")
+            lines.append("")
 
     # Objects added
     if diff["objects_added"]:

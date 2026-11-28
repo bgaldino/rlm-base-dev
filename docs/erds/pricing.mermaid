@@ -9,11 +9,11 @@ erDiagram
     IndexRate
     PriceAdjustmentSchedule
     PriceAdjustmentTier
-    PriceBook2
-    PriceBookEntry
+    Pricebook2
+    PricebookEntry
     PriceBookEntryDerivedPrice
     PriceRevisionPolicy
-    PricingAPIExecution
+    PricingApiExecution
     PricingAdjBatchJob
     PricingAdjBatchJobLog
     PricingProcedureResolution
@@ -28,10 +28,10 @@ erDiagram
     ContractItemPrice }o--|| ProductSellingModel : ProductSellingModelId
     ProcedurePlanCriterion }o--|| ProrationPolicy : ProrationPolicyId
     AttributeBasedAdjustment }o--|| ProductSellingModel : Lookup
-    PriceBookEntry }o--|| ProductSellingModel : ProductSellingModelId
+    PricebookEntry }o--|| ProductSellingModel : ProductSellingModelId
     AttributeAdjustmentCondition }o--|| AttributeBasedAdjRule : AttributeBasedAdjRuleId
     PriceBookEntryDerivedPrice }o--|| ProductSellingModel : ProductSellingModelId
     PriceAdjustmentTier }o--|| PriceAdjustmentSchedule : PriceAdjustmentScheduleId
     PriceAdjustmentTier }o--|| ProductSellingModel : ProductSellingModelId
-    PriceBookEntry }o--|| PriceBook2 : Pricebook2Id
+    PricebookEntry }o--|| Pricebook2 : Pricebook2Id
     ProductSellingModelOption }o--|| ProductSellingModel : ProductSellingModelId

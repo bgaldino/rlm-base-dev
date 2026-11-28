@@ -30,6 +30,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
+import erd_shards  # sibling module: writes erd-data.json and the per-domain shards
+
 REPO = Path(__file__).resolve().parent.parent.parent
 ERD_DATA = REPO / "docs" / "erds" / "erd-data.json"
 # Ownership tracking lives in .agents/ by default (intentionally untracked —
@@ -232,8 +234,7 @@ def cmd_apply(args):
         "domains": sorted(set(o.get("domain", "Unknown") for o in erd["objects"].values())),
     }
 
-    with open(ERD_DATA, "w") as f:
-        json.dump(erd, f, indent=2)
+    erd_shards.save(erd, ERD_DATA)  # erd-data.json plus the per-domain shards
 
     print(f"\nApplied removals:")
     print(f"  Fields removed: {removed}")

@@ -23,6 +23,8 @@ import re
 import sys
 from pathlib import Path
 
+import erd_shards  # sibling module: writes erd-data.json and the per-domain shards
+
 ERD_DATA_PATH = Path(__file__).resolve().parent.parent.parent / "docs" / "erds" / "erd-data.json"
 
 # ---------------------------------------------------------------------------
@@ -397,9 +399,7 @@ def main() -> None:
     if args.dry_run:
         print(f"\n--dry-run: no changes written to {input_path}")
     else:
-        with open(input_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-            f.write("\n")  # trailing newline
+        erd_shards.save(data, input_path)  # erd-data.json plus the per-domain shards
         print(f"\nWrote cleaned data to {input_path}")
 
 

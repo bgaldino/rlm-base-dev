@@ -39,9 +39,10 @@ That distinction matters twice over. Object *describe* is case-insensitive — i
 `PriceBookEntry` and answers with `PricebookEntry` — so `validate_erd_against_org.py`
 structurally cannot see an ERD object key whose casing is not canonical, and reports it
 as present. Only a describeGlobal listing surfaces those. Three such keys are known to
-be in `erd-data.json` today (`PriceBookEntry`, `PriceBook2`, `PricingAPIExecution`);
-because these snapshots are keyed off the ERD, they inherit that casing too. See todo 143
-(the private tracker).
+be in `erd-data.json` before the 264 key rename (`PriceBookEntry`, `PriceBook2`,
+`PricingAPIExecution`; now `PricebookEntry`, `Pricebook2`, `PricingApiExecution`); because
+these snapshots are keyed off the ERD, they inherited that casing and were renamed with it.
+A new ERD key is only checked for casing by comparing it with a describeGlobal listing.
 
 Options:
     --org ALIAS         sf CLI target org alias (required)
