@@ -20,7 +20,7 @@ unseen.
   where the plans' final values aren't all the same. The shapes are qb, q3 and mfg (qb/ja is a
   locale overlay on qb and counts as qb for which plans are compared, though its conflicts are
   filed as `qb/ja`), plus `common`: the top-level plans every build loads
-  whatever its shape (scratch_data's sample accounts, procedure-plans, inapp,
+  whatever its shape (scratch_data's sample accounts, procedure-plans,
   configurator-flow), which therefore meet all three. Whichever plan loads last wins on that field, so
   loading a second shape into one org changes the first one's data. See
   docs/analysis/sfdmu-data-shape-layering.md → Shape ownership.
@@ -106,7 +106,7 @@ SFDMU = REPO / "datasets" / "sfdmu"
 # reuses qb's keys, so its differences from qb/en-US are translations, not a second shape. Its
 # shared conflicts with other shapes are still filed as `qb/ja` (`side_of`, todo 340).
 SHAPE_ROOTS = {"qb/en-US": "qb", "qb/ja": "qb", "q3/en-US": "q3", "mfg/en-US": "mfg"}
-# Top-level plans (scratch_data's sample accounts, procedure-plans, inapp, configurator-flow)
+# Top-level plans (scratch_data's sample accounts, procedure-plans, configurator-flow)
 # load with every shape, so they count as one more shape that meets all the others.
 COMMON = "common"
 # SFDMU 5.8.0 reads these as null, case-insensitively on the trimmed cell (kept in step with
@@ -293,7 +293,7 @@ KNOWN_CASE_COLLISIONS = {
 
 def plan_dirs(root: Path) -> Iterator[Path]:
     # Shape plans sit at <shape>/<locale>/<plan>; the plans every build loads whatever its shape
-    # (scratch_data, procedure-plans, inapp, configurator-flow) sit at the top level.
+    # (scratch_data, procedure-plans, configurator-flow) sit at the top level.
     for export in sorted([*root.glob("*/export.json"), *root.glob("*/*/*/export.json")]):
         rel = export.parent.relative_to(root).as_posix()
         if "/test/" in f"/{rel}/" or ".bak" in rel or "extractions" in rel:

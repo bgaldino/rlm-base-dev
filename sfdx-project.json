@@ -36,8 +36,7 @@
     { "path": "unpackaged/post_setup_guide" },
     { "path": "unpackaged/post_tso" },
     { "path": "unpackaged/post_utils" },
-    { "path": "unpackaged/post_ux" },
-    { "path": "unpackaged/post_inapp" }
+    { "path": "unpackaged/post_ux" }
   ],
   "name": "rlm-base",
   "namespace": "",

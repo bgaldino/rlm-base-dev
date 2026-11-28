@@ -321,7 +321,7 @@ Verified by `tests/test_audit_data_plans.py`.
 
 Read-only checks across every data shape's SFDMU plans (qb, q3, mfg; qb/ja counts as qb for
 which plans are compared, though its conflicts are filed as `qb/ja`), plus the
-top-level plans every build loads (scratch_data, procedure-plans, inapp, configurator-flow), which
+top-level plans every build loads (scratch_data, procedure-plans, configurator-flow), which
 count as the shape `common` and are compared against all three.
 `pr_gate.py` runs it as `sfdmu_layering` whenever a plan changes.
 

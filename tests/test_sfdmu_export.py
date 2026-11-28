@@ -208,7 +208,7 @@ with tempfile.TemporaryDirectory() as plan:
           se.collect_target_row_errors(plan), [])
 
     # Mixed, in an object-set subdirectory, custom object with underscores in its name.
-    _write(plan, "target/object-set-2/RLM_Learning_Identity__c_upsert_target.csv",
+    _write(plan, "target/object-set-2/RLM_Sample_Record__c_upsert_target.csv",
            '"Id","Errors"\n"a01","#N/A"\n"","duplicate value found"\n"","duplicate value found"\n'
            '"","Required fields are missing: [Name]"\n')
     # All-failure: the 2026-10-21 reproduction's shape.
@@ -219,10 +219,10 @@ with tempfile.TemporaryDirectory() as plan:
     check("only the two files with real errors are reported, sorted by path",
           [f["file"] for f in found],
           [os.path.join("target", "ProductConfigurationFlow_insert_target.csv"),
-           os.path.join("target", "object-set-2", "RLM_Learning_Identity__c_upsert_target.csv")])
+           os.path.join("target", "object-set-2", "RLM_Sample_Record__c_upsert_target.csv")])
     mixed = found[1]
     check("custom object name keeps its underscores; operation split off",
-          (mixed["object"], mixed["operation"]), ("RLM_Learning_Identity__c", "upsert"))
+          (mixed["object"], mixed["operation"]), ("RLM_Sample_Record__c", "upsert"))
     check("mixed file counts failed vs total rows", (mixed["failed"], mixed["rows"]), (3, 4))
     check("samples are distinct, in first-seen order",
           mixed["samples"], ["duplicate value found", "Required fields are missing: [Name]"])
@@ -247,7 +247,7 @@ with tempfile.TemporaryDirectory() as plan:
     check("baseline: a rewritten file (changed mtime) is read again",
           [f["object"] for f in se.collect_target_row_errors(plan, baseline=snap)], ["Pricebook2"])
     check("errors maps each distinct message to its row count",
-          [f for f in se.collect_target_row_errors(plan) if f["object"] == "RLM_Learning_Identity__c"][0]["errors"],
+          [f for f in se.collect_target_row_errors(plan) if f["object"] == "RLM_Sample_Record__c"][0]["errors"],
           {"duplicate value found": 2, "Required fields are missing: [Name]": 1})
 
 # --- parse_row_error_ignores / split_known_row_errors -------------------------

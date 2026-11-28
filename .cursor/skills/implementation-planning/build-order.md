@@ -120,7 +120,7 @@ citations, has nothing here to track.
 | Refresh triggers (before stage 8) | `refresh_all_decision_tables`, then `rebuild_search_index` | End of build, after all data loads; `prepare_pricing_discovery` runs earlier, after revenue settings |
 
 The flow is ordered for one scripted build, so it also contains repo-specific items (demo
-catalog, personas, in-app learning, agents, community) that no customer graph needs unless
+catalog, personas, agents, community) that no customer graph needs unless
 asked. Where the flow and the graph disagree, the flow likely reflects a repo constraint
 (for example shared sample data) `[inferred]`. Order differs too:
 

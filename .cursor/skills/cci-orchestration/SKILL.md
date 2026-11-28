@@ -256,7 +256,7 @@ either a built-in CCI class or a custom class in `tasks/`.
 ### 6. Flows (`flows`)
 
 Flows are organized as a hierarchy. The main entry point is `prepare_rlm_org`
-(37 steps), which calls sub-flows:
+(36 steps, numbered 1-37; there is no step 31), which calls sub-flows:
 
 ```
 prepare_rlm_org
@@ -290,7 +290,6 @@ prepare_rlm_org
 ├── 28. prepare_large_stx [child steps gated on large_stx]
 ├── 29. prepare_personas [child steps gated on personas]
 ├── 30. prepare_ux [child steps gated on ux]
-├── 31. prepare_inapp [child steps gated on inapp]
 ├── 32. prepare_scratch (scratch-only Account, Contact, BillingAccount data)
 ├── 33. refresh_all_decision_tables
 ├── 34. rebuild_search_index (PCM catalog search index, async)
