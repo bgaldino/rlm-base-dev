@@ -28,7 +28,7 @@ Compound Price Uplifts*):
    base `SalesTransactionContext`, so no clone, map line or context sync is needed
    [Live, 2026-10-28, fresh 264 build]. Off => standard (list-based) uplift only;
    turning it off *after* compound quotes/orders/assets exist corrupts pricing, amendments, renewals.
-2. **Ramp Deals for *Groups*** (a group ramp; Revenue Settings *Ramp Deals for Groups in Quotes and Orders* on, and a *Default Ramp Uplift Type* of Standard or Compound that new schedules inherit and reps can override per schedule group [Help: `ind.qocal_ramp_deal_compound_uplift.htm`]), not the line-level ramp path. A single-line
+2. **Ramp Deals for *Groups*** (a group ramp; Revenue Settings *Ramp Deals for Groups in Quotes and Orders* on, and a *Default Ramp Uplift Type* of Standard or Compound that new schedules inherit and reps can override per schedule group [Help: ind.qocal_ramp_deal_compound_uplift.htm]), not the line-level ramp path. A single-line
    `createRampDeal` yields ungrouped segments (`QuoteLineGroupId=null`): no group to hold the
    uplift mode, so it can never compound.
 3. **`RampUpliftType='Compound'` on the ramp group**: with *Multiple Ramp Schedules Per
@@ -82,12 +82,12 @@ Compounding math (in **percent units**, matching `UnitPriceUplift` / `ApplUnitPr
 `applied%(n) = [(1 + applied%(n-1)/100) x (1 + unitUplift%(n)/100) - 1] x 100`, and
 `NetUnitPrice(n) = base x (1 + applied%(n)/100)`. The `x 100` converts the compounded multiplier
 back to a percentage: uplifts 5% then 3% give `applied% = 8.15` (not `0.0815`), i.e.
-`NetUnitPrice = base x 1.0815`. [Live, 2026-10-28][Core: same multiplier arithmetic, seeded from `PreviousSegmentMultiplier` as a percent]
+`NetUnitPrice = base x 1.0815`. [Live, 2026-10-28]. The shipped procedure uses the same multiplier arithmetic, seeded from PreviousSegmentMultiplier as a percent [Core].
 
 **The uplifted price is not rounded to the cent.** A compound segment's `NetUnitPrice` carried
 more than two decimals (the base times the compounded multiplier, at full precision), and the line total followed it, so a
 source that rounds each year's price to the cent missed by fractions of a cent per unit
-[Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. For example, with 5% then 2%,
+[Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]. For example, with 5% then 2%,
 1,001.00 × 1.071 = 1,072.071, not 1,072.07. A rounding step that runs before the uplift, such as one before the
 manual discounts, does not cover this. Add a second one after it: a List Group placed right after
 the ramp uplift group (`Applyupliftstorampedsubscriptionsitemsduringamendment` in the shipped
@@ -106,7 +106,7 @@ uplift**, **usage-based pricing**, or **derived pricing** can't compound. Compou
 renewal** (new term's Year 1 is the new baseline); pre-Winter '27 records use standard uplift.
 
 ## Lifecycle and limits (Help)
-All [Help: `ind.qocal_considerations_ramp_deals.htm`] unless noted.
+All [Help: ind.qocal_considerations_ramp_deals.htm] unless noted.
 - **Mode is fixed once assetized**: the type recorded on the asset state period cannot change;
   amendments and renewals inherit it per asset-sourced line (they may mix Standard and Compound lines;
   an initial sale has one type for all ramped lines). New ramped lines inherit the group's type.
@@ -115,8 +115,8 @@ All [Help: `ind.qocal_considerations_ramp_deals.htm`] unless noted.
   uplift while compounding restarts at the new Year 1 baseline.
 - **Pricing impact**: changing the type on a schedule group reprices every segment and line. A compound
   schedule reprices every line in the group on each run (a standard one reprices only changed segments)
-  [Help: `ind.qocal_ramp_deal_compound_uplift_sales_reps.htm`]. Delta pricing cannot be used with Dual
-  Persistence mode [Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders.htm`];
+  [Help: ind.qocal_ramp_deal_compound_uplift_sales_reps.htm]. Delta pricing cannot be used with Dual
+  Persistence mode [Help: ind.qocal_use_delta_pricing_for_quotes_and_orders.htm];
   when delta pricing applies is defined in
   [runtime and observability](../runtime-and-observability.md#delta-pricing); otherwise every line
   reruns.
@@ -132,4 +132,4 @@ All [Help: `ind.qocal_considerations_ramp_deals.htm`] unless noted.
   procedures); apply uplifts after discounts under Last Transaction Pricing; the asset's Pricing Source
   must be Last Transaction Pricing, and a list-price source ignores the uplift. One-time and evergreen
   assets, usage-based and derived-pricing products don't support uplifts
-  [Help: `ind.qocal_renewal_price_uplifts.htm`, `ind.qocal_consumer_price_index_and_uplifts_important_considerations.htm`].
+  [Help: ind.qocal_renewal_price_uplifts.htm, ind.qocal_consumer_price_index_and_uplifts_important_considerations.htm].

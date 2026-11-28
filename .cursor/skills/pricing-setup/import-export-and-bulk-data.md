@@ -18,11 +18,11 @@ tables pricing reads.
 
 ## View pricing data
 
-Price book entry and price adjustment record pages show a grid by default. To switch to list view: Price Management > open a PBE or adjustment record page > Edit Page > select the Pricing List View component > clear Show Grid View. Needs Experience/Builder rights (member of the site plus Create and Set Up Experiences, or experience admin/publisher/builder). [Help: `ind.pricing_view_pricing_data.htm`]
+Price book entry and price adjustment record pages show a grid by default. To switch to list view: Price Management > open a PBE or adjustment record page > Edit Page > select the Pricing List View component > clear Show Grid View. Needs Experience/Builder rights (member of the site plus Create and Set Up Experiences, or experience admin/publisher/builder). [Help: ind.pricing_view_pricing_data.htm]
 
 ## Sync pricing data
 
-[Help: `ind.pricing_sync_pricing_data.htm`] Sync refreshes every decision table that is mapped to a pricing recipe **and** has Usage Type = Pricing. Tables with source objects must have Usage Type Pricing for an accurate sync.
+[Help: ind.pricing_sync_pricing_data.htm] Sync refreshes every decision table that is mapped to a pricing recipe **and** has Usage Type = Pricing. Tables with source objects must have Usage Type Pricing for an accurate sync.
 
 [Core] Disagrees with Help on scope: Sync refreshes every **active** decision table mapped to the recipe (the recipe page's Sync) or to any active Revenue Cloud recipe (the Setup button), with no usage-type filter, plus the Derived Pricing Entries and Asset Action Source Entries V2 tables if active. It never activates a table. The button shows for Design Time, Pricing Manager and Pricing Admin users (on the measured org Design Time also needed Customize Application; Permissions, below).
 
@@ -37,13 +37,13 @@ Permissions: Salesforce Pricing Design Time to enable sync; Assetize Order for c
 
 Any change to source records (`PricebookEntry`, `CostBookEntry`, `PriceAdjustmentTier`, adjustment and condition rows, contract item prices) does not reach pricing until the decision tables that read them are refreshed. After every load or bulk job: run Sync Pricing Data or refresh the specific tables, then confirm Fresh. Mechanics, per-table refresh, staleness checks and CLI tasks: [decision-tables](../decision-tables/SKILL.md) (`lifecycle-and-refresh.md`). Never run verification on an org while refreshes are still queued.
 
-Predefined-table maintenance: adding maximum-price tracking requires editing Product Price Range Entries (deactivate, add result `MaxRecordedPrice`, finish, activate); otherwise the procedure fails once the max setting is on. New orgs can use Product Price Range Entries V2. [Help: `ind.pricing_update_your_product_price_range_entries_decision_table.htm`] See [price-tracking](../pricing-procedures/elements/price-tracking.md).
+Predefined-table maintenance: adding maximum-price tracking requires editing Product Price Range Entries (deactivate, add result `MaxRecordedPrice`, finish, activate); otherwise the procedure fails once the max setting is on. New orgs can use Product Price Range Entries V2. [Help: ind.pricing_update_your_product_price_range_entries_decision_table.htm] See [price-tracking](../pricing-procedures/elements/price-tracking.md).
 
 ## Export and import (packaging)
 
-Moves pricing **metadata**: recipes, decision tables, context definitions, pricing procedures. It does not move price book or adjustment records. [Help: `ind.pricing_considerations_for_importing_and_exporting_pricing_data.htm`]
+Moves pricing **metadata**: recipes, decision tables, context definitions, pricing procedures. It does not move price book or adjustment records. [Help: ind.pricing_considerations_for_importing_and_exporting_pricing_data.htm]
 
-Package steps (Setup > Package Manager > New; add components; Upload; install via the URL, choose admins/all users/profiles). Permission: Salesforce Pricing Design Time. [Help: `ind.pricing_export_and_import_your_pricing_data.htm`]
+Package steps (Setup > Package Manager > New; add components; Upload; install via the URL, choose admins/all users/profiles). Permission: Salesforce Pricing Design Time. [Help: ind.pricing_export_and_import_your_pricing_data.htm]
 
 | Export | Import |
 |---|---|
@@ -63,22 +63,22 @@ Before import, check the org's decision table limit; importing without room fail
 
 ## Adding a currency
 
-Prerequisites [Help: `ind.qocal_set_up_multiple_currencies.htm`]: turn on multiple currencies and activate the new currency in Setup; give the currency its prices in a price book; deactivate the pricing procedure version, map the `CurrencyIsoCode` input to `PricingCurrencyCode` in the Pricing Setting element, and activate it again. Enabling multicurrency while procedures on predefined tables are active, or adding the Currency field to a predefined table, needs the procedure or table deactivated first (see [price-books.md → How pricing uses it](price-books.md#how-pricing-uses-it)). With List Price from Cache on, refresh the cache after enabling multicurrency. [Help: `ind.product_catalog_turn_on_list_price_from_cache.htm`]
+Prerequisites [Help: ind.qocal_set_up_multiple_currencies.htm]: turn on multiple currencies and activate the new currency in Setup; give the currency its prices in a price book; deactivate the pricing procedure version, map the `CurrencyIsoCode` input to `PricingCurrencyCode` in the Pricing Setting element, and activate it again. Enabling multicurrency while procedures on predefined tables are active, or adding the Currency field to a predefined table, needs the procedure or table deactivated first (see [price-books.md → How pricing uses it](price-books.md#how-pricing-uses-it)). With List Price from Cache on, refresh the cache after enabling multicurrency. [Help: ind.product_catalog_turn_on_list_price_from_cache.htm]
 
 What a pricing data pack loads for each extra currency, for example EUR next to USD:
 
 | Record | Per currency | Source |
 |---|---|---|
-| `PricebookEntry` | One row per product, selling model and currency | List Price step passes `CurrencyIsoCode` [Repo: `force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml`] |
-| `CostBookEntry` | One row per product and currency | `RLM_CostBookEntries` has a `CurrencyIsoCode` column [Repo: `unpackaged/pre/5_decisiontables/RLM_CostBookEntries.decisionTable-meta.xml`] |
-| `PriceAdjustmentTier` | One row per band and currency, percentage tiers included | The standard adjustment tables match on `PriceAdjustmentScheduleId` and `CurrencyIsoCode`, and the volume, attribute and bundle steps pass `CurrencyIsoCode` [Repo: `datasets/sfdmu/qb/en-US/qb-pricing/README.md`, `RLM_DefaultPricingProcedure`] |
+| `PricebookEntry` | One row per product, selling model and currency | List Price step passes `CurrencyIsoCode` [Repo: force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml] |
+| `CostBookEntry` | One row per product and currency | `RLM_CostBookEntries` has a `CurrencyIsoCode` column [Repo: unpackaged/pre/5_decisiontables/RLM_CostBookEntries.decisionTable-meta.xml] |
+| `PriceAdjustmentTier` | One row per band and currency, percentage tiers included | The standard adjustment tables match on `PriceAdjustmentScheduleId` and `CurrencyIsoCode`, and the volume, attribute and bundle steps pass `CurrencyIsoCode` [Repo: datasets/sfdmu/qb/en-US/qb-pricing/README.md] [Repo: force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml] |
 | `BundleBasedAdjustment` | One row per adjustment and currency | Same |
 | `AttributeBasedAdjustment` | One row per adjustment and currency | Same. In the repo plan its rules and conditions carry no currency and are shared [Repo] |
 | `PriceAdjustmentSchedule` | No: one per type, shared by every currency's children | [price-adjustment-schedules.md → Data and automation](price-adjustment-schedules.md#data-and-automation) |
 
-- Monetary values (`UnitPrice`, `Cost`, `Amount`/`Override` adjustment values) need the currency's own amount; percentage values are copied unchanged, and the repo still loads a row in each currency. [Repo: `scripts/expand_currency_pricing_data.py`] Leaving a currency's row out is a non-match: no adjustment from that adjustment or tier lookup (below).
-- [Repo] The QuantumBit plan loads seven currencies (USD corporate, plus GBP, EUR, AUD, CAD, CHF, JPY). The EUR rate lives in `datasets/sfdmu/qb/en-US/qb-pricing/CurrencyType.csv` (`ConversionRate` 0.876364 against USD 1). `scripts/expand_currency_pricing_data.py` builds every non-USD row from the USD row with that rate; it copies tier values unchanged because every QuantumBit tier is a percentage. Refreshing rates: [pricing-wiring → Wrong-currency price returned](../pricing-wiring/SKILL.md#wrong-currency-price-returned-multicurrency-orgs).
-- The procedure side must pass `CurrencyIsoCode` on every currency-denominated lookup. Without it, several currency rows give a duplicate-value error (output resolution off), or, on a List Price or Price Tracking step with output resolution on, a pick by resolution strategy [Help] and candidate priority [Platform behaviour, traced, via pricing-wiring] that can be another currency's row [inferred]; a Price Adjustment Matrix with Stack or Sequence resolution and Tier Discount lookups behave differently (same section); a lone other-currency row prices the line [inferred] (same pricing-wiring section).
+- Monetary values (`UnitPrice`, `Cost`, `Amount`/`Override` adjustment values) need the currency's own amount; percentage values are copied unchanged, and the repo still loads a row in each currency. [Repo: scripts/expand_currency_pricing_data.py] Leaving a currency's row out is a non-match: no adjustment from that adjustment or tier lookup (below).
+- [Repo] The QuantumBit plan loads seven currencies (USD corporate, plus GBP, EUR, AUD, CAD, CHF, JPY). The EUR rate lives in `datasets/sfdmu/qb/en-US/qb-pricing/CurrencyType.csv` (`ConversionRate` 0.876364 against USD 1). `scripts/expand_currency_pricing_data.py` builds every non-USD row from the USD row with that rate; it copies tier values unchanged because every QuantumBit tier is a percentage. Refreshing rates: [pricing-wiring → multicurrency-build](../pricing-wiring/multicurrency-build.md).
+- The procedure side must pass `CurrencyIsoCode` on every currency-denominated lookup. Without it, several currency rows give a duplicate-value error (output resolution off), or, on a List Price or Price Tracking step with output resolution on, a pick by resolution strategy [Help] and candidate priority [Platform behaviour, traced] that can be another currency's row [inferred]; a Price Adjustment Matrix with Stack or Sequence resolution and Tier Discount lookups behave differently; a lone other-currency row prices the line [inferred]. All three are explained in [multicurrency.md](multicurrency.md).
 - Finish with the refresh rule above, then Simulate one line in each currency.
 
 ## Bulk price edits

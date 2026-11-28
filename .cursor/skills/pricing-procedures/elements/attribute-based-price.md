@@ -65,7 +65,7 @@ price-impacting attribute values.
   rule's Attribute Adjustment Conditions already saved, the platform filled
   `AttributeAdjConditionsHash` on insert. A negative Percentage value is accepted and works as an
   uplift ([`root-answer-child-price.md`](root-answer-child-price.md) → Route 1 measured)
-  [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. The repo's SFDMU
+  [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]. The repo's SFDMU
   `AttributeBasedAdjustment.csv` files carry those derived columns; how SFDMU handles them was not
   checked here.
 - The procedure's schedule input is a Text constant holding the schedule record Id (Help
@@ -78,7 +78,7 @@ price-impacting attribute values.
 - Attributes with an overridden bundle context are not supported: the override stops the
   adjustment applying; for a product in a bundle, define the attribute once. [Help]
 - Price-impacting attributes per product: default 25, minimum 1, maximum 50. [Help:
-  `ind.pricing_limits.htm`]
+  ind.pricing_limits.htm]
 - Each attribute value must resolve to one row; fix ambiguous adjustment rows. Output
   Resolution is not available on this element (only List Price, Price Tracking and
   Price Adjustment Matrix). [Help]

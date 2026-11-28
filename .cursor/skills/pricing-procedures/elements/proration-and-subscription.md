@@ -15,7 +15,7 @@ and Help's period examples: [`../../pricing-setup/proration-and-selling-models.m
 
 ## When to use it
 - Use for time-based pricing of term-defined and evergreen subscription lines: mid-period
-  start, cancel, amend. [Help: `ind.pricing_subscription_pricing_proration.htm`]
+  start, cancel, amend. [Help: ind.pricing_subscription_pricing_proration.htm]
 - Always pair them: Proration emits `PricingTermCount`, Subscription Price consumes it. [Help]
 - One-time lines: no proration needed; the repo still routes them through a Subscription Price
   step with a constant multiplier of 1 (see Metadata shape). [Repo]
@@ -83,14 +83,14 @@ become parameters). Proration has no lookup table. Extra outputs can be added in
   after the input checks above pass, and only when a `SellingModelType` value is bound: a line with
   no selling-model tag is always prorated by the engine. The defaults are read once per step run
   and are set per type (Evergreen, One Time) in Pricing Setup. [Core]
-- Proration policy applies only to **term-defined or evergreen** selling models. [Help: `ind.pricing_create_a_proration_policy.htm`]
+- Proration policy applies only to **term-defined or evergreen** selling models. [Help: ind.pricing_create_a_proration_policy.htm]
 - Setup -> Salesforce Pricing Setup: default **pricing term count** for Evergreen and One Time
-  (numeric). Evergreen `1` = price is one billing period. [Help: `ind.pricing_configure_proration_settings.htm`]
+  (numeric). Evergreen `1` = price is one billing period. [Help: ind.pricing_configure_proration_settings.htm]
   A stored default for the line's type bypasses the proration engine and is used directly as the term
   count. Evergreen with no default: the count is computed from the dates. One Time with no default:
   the Proration step gives the line no multiplier, so it is not prorated there; Help's "blank =
   computed dynamically" does not hold for One Time [Platform behaviour, traced].
-- Month precision [Help: `ind.pricing_proration_variables.htm`] says a partial month is rounded to the nearest whole
+- Month precision [Help: ind.pricing_proration_variables.htm] says a partial month is rounded to the nearest whole
   number in that mode. Traced: with Allow Partial Proration Periods off the count is whole periods (a touched partial
   period counts as 1); with it on, only the first and last period are fractional (days used over that period's actual
   days, e.g. 15 of 30 = 0.5) and interior periods stay whole [Platform behaviour, traced, annual frequency]. Rounding to
@@ -114,7 +114,7 @@ Product Selling Model Options), not on the product. Requires a price book entry.
 `PricingTermUnit`, `StartProrationPeriod*`, `AllowPartialProrationPeriods` come from that option
 via the context. [inferred from Help + repo bindings]
 
-### Worked example (annual, anniversary vs calendar) [Help: `ind.pricing_annual_proration_examples.htm`]
+### Worked example (annual, anniversary vs calendar) [Help: ind.pricing_annual_proration_examples.htm]
 
 Effective 2025-03-28 to 2026-02-04 (314 days), list price $800, Annual period.
 

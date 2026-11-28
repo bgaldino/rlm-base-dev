@@ -37,7 +37,7 @@ Row limit: an org-level value, "context tag mappings the Assignment element can 
 - No database writes by itself; persistence depends on the output tag being mapped to a record field in the context definition [Help; inferred for persistence].
 - Input and output tag data types must match, except Numeric and Currency, which may be mixed; any other mismatch fails save with `Ensure that you use the same data type for both the variable's tags and try again.` [Core]. Checked per row index, only when both tags resolve to a data type [Core]. Shipped rows set `allowCompatibleDataTypes: true` [Repo].
 - At run time the value is copied as is: if the input tag is absent on the line, the output is left unchanged; no conversion happens [Core].
-- An empty-string `Constant` assigned to a Text field persists as null, so `""` is a true clear [Repo skill `../../expression-sets/authoring-and-overlays.md`].
+- An empty-string `Constant` assigned to a Text field persists as null, so `""` is a true clear (see [expression-sets authoring and overlays](../../expression-sets/authoring-and-overlays.md)).
 
 ### Conditional assignments: reset every line first
 Each reprice hydrates the field's prior value from the record. If you assign only inside filtered branches, a line that stops matching keeps its stale value. Start with an unconditional assignment (a ListGroup whose filter matches every line) that resets the field, then add the branch groups after it. Full pattern and apply timing: [`authoring-and-overlays.md`](../../expression-sets/authoring-and-overlays.md) → *Conditional assignments — reset every line first*; worked example `datasets/expression_set_overlays/approval_flags.json` (group `RLMApprovalFlagsReset`).

@@ -43,7 +43,7 @@ Product, product selling model, schedule (type Volume; no standalone tiers), tie
 
 ### Attribute-based
 
-1. Make the attribute price-impacting: Price Management > Products > product > Related > Overridden Inherited Attributes > attribute (use Configure on the inherited attribute first if needed) > edit Product Attribute Definition > Is Price Impacting. The attribute must be active. [Help: `ind.pricing_define_price_impacting_attributes.htm`]
+1. Make the attribute price-impacting: Price Management > Products > product > Related > Overridden Inherited Attributes > attribute (use Configure on the inherited attribute first if needed) > edit Product Attribute Definition > Is Price Impacting. The attribute must be active. [Help: ind.pricing_define_price_impacting_attributes.htm]
 2. On the Attribute Based Adjustment schedule: product, selling model, adjustment type, adjustment value, effective dates, Next, then conditions (attribute, operator, value). Save.
 
 ### Bundle-based
@@ -65,7 +65,7 @@ Root bundle and its selling model, parent product and its selling model, product
 | Conditions hash | `AttributeBasedAdjustment.AttributeAdjConditionsHash` | Regenerated when a condition is saved [Help] |
 | Currency | `CurrencyIsoCode` on each child (multicurrency orgs only) | See Data and automation |
 
-### Attribute limits [Help: `ind.pricing_attribute_based_pricing_limits.htm`]
+### Attribute limits [Help: ind.pricing_attribute_based_pricing_limits.htm]
 
 - Numeric (Number, Currency, Percentage) and number-picklist values are stored with a decimal: enter `10.0`, not `10`, or the adjustment will not match.
 - Picklist with Boolean data type is unsupported (design-time error); use a Checkbox/Boolean attribute.
@@ -79,7 +79,7 @@ Each element resolves the schedule and matches child rows via a decision table (
 ## Data and automation
 
 - Bulk edits to tiers, adjustments and entries: pricing adjustment batch jobs ([pointer](./import-export-and-bulk-data.md#bulk-price-edits)).
-- **Migration order** (Data Loader/API) [Help: `ind.pricing_considerations_for_migrating_attribute_based_adjustments.htm`]: Attribute Based Adjustment Rules, then Attribute Adjustment Conditions, then Attribute Based Adjustments. Load all conditions of one rule in a single batch; never split them across parallel batches (hash conflicts block application). No bulk validator exists; check in the Pricing Operations Console.
+- **Migration order** (Data Loader/API) [Help: ind.pricing_considerations_for_migrating_attribute_based_adjustments.htm]: Attribute Based Adjustment Rules, then Attribute Adjustment Conditions, then Attribute Based Adjustments. Load all conditions of one rule in a single batch; never split them across parallel batches (hash conflicts block application). No bulk validator exists; check in the Pricing Operations Console.
 - [Repo] One schedule per type (USD), shared by all currencies' children, which are told apart by their own `CurrencyIsoCode` (the repo build is multicurrency); do not create per-currency schedules. The plan upserts the Tier schedule with `IsActive=false` so tiers can reload. See `datasets/sfdmu/qb/en-US/qb-pricing/README.md`.
 
 ## Verify

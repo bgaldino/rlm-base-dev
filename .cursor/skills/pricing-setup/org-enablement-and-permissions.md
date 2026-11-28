@@ -107,7 +107,7 @@ names as UI labels; API names below are from this repo's shipped metadata. [Help
 | Persona (Help) | UI permission set / license | Grants (Help) | API name [Repo] |
 |---|---|---|---|
 | Pricing Admin | Salesforce Pricing Admin + Design Time User | Turn on Salesforce Pricing; create/manage all pricing objects and features; manage recipes, decision tables and recipe mappings; turn on Price Waterfall and Persistence | `CorePricingAdmin`, `CorePricingDesignTimeUser` |
-| Pricing Design Time User (designer) | Salesforce Pricing Design Time User (inferred; Help leaves this cell blank) | All pricing elements and the pricing procedure feature; also decision tables and procedures [Help: `ind.pricing_get_ready_to_build_pricing_procedures.htm`] and waterfall settings (waterfall setup articles) | `CorePricingDesignTimeUser` (license `CorePricingDesignTime`) |
+| Pricing Design Time User (designer) | Salesforce Pricing Design Time User (inferred; Help leaves this cell blank) | All pricing elements and the pricing procedure feature; also decision tables and procedures [Help: ind.pricing_get_ready_to_build_pricing_procedures.htm] and waterfall settings (waterfall setup articles) | `CorePricingDesignTimeUser` (license `CorePricingDesignTime`) |
 | Runtime user | Salesforce Pricing Run Time User | Read-only pricing data; can call Salesforce Pricing APIs; Run Decision Matrices and Run Expression Sets by default | `CorePricingRunTimeUser` |
 | Pricing Analyst | (Price Management app access) | Price Management app plus create/read/update/delete on pricing records | `CorePricingManager` (inferred mapping; Help gives no permission set name) |
 
@@ -115,9 +115,9 @@ Full per-set and per-group lists: [revenue-cloud-permissions](../../../docs/refe
 
 The runtime row's Run Decision Matrices and Run Expression Sets grants are Help's. In this repo,
 only the partner community permission set and profile enable either one in their own metadata
-[Repo: `unpackaged/post_prm/`]. The sales representative, sales operations and product and
+[Repo: unpackaged/post_prm/]. The sales representative, sales operations and product and
 pricing admin persona groups include Salesforce Pricing Run Time User and other managed sets
-[Repo: `unpackaged/post_personas/`]. In one org, the Salesforce Pricing Run Time User, Design
+[Repo: unpackaged/post_personas/]. In one org, the Salesforce Pricing Run Time User, Design
 Time User, Admin and Manager permission sets each had both on, and each of the three groups
 resolved to Run Decision Matrices on, Run Expression Sets on and Run Decision Tables off
 [Measured: 2026-11-18, 264, scratch, one org].

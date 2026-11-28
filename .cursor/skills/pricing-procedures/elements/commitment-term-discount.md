@@ -9,15 +9,15 @@
 > `ind.pricing_add_the_price_adjustment_matrix_element.htm`; dev guide
 > `actions-obj-run-salesforce-headless-pricing.md`; shipped `RLM_DefaultPricingProcedure`; a live
 > run on a 264 scratch org (QuantumBit build) on 2026-11-10; real quotes and headless runs on a
-> fresh 264 `ent-sb0` scratch org on 2026-11-11; a build on a 264 scratch org on 2026-11-16 (tagged
-> `[Measured: 2026-11-16, 264, scratch, one org]`).
+> fresh 264 ent-sb0 scratch org on 2026-11-11; and a build on a 264 scratch org on 2026-11-16.
 >
-> Tags: `[Help: …]`, `[Dev guide: …]`, `[Repo: …]`, and `[Measured: 2026-11-10, 264]` for a
-> result observed live on that org: a headless pricing run (request and response shapes in
-> [`../runtime-and-observability.md`](../runtime-and-observability.md)), a describe, or a save.
-> `[Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]` marks the second run, which priced
-> real quotes (Place Sales Transaction, configuration rules on, and a group ramp built in the
-> quote UI) as well as headless requests.
+> Tags follow the skill's legend: Help, Dev guide and Repo name the source, and a Measured tag
+> gives the date, release and org kind of a live result: a headless pricing run (request and
+> response shapes in [runtime-and-observability.md](../runtime-and-observability.md)), a describe,
+> or a save. The 2026-11-10 run was on a scratch org. The 2026-11-11 run, on a fresh ent-sb0
+> scratch org, priced real quotes (Place Sales Transaction, configuration rules on, and a group
+> ramp built in the quote UI) as well as headless requests. The 2026-11-16 build was on a scratch
+> org and used one org.
 
 A commitment-term discount gives an extra percentage off a subscription line because the customer
 commits to a long term. The rule modeled here: **annual Term Defined subscriptions committed for 48
@@ -35,26 +35,25 @@ All figures here are illustrative; the full note is under [Measured result](#mea
 
 - The 264 Help and dev-guide snapshots document no pricing element built for term-based or
   commitment-based discounts (Commitment Rate Adjustment is a rating element for
-  commitment-based usage products [Help: `ind.rm_commitment_rate_adjustment.htm`]), so a term
+  commitment-based usage products [Help: ind.rm_commitment_rate_adjustment.htm]), so a term
   discount is built from general elements.
 - Use this pattern (route b, a filter plus a formula) when the rule is one or a few fixed
   thresholds with a fixed percentage. It needs no decision table, recipe mapping, custom field or
-  context change: every tag it reads is standard [Measured: 2026-11-10, 264].
+  context change: every tag it reads is standard [Measured: 2026-11-10, 264, scratch].
 - Use route (a), a Price Adjustment Matrix over a custom decision table, when business users must
   maintain many term bands as data. See [Route (a)](#route-a-price-adjustment-matrix) below.
 
 ## Inputs it reads
 
-All are standard tags on the `SalesTransactionItem` node of the sales transaction context
-[Repo: `RLM_SalesTransactionContext` describe; Measured: 2026-11-10, 264].
+All are standard tags on the `SalesTransactionItem` node of the sales transaction context, per a describe of RLM_SalesTransactionContext [Measured: 2026-11-10, 264, scratch].
 
 | Tag | Context attribute | What it carries |
 |---|---|---|
-| `SellingModelType` | `SellingModelType` | The selling model type: One Time, Term-Defined or Evergreen [Help: `ind.product_catalog_product_selling_model.htm`]. The shipped filters compare it with `'TermDefined'` and `'Evergreen'` [Repo: `RLM_DefaultPricingProcedure`] |
+| `SellingModelType` | `SellingModelType` | The selling model type: One Time, Term-Defined or Evergreen [Help: ind.product_catalog_product_selling_model.htm]. The shipped filters compare it with `'TermDefined'` and `'Evergreen'` [Repo: force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml] |
 | `PricingTermUnit` | `PricingTermUnit` | The selling model's pricing term unit; `Annual` for an annual subscription |
 | `ItemSubscriptionTerm` | `SubscriptionTerm` | The line's subscription term, a number |
 | `ItemSubscriptionTermUnit` | `SubscriptionTermUnit` | The unit of that term. The `QuoteLineItem` picklist offers `Months`, `Quarterly`, `Semi-Annual`, `Weekly`, `Annual` [Measured: 2026-11-10, 264, field describe] |
-| `ItemPricingSource` | `PricingSource` | `LastTransaction` on lines priced from a prior transaction [Repo: shipped filter `Filterlineswithoutlasttransactionpricing`] |
+| `ItemPricingSource` | `PricingSource` | `LastTransaction` on lines priced from a prior transaction, set by the shipped filter Filterlineswithoutlasttransactionpricing [Repo: force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml] |
 | `NetUnitPrice` | `NetUnitPrice` | The running net unit price after the standard discounts |
 
 The term is compared in its own unit, so the filter accepts either form of a 48-month commitment:
@@ -64,7 +63,7 @@ send the term in the selling model's unit; see
 
 ## Configuration
 
-One top-level List Group with two children [Help: `ind.pricing_list_group_list_operation.htm`:
+One top-level List Group with two children [Help: ind.pricing_list_group_list_operation.htm:
 the filter must be the first child, one filter per group].
 
 **1. List Operation (filter), `AdvancedListFilter`, child 1.** Condition logic
@@ -84,9 +83,9 @@ the filter must be the first child, one filter per group].
 | 10 | `NetUnitPrice` | IsNotNull | |
 
 - The not-null criteria (3, 4, 10) follow the Help rule that a null tag compared in a filter
-  returns an error [Help: `ind.pricing_list_group_list_operation.htm`]. Criterion 2 has no such
+  returns an error [Help: ind.pricing_list_group_list_operation.htm]. Criterion 2 has no such
   guard, and `PricingTermUnit` must be null on a One Time selling model
-  [Dev guide: `sforce-api-objects-productsellingmodel.md`]. A bundle can mix One Time, Term
+  [Dev guide: sforce-api-objects-productsellingmodel.md]. A bundle can mix One Time, Term
   Defined and Evergreen lines, since each child keeps its own selling model options
   ([product-catalog-modeling → Selling models inside bundles](../../product-catalog-modeling/selling-models-and-lifecycle.md#selling-models-inside-bundles)).
   As a precaution, add criterion 11, `PricingTermUnit` IsNotNull, ahead of the comparison it
@@ -107,34 +106,32 @@ the filter must be the first child, one filter per group].
   ([Line inputs on real quotes](#line-inputs-on-real-quotes)). Without it, the live result is
   still open (see [Open questions](#open-questions)).
 - Criterion 9 copies the shipped discount filters, which skip last-transaction lines so an amended
-  or renewed line does not take a discount a second time [Repo: `RLM_DefaultPricingProcedure`,
-  `Filterlineswithoutlasttransactionpricing`]. Without it, an amendment that keeps the prior net
+  or renewed line does not take a discount a second time (the Filterlineswithoutlasttransactionpricing
+  filter) [Repo: force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml]. Without it, an amendment that keeps the prior net
   unit price would lose another 6%. That case was not measured.
 - **What criterion 9 means for a renewal** (for example a 48-month renewal at +2%):
   - The shipped default prices a last-transaction line on its own path. When its `NetUnitPrice`
     is null, `ListContainer` (step 8) assigns `InputUnitPrice` to it, the setup Help gives for
-    pricing from the last transaction [Help: `ind.qocal_set_up_price_amendments.htm`]. Every
+    pricing from the last transaction [Help: ind.qocal_set_up_price_amendments.htm]. Every
     phase 7 adjustment group (17 to 23) filters on `ItemPricingSource NotEquals
     'LastTransaction'`, and the renewal uplift group (24) runs only on lines with
     `ItemPricingSource Equals 'LastTransaction'`, action `Renew`, a policy formula and no ramp
-    [Repo: `RLM_DefaultPricingProcedure`;
-    [`../../pricing-wiring/price-revision-cpi.md`](../../pricing-wiring/price-revision-cpi.md)].
+    [Repo: force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml]. See
+    [price-revision-cpi.md](../../pricing-wiring/price-revision-cpi.md).
     A last-transaction line with a contract price takes another path: step 13 sets its
     `InputUnitPrice` to `ItemContractPrice`, and group 26, after group 24, assigns
     `InputUnitPrice` to `NetUnitPrice` on lines with `ItemPricingSource Equals 'LastTransaction'`
-    and `ItemContractPrice` not null [Repo: `RLM_DefaultPricingProcedure`,
-    `Setinputunitpriceforlineswithcontractpricing`,
-    `Setnetunitpriceforcontractedlasttransactionlines`].
+    and `ItemContractPrice` not null (the steps Setinputunitpriceforlineswithcontractpricing and
+    Setnetunitpriceforcontractedlasttransactionlines) [Repo: force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml].
   - Help: an uplift needs the asset's Pricing Source to be Last Transaction, and under Last
     Transaction Pricing should be applied after discounts; with a list-price source the uplift is
-    ignored [Help: `ind.qocal_renewal_price_uplifts.htm`,
-    `ind.qocal_consumer_price_index_and_uplifts_important_considerations.htm`]. With a
+    ignored [Help: ind.qocal_renewal_price_uplifts.htm,
+    ind.qocal_consumer_price_index_and_uplifts_important_considerations.htm]. With a
     CPI/Variable uplift, Help computes the renewal net unit price from the latest asset action
     source's change in subtotal divided by its change in quantity, times (1 + the uplift)
-    [Help: `ind.qocal_consumer_price_index_and_price_uplifts.htm`]. Whether that price includes a
+    [Help: ind.qocal_consumer_price_index_and_price_uplifts.htm]. Whether that price includes a
     6% the earlier sale took is not documented.
-  - This repo stamps `LastTransaction` on every lifecycle asset whose source is blank [Repo: flow
-    `RLM_Update_Asset_Pricing_Source_if_Price_Revision`], and the as-is renewal recorded in
+  - This repo stamps `LastTransaction` on every lifecycle asset whose source is blank [Repo: force-app/main/default/flows/RLM_Update_Asset_Pricing_Source_if_Price_Revision.flow-meta.xml], and the as-is renewal recorded in
     [`../../pricing-wiring/price-revision-cpi.md`](../../pricing-wiring/price-revision-cpi.md) →
     Expected results took the uplift, which group 24 applies only to last-transaction lines
     [Repo: measured 2026-10-29, 264, default procedure].
@@ -145,13 +142,13 @@ the filter must be the first child, one filter per group].
     over the uplifted net, so it ends at the contract price without the uplift. A renewal line
     from a list-price asset takes no uplift and passes criterion 9, so it gets the 6% if its
     term meets the threshold (the renewal takes its term from the asset or the contract [Help:
-    `ind.qocal_renew_assets.htm`]). As built, one renewal line does not get both.
+    ind.qocal_renew_assets.htm]). As built, one renewal line does not get both.
   - Letting `Renew` lines through criterion 9 would reward a renewal's own commitment. If the
     price the renewal starts from already includes an earlier 6%, it would take the 6% a second
     time. Help's "uplifts after discounts" would put the group before group 24 rather than at
     28. Neither was built; see [Open questions](#open-questions).
 - Nested parentheses in the condition logic save and evaluate as expected
-  [Measured: 2026-11-10, 264].
+  [Measured: 2026-11-10, 264, scratch].
 
 **2. Formula-Based Pricing, `FormulaBasedPricing`, child 2.** One formula:
 
@@ -163,11 +160,11 @@ the filter must be the first child, one filter per group].
 | `selectedFunction`, `sectionCount`, `HideWaterfall`, `IsRealTime` | `Literal` | `Get`, `0`, `false`, `false` (shipped boilerplate) |
 
 - Writing `NetUnitPrice` from a formula that reads `NetUnitPrice` is accepted; the shipped
-  discount elements do the same [Repo: `ManualDiscount` steps read and write `NetUnitPrice`;
-  Measured: 2026-11-10, 264].
+  discount elements do the same, since the ManualDiscount steps read and write NetUnitPrice [Repo: force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml]
+  [Measured: 2026-11-10, 264, scratch].
 - `ROUND(x, 2)` rounds half up at the second decimal: 10.005 became 10.01, then
   10.01 × 0.94 = 9.4094 became 9.41. A single rounding (10.005 × 0.94 = 9.4047) would give 9.40,
-  so a measured result showing the higher cent proves both roundings ran [Measured: 2026-11-10, 264; values shown are illustrative].
+  so a measured result showing the higher cent proves both roundings ran [Measured: 2026-11-10, 264, scratch] (values shown are illustrative).
 - To make the rate configurable, put `0.94` (or the percentage) in a Numeric constant
   (overlay `addVariables`) and reference it in the formula. Not measured.
 
@@ -176,8 +173,8 @@ the filter must be the first child, one filter per group].
 Insert the List Group as a **top-level step after the last-transaction group and before the term
 pricing groups**: in the shipped default, between `Filterlineswithlasttransactionpricingandassignnettotalprice`
 (27) and `Applyproratedpricingtotermdefinedlines` (28), so it becomes 28 and the rest shift down
-[Repo: phase table in [`../procedure-anatomy-and-ordering.md`](../procedure-anatomy-and-ordering.md),
-phases 9 and 10].
+(phases 9 and 10 of the phase table in
+[procedure-anatomy-and-ordering.md](../procedure-anatomy-and-ordering.md)) [Repo: force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml].
 
 - After phase 7 (attribute, bundle, volume, manual and amount/percentage discounts), so the 6% is
   taken from the already discounted net, as the rule requires. Measured headless at this position (*Measured
@@ -196,10 +193,10 @@ phases 9 and 10].
   revision only changes cent rounding, since both are multiplicative. Not measured.
 - **Before** Proration and Subscription Price (phase 10). In the shipped default, Subscription Price
   (`Calculateproratedpricefortermdefinedlines`) reads `NetUnitPrice` and multiplies it by quantity
-  and `PricingTermCount` into `ItemNetTotalPrice` [Repo: `RLM_DefaultPricingProcedure`; the Help
-  example binds `ListPrice` instead, `ind.pricing_add_the_subscription_price_proration_element.htm`].
+  and `PricingTermCount` into `ItemNetTotalPrice` [Repo: force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml]. The Help example binds ListPrice
+  instead [Help: ind.pricing_add_the_subscription_price_proration_element.htm].
   So the formula only has to write `NetUnitPrice`: the line total follows (803.70 × 4 =
-  3,214.80, illustrative amounts) [Measured: 2026-11-10, 264; values shown are illustrative]. In a procedure whose Subscription Price reads `ListPrice`,
+  3,214.80, illustrative amounts) [Measured: 2026-11-10, 264, scratch] (values shown are illustrative). In a procedure whose Subscription Price reads `ListPrice`,
   it does not.
 - Far ahead of DDS and the aggregates, so the tail rule does not apply
   ([`formula-based-pricing.md`](formula-based-pricing.md) → Placement).
@@ -220,7 +217,7 @@ ordering, Shipped). Treat the position as the source's requirement and model it 
   as its input unit price ([`manual-discount.md`](manual-discount.md) → Configuration), so it then
   discounts the rounded value.
 - Help says the element rounds the output of any pricing element in a procedure
-  [Help: `ind.pricing_rounding_values.htm`], and core checks no position for it except the DDS
+  [Help: ind.pricing_rounding_values.htm], and core checks no position for it except the DDS
   tail rule ([`rounding-values.md`](rounding-values.md) → Feasibility). Fields, precision and
   multicurrency behavior are in that file.
 - Inside a formula, round the operand instead, as step 2 of this pattern does.
@@ -232,7 +229,7 @@ ordering, Shipped). Treat the position as the source's requirement and model it 
 ## Overlay shape
 
 Applied to the clone with `apply_expression_set_overlay.py --no-cascade --confirm`; captured shape
-(boilerplate envelope flags omitted, same as the shipped steps) [Measured: 2026-11-10, 264; values shown are illustrative]:
+(boilerplate envelope flags omitted, same as the shipped steps) [Measured: 2026-11-10, 264, scratch] (values shown are illustrative):
 
 ```json
 {
@@ -289,7 +286,7 @@ Products: a QuantumBit Term Annual product (price book list 6,500 USD, illustrat
 an Evergreen product (illustrative list 310 USD) on line 3. Lines 1 to 4 pass
 `UnitPrice` 1,000 and `Discount` 14.5, which the shipped procedure uses as the input unit price and
 the percentage discount. 1,000 × (1 − 0.145) = 855.00, the same pre-term net as 10% then 5%
-(1,000 × 0.90 × 0.95). Start 2026-11-10, quantity 1 [Measured: 2026-11-10, 264; values shown are illustrative].
+(1,000 × 0.90 × 0.95). Start 2026-11-10, quantity 1 [Measured: 2026-11-10, 264, scratch] (values shown are illustrative).
 
 The threshold, term forms, rate and amounts here are illustrative; the measured run used a different threshold and rate. What was measured is the behaviour: the filter accepts either term unit, both roundings run, and Subscription Price follows `NetUnitPrice`. Table values, including the 9.41 row, are illustrative and recomputed for the neutral rate.
 
@@ -308,8 +305,7 @@ does, so the difference comes from the new group alone.
 ## Line inputs on real quotes
 
 The run above passed the term inline. On real quotes (Place Sales Transaction; the last row is a
-group ramp built in the quote UI) [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org;
-term illustrative, measured with a different term]:
+group ramp built in the quote UI) [Measured: 2026-11-11, 264, ent-sb0 scratch] (term illustrative, measured with a different term):
 
 | Line as sent | Saved line | Result |
 |---|---|---|
@@ -376,6 +372,14 @@ take 1,000.05 to 900.045 (x0.90) to 855.04275 (x0.95) to 803.74 (x0.94) [Measure
   filter]. The group runs after the ramp uplift, so each segment took the discount on its uplifted
   net.
 
+A header-level total-term gate works with a numeric header field mapped into the context. With the
+Quote Number mapped, the formula `IF(<field> >= 3, ROUND(ROUND(NetUnitPrice,2)*0.94,2), NetUnitPrice)`
+discounted a quote whose value was 3 and not one whose value was 2 [Measured: 2026-11-26, 264
+(USA796), ent-sb0 harness build, one org]. A rep without FLS on the field needs Elevated Data
+Access; see [Elevated Data Access](../../pricing-setup/elevated-data-access.md). The Order variant
+of the gate was not run. [Open: is the header field hydrated in the Order context; settle by
+pricing an Order with the gate and reading the result]
+
 ## Verify
 
 1. Price a matching and a non-matching line through the clone (headless pricing as above, or
@@ -407,8 +411,8 @@ Term values in this table are illustrative; the measured runs used a different t
 
 When the bands must be data (for example 12–23 months 3%, 24–47 months 5%, 48+ months 6%), use a
 Price Adjustment Matrix over a custom decision table whose input columns are keyed on the term
-[Help: `ind.pricing_add_the_price_adjustment_matrix_element.htm`,
-`ind.pricing_calculate_product_prices_using_price_adjustment_matrix.htm`]. It needs a decision table
+[Help: ind.pricing_add_the_price_adjustment_matrix_element.htm,
+ind.pricing_calculate_product_prices_using_price_adjustment_matrix.htm]. It needs a decision table
 registered on the pricing recipe and refreshed after each band change, and each line must resolve to
 exactly one row unless Output Resolution is on
 ([`price-adjustment-matrix.md`](price-adjustment-matrix.md)). Make the bands non-overlapping.

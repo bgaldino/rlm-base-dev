@@ -22,7 +22,7 @@ the whole quantity; Tier prices each quantity band at its own rate.
 
 ### Volume vs tier, worked example (Help)
 Help example: 25 laptops, list price $200. Tiers: 1-9 none, 10-19 10% off,
-20-29 15% off. [Help `ind.pricing_add_tier_discount_element.htm`]
+20-29 15% off. [Help: ind.pricing_add_tier_discount_element.htm]
 
 | Element | Calculation | Total |
 |---|---|---|
@@ -56,7 +56,7 @@ Tier names are from core's element registration, no Tier step ships in this repo
 | Cumulative Tier Quantity (Tier) | `CumulativeTierQuantity` | Parameter | Only when Use Cumulative Pricing is on | Numeric input, mapped to the aggregated-quantity tag. Present only when cumulative pricing is enabled for the step. [Core][Help] |
 | Hide in waterfall | `HideWaterfall` | Literal | Yes | `false` = shown. Not Include in Output (that is the step field `resultIncluded`). [Repo] |
 | Tier Discount: result columns | `TierTypeField`, `TierValueField`, `LowerBoundField`, `UpperBoundField` | Parameter | Optional in core (defaults to column names `LowerBound`/`UpperBound` when the bound constants are absent) | Registered as text parameters; constants naming the lookup's type/value/lower/upper columns (Volume registers only the first two). [Core] |
-| Tier Discount: lookup | `Tiered_Adjustment_Tier_Decision_Table` ("Tiered Adjustment Entries") | | | Recipe lookup over Price Adjustment Tier: inputs `PriceAdjustmentScheduleId`, `Product2Id`, `ProductSellingModelId`, `EffectiveFrom`, `EffectiveTo`, `CurrencyIsoCode` (multi-currency); outputs `TierType`, `TierValue`, `LowerBound`, `UpperBound`. No quantity conditions, so every band returns. Volume's table adds `LowerBound`/`UpperBound` as inputs. [inferred]; only the table name is [Repo: `cumulusci.yml`] |
+| Tier Discount: lookup | `Tiered_Adjustment_Tier_Decision_Table` ("Tiered Adjustment Entries") | | | Recipe lookup over Price Adjustment Tier: inputs `PriceAdjustmentScheduleId`, `Product2Id`, `ProductSellingModelId`, `EffectiveFrom`, `EffectiveTo`, `CurrencyIsoCode` (multi-currency); outputs `TierType`, `TierValue`, `LowerBound`, `UpperBound`. No quantity conditions, so every band returns. Volume's table adds `LowerBound`/`UpperBound` as inputs. [inferred]; only the table name is [Repo: cumulusci.yml] |
 | Tier Discount: fixed inputs | `Quantity`, `InputUnitPrice` | Parameter | Yes | Plus one input per decision-table input column (dynamic, from the lookup). [Core] |
 | Tier Discount actionType | `VolumeTierDiscount` | | | Builder "Tier Discount" element. Tier Discount supports lookup, cumulative pricing, contract pricing, hide-waterfall and profile filter. [Dev guide][Core] |
 | Boilerplate | `sectionCount=0`, `selectedFunction=Get`, `IsRealTime=false` | Literal | Yes | [Repo] |
@@ -74,7 +74,7 @@ Tier names are from core's element registration, no Tier step ships in this repo
 ### Stacking, sequencing and the waterfall (shared by all discount elements)
 - Default behavior is sequential: the first discount is computed from list price and
   each later discount applies to the already-discounted price. [Help
-  `ind.pricing_example_apply_discounts_sequentially_for_a_product.htm`] In shipped
+  ind.pricing_example_apply_discounts_sequentially_for_a_product.htm] In shipped
   XML this is the chain of `InputUnitPrice = NetUnitPrice` mappings. [Repo]
 - Ordering is element order in the procedure; there is no separate priority field
   on these elements. [inferred from Repo]
@@ -83,7 +83,7 @@ Tier names are from core's element registration, no Tier step ships in this repo
   type, value and discounted price). [Repo][Core]
 - Output Resolution is supported only on List Price, Price Tracking and Price Adjustment
   Matrix, and its Stack/Sequence strategies only on the matrix [Help
-  `ind.pricing_procedure_output_resolution.htm`]. It is **not** available on Volume or
+  ind.pricing_procedure_output_resolution.htm]. It is **not** available on Volume or
   Tier Discount (or Attribute-Based Price). When several stacked adjustments must
   combine on one line, use a Price Adjustment Matrix with a Stack or Sequence
   resolution ([`price-adjustment-matrix.md`](price-adjustment-matrix.md)).
@@ -94,7 +94,7 @@ Tier names are from core's element registration, no Tier step ships in this repo
   (`OVERLAPPING_ADJUSTMENT_TIERS`). [Core]
 - "Best price" selection (e.g. `MIN(ListPrice)` on List Price across price books) is
   a List Price resolution strategy, not element order. [Help
-  `ind.pricing_example_calculate_the_lowest_price_of_a_product.htm`]
+  ind.pricing_example_calculate_the_lowest_price_of_a_product.htm]
 
 ## Rules and limits
 - Tier bounds are inclusive and must not overlap; same-effective-date tiers must be
@@ -115,17 +115,17 @@ Tier names are from core's element registration, no Tier step ships in this repo
 - Adjustment Method on the schedule: Range (same discount for all) or Slab (different
   discounts by condition, for example 10% for the first 10 items, 15% for 11-20). Schedule
   Type: Volume, Attribute or Bundle. No Effective To means indefinite. Editing price
-  details creates another record. [Help: `ind.pricing_create_price_adjustment_schedules.htm`]
+  details creates another record. [Help: ind.pricing_create_price_adjustment_schedules.htm]
 - Contract tiers (Contract Pricing Volume Tiers table; refresh it): set each new tier's
   Lower Bound equal to the previous tier's Upper Bound; the upper bound quantity is priced
-  exclusively at run time. [Help: `ind.qocal_use_tiered_volume_and_pricing_in_contract_pricing.htm`]
+  exclusively at run time. [Help: ind.qocal_use_tiered_volume_and_pricing_in_contract_pricing.htm]
 - Contract tier sequencing: lines are sorted by quantity by default; a field named in the
   Revenue Settings "Cumulative Quantity Pricing Sort Order Tag Configuration" (a context
   tag) overrides it, reps enter sequence numbers from 1, and partial or no numbers fall
-  back to quantity. [Help: `ind.qocal_manage_sequencing_for_tiered_volume_discounts.htm`]
+  back to quantity. [Help: ind.qocal_manage_sequencing_for_tiered_volume_discounts.htm]
 - Bulk edits: Pricing Adjustment Batch Jobs take up to 200 records per batch, one job at a
   time; schedule records need effective dates; logs exist only for failed or partial jobs.
-  [Help: `ind.pricing_perform_pricing_adjustment_batch_job.htm`]
+  [Help: ind.pricing_perform_pricing_adjustment_batch_job.htm]
 - Cumulative: aggregated quantity comes from `AggregatedQuantity_std` (Volume) or the
   Cumulative Tier Quantity input (Tier); on real orders/assets it needs a pricing
   contract with aggregation strategy Cumulative; Simulate can use it without a
@@ -205,9 +205,9 @@ by design in the shipped procedure [Platform behaviour, traced]; a line takes th
 source is last transaction, which the amend hook sets for a cancel, for a quantity of zero or less on an
 amend or no-change line, and when the asset or an ancestor asset carries that source (what sets the
 asset's own source was not traced). The volume step also bands on `LineItemQuantity`
-[Repo: `RLM_DefaultPricingProcedure`], which on an amendment line is the delta, not the new total.
+[Repo: force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml], which on an amendment line is the delta, not the new total.
 On a procedure cloned from the shipped default, which has the same lanes, added units took the
-asset's last net price, with no volume step [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch
+asset's last net price, with no volume step [Measured: 2026-11-11, 264, fresh ent-sb0 scratch
 org]. The amendment flow itself is in
 [`../../asset-lifecycle-changes/SKILL.md`](../../asset-lifecycle-changes/SKILL.md).
 
@@ -230,7 +230,7 @@ and rewrites the logic; filter mechanics are in
 
 Measured on a procedure cloned from the shipped default that also carried other custom groups (a
 rounding step and a term discount), with this overlay merged last [Measured: 2026-11-11, 264,
-fresh `ent-sb0` scratch org]:
+fresh ent-sb0 scratch org]:
 
 - The added units took the new-sale chain and priced at the band for the new total: the waterfall
   showed the volume step's bounds at the total and its quantity at the delta. The order activated. On the asset the existing units kept their price and the added
@@ -245,8 +245,8 @@ Know before adopting it:
 
 - With the overlay, a positive add on a component of a bundle also took that component's Bundle-Based
   Adjustment: the added units priced at the volume band for the new total after the bundle-based percentage
-  [Measured: 2026-11-12, 264, scratch, one org; Term Defined component added on an amendment of an activated
-  bundle, in a procedure with a bundle-based step before volume].
+  [Measured: 2026-11-12, 264, scratch] (one org; Term Defined component added on an amendment of an activated
+  bundle, in a procedure with a bundle-based step before volume).
 - Positive adds also pass the manual-discount groups and any custom new-sale group with the same
   exclusion (a term discount, for example), like new units on a new sale.
 - The volume step's `customElement` carries the org's own decision-table `LookUpId` and schedule

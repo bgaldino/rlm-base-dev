@@ -122,9 +122,9 @@ outputs). [Repo] Enabling floors: set `FloorPricingEnabled=true` and
 | Where | What |
 |---|---|
 | `datasets/expression_set_overlays/discount_distribution.json` on `RLM_DefaultPricingProcedure_V1` | 3 ListGroups (`ListApplyAmountBasedHeaderDiscount`, `ApplyPercentageBasedHeaderDiscount`, `ApplyHeaderPriceOverride`), each with an AdvancedListFilter and an AssignmentElement setting `HeaderDiscountType` from `Constant_DDS_Amount`/`Percentage`/`Override`; then `DiscountDistributionService` placed `afterStep: ApplyHeaderPriceOverride`; ships 4 constants `Constant_DDS_Amount`, `_NetUnitPrice`, `_Override`, `_Percentage`. |
-| `RLM_DefaultPricingProcedure` | Top level, no parent: ListGroups seq 36 `ListApplyAmountBasedHeaderDiscount`, 37 `ApplyPercentageBasedHeaderDiscount`, 38 `ApplyHeaderPriceOverride`; `DiscountDistributionService` seq 39; then three `GroupingAndAggregatePricing` steps seq 40-42 (total amount, subtotal, item group subtotal). [Repo, checked] |
-| `RLM_Price_Distribution_Procedure` (`unpackaged/post_procedureplans`) | Top level: `PricingSetting` seq 1, ListGroups 2 `AmountBasedHeaderDiscount`, 3 `PercentageBasedHeaderDiscount`, 4 `OverrideBasedHeaderDiscount`, `DiscountDistributionService` seq 5 (last; no aggregates). Same input bindings; outputs `SpreadValue`->`AdjustmentValue`, `LineItemDiscountType`->`AdjustmentType`. [Repo, checked] |
-| PRM Disti, Recalc, `RLM_ProductDiscoveryPricingProcedure` and all other procedures | None. [Repo, checked: every procedure under `force-app`, `post_procedureplans`, `post_prm_pricing`] |
+| `RLM_DefaultPricingProcedure` | Top level, no parent: ListGroups seq 36 `ListApplyAmountBasedHeaderDiscount`, 37 `ApplyPercentageBasedHeaderDiscount`, 38 `ApplyHeaderPriceOverride`; `DiscountDistributionService` seq 39; then three `GroupingAndAggregatePricing` steps seq 40-42 (total amount, subtotal, item group subtotal). [Repo] |
+| `RLM_Price_Distribution_Procedure` (`unpackaged/post_procedureplans`) | Top level: `PricingSetting` seq 1, ListGroups 2 `AmountBasedHeaderDiscount`, 3 `PercentageBasedHeaderDiscount`, 4 `OverrideBasedHeaderDiscount`, `DiscountDistributionService` seq 5 (last; no aggregates). Same input bindings; outputs `SpreadValue`->`AdjustmentValue`, `LineItemDiscountType`->`AdjustmentType`. [Repo] |
+| PRM Disti, Recalc, `RLM_ProductDiscoveryPricingProcedure` and all other procedures | None: checked every procedure under force-app, post_procedureplans and post_prm_pricing [Repo] |
 
 The metadata snippet above is the `RLM_DefaultPricingProcedure` step (top level, no condition).
 

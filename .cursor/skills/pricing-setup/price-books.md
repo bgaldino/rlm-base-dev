@@ -11,8 +11,8 @@ Book Entries decision table, so a PBE only prices a line after that table is ref
 
 ## When you need it
 
-- Every org needs at least one price book to price products; a cost book is optional. [Help: `ind.pricing_price_books_and_cost_books.htm`]
-- Separate books for currencies, regions or customer segments. [Help: `ind.pricing_define_prices_in_price_books.htm`]
+- Every org needs at least one price book to price products; a cost book is optional. [Help: ind.pricing_price_books_and_cost_books.htm]
+- Separate books for currencies, regions or customer segments. [Help: ind.pricing_define_prices_in_price_books.htm]
 - All products in a bundle must be in the same price book as the bundle, or quoting the bundle prices wrongly. [Help]
 
 ## Set it up
@@ -36,13 +36,13 @@ The org ships a predefined Standard Price Book; you can create any number of cus
 | Currency | `CurrencyIsoCode` | One PBE per currency in a multicurrency org [Repo] |
 | Derived list price | `IsDerived`, `PricebookEntryDerivedPrice` | `IsDerived` is stored, not computed, and create-only unless the org has the pilot enabled by Salesforce; to clear it, delete and re-insert the entry (not possible while it is a derived or contributing product or has assets; the new entry takes the value you supply). Even with the pilot, an update is blocked by default for a derived product, a contributing product of a derived price, or a product on any asset [Platform behaviour, traced]. Derived product's PBE price must be 0; see [derived-price](../pricing-procedures/elements/derived-price.md) |
 
-For pricing adjustment batch jobs, price adjustment schedules need effective dates and price book entries do not. [Help: `ind.pricing_pricing_adjustment_batch_jobs.htm`] The book itself carries the validity range.
+For pricing adjustment batch jobs, price adjustment schedules need effective dates and price book entries do not. [Help: ind.pricing_pricing_adjustment_batch_jobs.htm] The book itself carries the validity range.
 
 ## How pricing uses it
 
 - The [List Price element](../pricing-procedures/elements/list-price.md) looks up the Price Book Entries (V2) decision table with product, price book, selling model and (multicurrency) currency as inputs and writes `ListPrice`. [Help, Repo]
 - No matching row means the element leaves earlier values untouched, so a missing PBE shows as an unchanged or zero price, not an error. [Help] Exception: with output resolution enabled on the List Price step, a missing row is a configuration error that stops pricing the line ([output resolution](../pricing-procedures/operations-and-troubleshooting.md#4-procedure-output-resolution)). [Help]
-- The decision table must be Active, mapped to the pricing recipe and Fresh. Predefined tables come from the recipe: [create or use predefined lookup tables](../decision-tables/SKILL.md). [Help: `ind.pricing_create_or_use_predefined_lookup_tables.htm`]
+- The decision table must be Active, mapped to the pricing recipe and Fresh. Predefined tables come from the recipe: [create or use predefined lookup tables](../decision-tables/SKILL.md). [Help: ind.pricing_create_or_use_predefined_lookup_tables.htm]
 - Multicurrency: to add the Currency field to a predefined decision table, deactivate the table, add the field, reactivate. To enable multicurrency with active pricing procedures on predefined tables, deactivate the procedure, enable multicurrency, then reactivate. [Help]
 - Refresh and sync rules: [import-export-and-bulk-data.md](./import-export-and-bulk-data.md#after-load-refresh-rule).
 

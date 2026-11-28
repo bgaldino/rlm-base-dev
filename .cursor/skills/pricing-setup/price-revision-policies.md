@@ -19,14 +19,14 @@ Repo CPI data load, expected results, verification: [`../pricing-wiring/price-re
 
 ## Set it up
 
-Permission: users renewing with CPI uplifts need the **Renew Assets** user permission. [Help: `ind.qocal_consumer_price_index_and_price_uplifts.htm`]
+Permission: users renewing with CPI uplifts need the **Renew Assets** user permission. [Help: ind.qocal_consumer_price_index_and_price_uplifts.htm]
 
 1. **Region values.** Setup > Object Manager > Index Rate > Fields & Relationships > Region > Region Picklist Values > New; add each region (country). Do this before policies and rates. [Help]
 2. **Price Revision Policy.** App Launcher > Price Revision Policies > New. Name, Type, Effective From/To, Region, Formula. Build the formula with the function/resource pickers: pick `MAX`, replace the contents with `10,`, add resource `PriceIndex`, operator `+`, then `5`. Result `MAX(10, PriceIndex + 5)` = CPI plus 5%, floor 10%. All numbers are percentages. [Help]
 3. **Index Rates.** App Launcher > Index Rates > New: Name, Rate (e.g. 8), Valid Start/End Date, Region, Usage Type = Pricing. One record per period. [Help]
 4. **Activate the Index Rate decision table.** Orgs updated to Winter '26 with Price Tracking may have it deactivated: Setup > Decision Tables > Index Rate > activate. Refresh it after rate changes. [Help]
 5. **Procedure.** Add the Price Revision element bound to the Index Rate table (element file).
-6. **Expose on lines.** Add Price Revision Policy to the Pricing Information section of the Quote Line Item, Order Product and Asset State Period layouts, and Unit Price Uplift to Quote Line Item and Order Product; add Unit Price Uplift to the Transaction Line Editor display columns on the Quote record page (Lightning App Builder) and Details/Fields on the Order page. [Help: `ind.qocal_consumer_price_index_and_price_uplifts.htm`]
+6. **Expose on lines.** Add Price Revision Policy to the Pricing Information section of the Quote Line Item, Order Product and Asset State Period layouts, and Unit Price Uplift to Quote Line Item and Order Product; add Unit Price Uplift to the Transaction Line Editor display columns on the Quote record page (Lightning App Builder) and Details/Fields on the Order page. [Help: ind.qocal_consumer_price_index_and_price_uplifts.htm]
 
 ## Fields and rules
 
@@ -70,7 +70,9 @@ Then Simulate with an in-range Valid Start Date and region; the waterfall shows 
 |---|---|---|
 | No revision or zero rate | Index Rate table inactive or stale; region/date out of range | Activate, refresh, check ranges |
 | Overlap error saving policy/rate ("The selected effective dates are already in use") | Same-region date overlap, or two no-region Flat policies over the same dates (refused on a multi-currency scratch org; whether they shared a currency wasn't recorded; regioned overlap not tested) [Measured: 2026-11-16, 264, scratch] | Re-date, or reuse the existing policy if its `Formula` fits and set `UnitPriceUplift` per line |
-| Region value rejected | Picklist lacks the value (or is restricted) | Add the value first; repo notes behavior varies by org |
+| Region value rejected | Picklist lacks the value (or is restricted). Region has no defined values and differs by org: restricted but accepting `US` on two ent-r1 orgs, accepting anything on one ent-sb0 org (cause not found) [Measured: 2026-10-29, 264, ent-r1 and ent-sb0 orgs]. Adding another value through Setup on a restricted org was not tried | Add the value first, or use `US` |
+| Policy rows fail to save after a plan load | A hand-made policy of the same type and Region over the same years overlaps (probed on one org; the run is recorded in the plan README) [Repo: datasets/sfdmu/qb/en-US/qb-price-revision/README.md] | Remove or re-date it |
+| CPI prices with old or no rates after adding an `IndexRate` | `Index_Rate_Decision_Table` is stale | Refresh it |
 | Renewal errors on date | No Index Rate for effective date | Add the rate for that period |
 | Policy missing on line | Field not on layout | Add Price Revision Policy / Unit Price Uplift to layouts |
 | Custom profile sees nothing | No access to the entities | Grant object/field access [Help] |

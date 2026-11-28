@@ -154,8 +154,7 @@ Measured on a fresh 264 build, 40 tables:
   of raising it [Repo: unpackaged/post_utils/flows/RLM_Refresh_Decision_Tables_Bulk.flow-meta.xml]. [Open: run the reset itself as a
   non-admin and check whether its screen reports it, and the stamps]
   Activating a contract or an order as that sales rep refreshed every table its activation flow
-  names [Measured: 2026-11-18 (order) and 2026-11-19 (contract), 264, scratch, one org;
-  SKILL.md rule 1].
+  names [Measured: 2026-11-18, 264, scratch] (order, and contract on 2026-11-19; one org; SKILL.md rule 1).
 - **9** more are covered only by Sync Pricing Data (Setup → Salesforce Pricing Setup). It
   refreshes all 11 DefaultPricing and 2 PricingDiscovery tables, so some of its 13 overlap the 17.
 - **14** are refreshed by nothing after the build:
@@ -223,7 +222,7 @@ describe it) and confirmed on a fresh 264 build, 2026-10-27:
   Otherwise it runs **incremental** if the changed rows since the later of the two stamps
   are under `IncrementalRefreshThreshold` (an org value, default 20%) of the table's rows
   **and** within an incremental row limit, and full above either. Any error in this
-  decision falls back to full. `[Platform behaviour, traced]`
+  decision falls back to full. [Platform behaviour, traced]
 - Measured: a request without incremental (`isDecisionTableIncremental` false) on all 40 tables of a fresh build, 2 hours after the first
   refresh, ran as **incremental on 12** — `LastIncrementalSyncDate` moved and
   `LastSyncDate` did not. An explicit incremental request on a table with no
@@ -238,7 +237,7 @@ describe it) and confirmed on a fresh 264 build, 2026-10-27:
   the Decision Table app page uses. 264 Setup shows only the full date. A
   price book entry table should always run full under auto-select, because its
   source hard-deletes; if an incremental stamp appears (for example from an explicit
-  incremental request), check the rows before trusting it. `[inferred]`
+  incremental request), check the rows before trusting it. [inferred]
 
 No caller here refuses or rewrites the request: the CCI tasks, the Decision Table
 Manager and `refresh_decision_table.py` all send it as given. The Manager and
@@ -464,6 +463,116 @@ using it proved the wrong thing; PR 940 removed it.
 
 ---
 
+## Runtime-created pricing rows
+
+> Why a contract price or any row written after the build is not applied, how the repo refreshes the Contract_Pricing tables, and how to check staleness. The pricing-wiring skill keeps a short pointer to this section.
+
+A decision table goes stale the moment its source object gains or changes a row, and
+pricing then prices from the table as last refreshed, as if that row did not exist. A changed
+source row prices at its old value until the refresh. A lookup with no matching row returns no
+match: an adjustment or tier step leaves the price from earlier steps unchanged, and a list-price
+step sets no list price (one set by an earlier step is kept, not zeroed [Core]; see
+[list-price.md](../pricing-procedures/elements/list-price.md); a new line has none to keep); no error is raised in
+the traced path [Platform behaviour, traced]. That trace covers the procedure lookup path only; for a
+List Price or Price Tracking step with output resolution on, Help says the line stops instead. Most
+pricing sources in this repo are loaded once at org build and never touched again, so in
+practice the tables stay correct. The ones that bite are the sources normal selling
+writes to *after* the build.
+
+`ContractItemPrice` / `ContractItemPriceAdjTier` are the case that bites: selling a contract
+with contract prices writes rows that the three `Contract_Pricing_*` tables have not seen.
+`RLM_Contract_Activation_Refresh_Pricing_Tables` (record-triggered on `Contract`) refreshes
+all three when a contract becomes **Activated**, which covers every path — the UI Activate
+button, REST/SOAP, Apex, another flow — because they all end in the same status change.
+
+**Refresh on activation, not on creation.** The two tier tables filter their source on
+`ContractItemPriceId.ContractId.StatusCode = 'Activated'` (inspect any table's filter via
+`DecisionTableSourceCriteria`). A contract is created **Draft**, so a refresh fired at
+creation time excludes that contract's tier rows and *still* stamps `LastSyncDate` — leaving
+a table that reads fresh while holding nothing, which is worse than leaving it visibly stale.
+`Contract_Pricing_Entries_Decision_Table` has no such filter, so only two of the three tables
+show the symptom, which makes it easy to half-test and conclude the wrong thing.
+
+A refresh is still needed by hand after a **bulk data load** of contract prices that does not
+end in an activation:
+
+```bash
+cci task run refresh_dt_default_pricing
+```
+
+(`refresh_dt_*` tasks accept `--org`: `RefreshDecisionTable` sets
+`salesforce_task = True`. Without it they silently ran against the CCI **default** org.
+`manage_expression_sets` accepts `--org` too, and `tests/test_cci_task_org_option.py` fails the
+gate for any task that reads `self.org_config` without `salesforce_task = True`.)
+
+**Use the table's latest sync — the later of `LastSyncDate` and `LastIncrementalSyncDate`
+— to decide whether a refresh happened.** Release 264 can run a full request as
+incremental, which moves only `LastIncrementalSyncDate` (see *Release 264 chooses the refresh type* above). A sync date only
+advances on a refresh that actually ran, so the staleness comparison below is the one check that holds for every
+failure shape. Do not rely on `DecisionTable.RefreshStatus` / `RefreshFailureReason` as the
+detector: they live *on a table record*, so they only tell you anything once a refresh has
+been accepted for a table that exists.
+
+Two failure shapes, measured against a live org — the difference matters before you add
+error handling to a flow that calls `refreshDecisionTable`:
+
+| Shape | What you get | Where it shows |
+|---|---|---|
+| Invalid or inactive `DecisionTableApiName` | **A Flow fault** (*"The decision table API Name is invalid…"*), not a `Failed` status | Nowhere on `DecisionTable` — an unresolvable name identifies no table record to stamp. Only the flow's own fault handling sees it. |
+| Accepted refresh that then fails | `status = Queued`, async job result | `RefreshStatus` (observed on a live org going `Initiated` then `Completed`; not traced) and `RefreshFailureReason` |
+
+Consequences:
+
+- A flow calling this action needs a `faultConnector`, and in a **record-triggered
+  after-save** flow it needs one urgently: an unhandled fault rolls back the triggering DML,
+  so a refresh problem would block the very save that should have caused the refresh.
+- The documented `status = Failed` output could not be provoked — a valid table returned
+  `Queued` on every attempt, including five back-to-back refreshes of the same table.
+- Because the fault case leaves no trace on the table, a flow that swallows the fault leaves
+  the sync dates as the *only* evidence. That is by design, but it means the staleness check
+  above is the monitoring story, not an afterthought.
+
+To tell whether a table is stale, compare **each** table against **its own** source object's
+newest `LastModifiedDate`. Two things make this easy to get wrong:
+
+- The three tables do **not** share one source, so a single source query proves nothing about
+  the other two: `Contract_Pricing_Entries_Decision_Table` ← `ContractItemPrice`, while
+  `Contract_Pricing_Adjustment_Tiers` and `Contract_Pricing_Volume_Tiers` ←
+  `ContractItemPriceAdjTier`.
+- Use `LastModifiedDate`, not `CreatedDate`. An **edited** price row invalidates the table
+  exactly as a new one does, and `CreatedDate` cannot see it.
+
+The source query must also **reproduce the table's own source criteria**, or it reports rows
+the table deliberately excludes. The tier tables only admit rows whose contract is Activated,
+so an unfiltered `MAX` over a Draft contract's tiers would report them stale forever:
+
+```bash
+sf data query -q "SELECT DeveloperName, LastSyncDate, LastIncrementalSyncDate FROM DecisionTable WHERE DeveloperName LIKE 'Contract_Pricing%' ORDER BY DeveloperName" --target-org <sf_alias>
+
+# Entries <- ContractItemPrice, which has NO source criteria: no filter here.
+sf data query -q "SELECT MAX(LastModifiedDate) newest FROM ContractItemPrice" --target-org <sf_alias>
+
+# Both tier tables <- ContractItemPriceAdjTier, filtered to activated contracts.
+# Note the SOQL relationship names differ from the criteria field path stored in
+# DecisionTableSourceCriteria: ContractItemPriceId.ContractId -> ContractItemPrice.Contract
+sf data query -q "SELECT MAX(LastModifiedDate) newest FROM ContractItemPriceAdjTier WHERE ContractItemPrice.Contract.StatusCode = 'Activated'" --target-org <sf_alias>
+```
+
+A table whose latest sync (the later of the two dates) is **earlier** than its own source's `newest` is stale, and the
+contract's negotiated price is not being applied. A `null` `newest` means that source has no
+qualifying rows, so its tables cannot be stale.
+
+Generalising: read the table's real filter out of the org rather than assuming it has none —
+
+```bash
+sf data query -q "SELECT DecisionTable.DeveloperName, SourceFieldName, Operator, Value FROM DecisionTableSourceCriteria WHERE DecisionTable.DeveloperName = '<table>'" --target-org <sf_alias>
+```
+
+Never generalise one source's timestamp to a sibling table, and never compare against rows the
+table would have excluded anyway.
+
+---
+
 ## Related
 
 - Parent skill: `.cursor/skills/decision-tables/SKILL.md`.
@@ -471,7 +580,7 @@ using it proved the wrong thing; PR 940 removed it.
   shape, enums, two-layer model).
 - Exhaustive reference: `docs/references/decision-table-api-reference.md`.
 - CCI ops cookbook: `docs/references/decision-table-examples.md`.
-- Pricing layering: `.cursor/skills/pricing-wiring/SKILL.md`.
+- Pricing layering: `.cursor/skills/pricing-wiring/SKILL.md`; rows written after the build: *Runtime-created pricing rows* above.
 - Pricing records these tables read, and the after-load refresh rule:
   `.cursor/skills/pricing-setup/import-export-and-bulk-data.md` → *After-load refresh rule*.
 - CCI tasks: `tasks/rlm_manage_decision_tables.py`,

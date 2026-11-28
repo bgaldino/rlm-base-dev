@@ -7,7 +7,7 @@
 > `ind.pricing_proration_variables.htm`, `ind.pricing_subscription_variables.htm`,
 > `ind.pricing_subscription_pricing_proration.htm`, `ind.pricing_*_proration_examples*.htm`,
 > `ind.pricing_weekly_proration.htm`. Not live-verified except where tagged [Measured] (2026-11-11, a fresh 264
-> `ent-sb0` scratch org).
+> ent-sb0 scratch org).
 
 Selling models say how a product is sold; proration settings and policies say how a partial period is
 priced. The Proration and Subscription Price elements read them. Builder fields for the elements:
@@ -21,19 +21,19 @@ priced. The Proration and Subscription Price elements read them. Builder fields 
 
 ## Set it up
 
-**1. Product selling model** (Manage Product Catalog) [Help: `ind.product_catalog_create_a_product_selling_model.htm`]
+**1. Product selling model** (Manage Product Catalog) [Help: ind.product_catalog_create_a_product_selling_model.htm]
 1. Product Catalog Management app > Product Selling Models > New.
 2. Name, selling model type, and (term-defined or evergreen) Pricing Term + Pricing Term Unit, e.g. Term-Defined 1 Year; Evergreen 1 Month.
 3. Term-defined only: optionally **Automatically Renew Asset by Default**; the status is copied to quote and order lines and can be edited per line.
 4. Set Status (Draft, Active, Inactive). It cannot return to Draft after Active/Inactive.
 
-**2. <a name="default-term-counts"></a>Default term counts** (Salesforce Pricing Design Time) [Help: `ind.pricing_configure_proration_settings.htm`]
+**2. <a name="default-term-counts"></a>Default term counts** (Salesforce Pricing Design Time) [Help: ind.pricing_configure_proration_settings.htm]
 1. Setup > `Salesforce Pricing` > Salesforce Pricing Setup (`/lightning/setup/CorePricingSetup/home`), Proration Settings.
 2. Fill **Evergreen** and/or **One Time** (numeric only). Help: blank = term count computed from start/end dates at run time. Core disagrees for One Time: with no default it is not prorated [Platform behaviour, traced: with no One Time value the line gets no multiplier from the Proration step]; test live ([element, Resolved disagreements](../pricing-procedures/elements/proration-and-subscription.md#resolved-disagreements)).
 
 [Platform behaviour, traced] A default for a line's type bypasses the engine and is used directly as the term count; with no Evergreen default the count is computed from the dates; a stored value without a colon sets neither. This applies only when the line's selling model type is mapped; otherwise the line goes to the engine.
 
-[Measured] **These two values have no API.** They were in none of the 11 settings types retrieved (among them
+[Measured: 2026-11-11, 264, scratch] **These two values have no API.** They were in none of the 11 settings types retrieved (among them
 `IndustriesPricing`, `RevenueManagement`, `Quote`, `Order`, `Billing`, `ProductCatalogManagement` and
 `SubscriptionManagement`), and no sObject or Tooling object for them appears in the global describes. This repo's
 build doesn't set them. A fresh 264 org reads
@@ -42,13 +42,13 @@ build doesn't set them. A fresh 264 org reads
 [Repo] This repo's `RLM_DefaultPricingProcedure` (and any clone of it) sets the term count itself with two constants:
 `OneTimePricingTermCountConstant` (0) on lines that are neither Term Defined nor Evergreen, and
 `EvergreenPricingTermCountConstant` (1) on Evergreen lines without an end date or without partial proration. On that
-procedure [Measured] an Evergreen line priced one period and a One-Time line carried `PricingTermCount` 0 while its
+procedure [Measured: 2026-11-11, 264, scratch] an Evergreen line priced one period and a One-Time line carried `PricingTermCount` 0 while its
 total was still unit price × quantity; those values come from the constants, which match the page's fresh-org values.
 Whether the page affects Evergreen lines that reach the Proration step (an end date with partial proration on) wasn't
 measured. A plan that states Evergreen prices per period depends on both: check the procedure's constants and read the
 page in each target org.
 
-**3. Proration policy** (Salesforce Pricing Design Time; needs a term-defined or evergreen selling model and a price book entry) [Help: `ind.pricing_create_a_proration_policy.htm`]
+**3. Proration policy** (Salesforce Pricing Design Time; needs a term-defined or evergreen selling model and a price book entry) [Help: ind.pricing_create_a_proration_policy.htm]
 1. App Launcher > Proration Policies > New; name it.
 2. Proration Policy Type = Standard Time Periods.
 3. Remainder Strategy = First or Last pricing period.
@@ -70,12 +70,12 @@ page in each target org.
 | Remainder Strategy | `ProrationPolicy.RemainderStrategy` | First or last period; sums to the original amount ($100/3 = 33.34/33.33/33.33 or 33.33/33.33/33.34). [Help] |
 | Allow partial proration periods | `ProrationPolicy.ArePartialPeriodsAllowed` | Off = full period charged. |
 | Option -> policy | `ProductSellingModelOption.ProrationPolicyId` | Only on term-defined or evergreen options. [Help; ERD] |
-| Evergreen / One Time default | Salesforce Pricing Setup; no API, UI only [Measured] | Evergreen 1 monthly at $50 = $50. [Help] Fresh 264 org: Evergreen 1, One Time 0. [Measured] |
+| Evergreen / One Time default | Salesforce Pricing Setup; no API, UI only [Measured: 2026-11-11, 264, scratch] | Evergreen 1 monthly at $50 = $50. [Help] Fresh 264 org: Evergreen 1, One Time 0. [Measured: 2026-11-11, 264, scratch] |
 
 Proration variables are Proration element inputs, bound to context tags that carry the selling model
 option and policy values (inferred; see [the element](../pricing-procedures/elements/proration-and-subscription.md#product-selling-model-interplay)):
 `StartProrationPeriod` (AlignToCalendar, Anniversary, DayOfPeriod, and `LastDayOfPeriod`, which Help
-labels EndOfPeriod; bind `LastDayOfPeriod` [Core]), day/month for DayOfPeriod only. [Help: `ind.pricing_subscription_variables.htm`]
+labels EndOfPeriod; bind `LastDayOfPeriod` [Core]), day/month for DayOfPeriod only. [Help: ind.pricing_subscription_variables.htm]
 Multiplier = time used / total time in period; "month-plus-day" proration works for any frequency.
 [Platform behaviour, traced] The count is day-based: the number of periods, where only the first and last
 (partial) period count as days used / days in that full period, inclusive actual calendar days under an actual-days
@@ -84,7 +84,7 @@ Partial periods off: whole periods only. A 30-day-month type counts a full month
 changes the money split, not the count. The paragraph above is traced for annual frequency and the actual-days type; not verified beyond that.
 From the separate partial-month trace (not the annual path): a partial month is a whole month when partial periods are off, and the day fraction (15 of 30 = 0.5) when on; only the first and last period are fractional, interior periods stay whole. Rounding applies to the money at the currency scale, not to the count.
 Help says month precision rounds a partial month to a whole one, but its own worked example
-prorates a half month to 0.5; both hold under different partial-period settings (above). [Help: `ind.pricing_proration_variables.htm`]
+prorates a half month to 0.5; both hold under different partial-period settings (above). [Help: ind.pricing_proration_variables.htm]
 
 ## How pricing uses it
 
@@ -94,7 +94,7 @@ prorates a half month to 0.5; both hold under different partial-period settings 
 - One-time and evergreen use the Pricing Setup default when set (see element file).
 - How the policy and option values reach the element (via context tags) is not in Help; see the element file.
 
-## Period examples (Help) [Help: `ind.pricing_*_proration_examples*.htm`]
+## Period examples (Help) [Help: ind.pricing_*_proration_examples*.htm]
 
 Convention: periods are start-date to day-before-next-start; a part period counts days used / days in that period. Without partial proration each touched period counts 1.0.
 
@@ -110,11 +110,11 @@ Convention: periods are start-date to day-before-next-start; a part period count
 
 Leap years: end-of-month anniversaries move to the latest valid day. Annual from 2024-02-29 to 2025-02-27 = 1.0. Annual 2027-02-28 to 2028-02-27 = 365/366 = 0.99726 ($997.27) because the full period expects 2028-02-28; to 2028-02-28 = 1.0. Monthly from the 30th/31st: Jan 30 to Feb 27 (29 days) then Feb 28 to Mar 29 = 2.0.
 
-Worked example: $50/month product, subscribed on the 15th of a 30-day month: 15 days / 30 days = 0.5, so $50 x 0.5 = $25 for that month. [Help: `ind.pricing_proration_variables.htm`]
+Worked example: $50/month product, subscribed on the 15th of a 30-day month: 15 days / 30 days = 0.5, so $50 x 0.5 = $25 for that month. [Help: ind.pricing_proration_variables.htm]
 
 ### <a name="measured-partial-year"></a>Measured: a partial year prorates by days
 
-[Measured] A Term Defined annual line priced with the repo's `Default Proration Policy` (`qb-pcm`: Standard Time
+[Measured: 2026-11-11, 264, scratch] A Term Defined annual line priced with the repo's `Default Proration Policy` (`qb-pcm`: Standard Time
 Periods, remainder `AddToLast`, partial periods allowed):
 
 | Line dates | `PricingTermCount` |

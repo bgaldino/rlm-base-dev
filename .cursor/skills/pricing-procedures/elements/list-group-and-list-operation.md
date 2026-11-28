@@ -40,7 +40,7 @@ Step types: `ListGroup`, `AdvancedListFilter` and `ListFilter` (the formula-styl
 
 ## Rules and limits
 - Add a not-null criterion on any tag you compare; a null tag at execution returns an error [Help]. Example: `{LineItem IsNotNull} AND {LineItem equals 100}`.
-- Reset pattern: to clear a field on all lines, use a filter that matches everything (`IsNull OR IsNotNull` on one field) [Repo overlay `approval_flags.json`]; not a platform requirement.
+- Reset pattern: to clear a field on all lines, use a filter that matches everything (`IsNull OR IsNotNull` on one field) [Repo: datasets/expression_set_overlays/approval_flags.json]; not a platform requirement.
 - Removing a producer element while leaving a group's filter in place stays structurally valid but silently misprices; check orphaned groups (see `../../expression-sets/authoring-and-overlays.md` "Removing steps").
 - Condition count per filter is capped by an org limit ("Maximum Number of Conditions per Expression Set Version Step"); save fails with `A step can have a maximum of {0} conditions.` with the limit as {0} [Core]. Org value default 200, min 1, max 200, API 242+ [Core]. Shipped procedures use up to 9 criteria in one filter [Repo].
 - Local list nodes: a maximum local-list-node depth applies (save error `The maximum depth of a local list node in an expression set version is {0}.`); org value default 6, min 0, max 6, API 262+ [Core]. This limits context-hierarchy depth of list variables, not how many groups you stack.

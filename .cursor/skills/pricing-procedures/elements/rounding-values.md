@@ -4,7 +4,7 @@
 > `ind.pricing_rounding_values.htm` (rating twins: `ind.rm_element_rounding_values.htm`,
 > `ind.rm_element_add_rounding_values.htm`); dev guide `meta_expressionsetdefinition.htm`
 > (actionType enum); shipped XML: none; core source (behavior only); a step created and run on a
-> fresh 264 `ent-sb0` scratch org on 2026-11-11 (multicurrency, USD and EUR).
+> fresh 264 ent-sb0 scratch org on 2026-11-11 (multicurrency, USD and EUR).
 
 Rounds the value of one or more pricing variables (up, down or half-up) to a
 number of decimal places, writing the result to an output variable.
@@ -24,7 +24,7 @@ number of decimal places, writing the result to an output variable.
 | Output Variable (row N) | `section-{N-1}-output` | `Parameter` | yes | Receives rounded value; Currency only [Core] |
 | (row count) | `sectionCount` | `Literal` | yes | Number of rounding rows [Core] |
 | Hide in waterfall | `HideWaterfall` | `Literal` | no | Excluded when rules are read [Core] |
-| Currency | `CurrencyIsoCode` | — | **refused** | The step declares no currency parameter, only `Precision` and the section rows. Creating the step with a `CurrencyIsoCode` parameter failed: "CurrencyIsoCode isn't a valid variable name" (`INVALID_INPUT`). Without it, the step rounded USD and EUR lines to 2 places [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org][Platform behaviour, traced]. A per-line currency cannot be declared as a step parameter; another route is not established (Rules and limits) |
+| Currency | `CurrencyIsoCode` | — | **refused** | The step declares no currency parameter, only `Precision` and the section rows. Creating the step with a `CurrencyIsoCode` parameter failed: "CurrencyIsoCode isn't a valid variable name" (`INVALID_INPUT`). Without it, the step rounded USD and EUR lines to 2 places [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org] [Platform behaviour, traced]. A per-line currency cannot be declared as a step parameter; another route is not established (Rules and limits) |
 
 Parameter names, the Currency data type and the three rule strings come from core. Builder metadata for this element also enables Hide in Waterfall, lookup selection, profile filter and additional variables [Core]. The mapping to rounding modes is `roundUp` = away from zero, `roundDown` = toward zero (truncate), `halfUp` = half rounds away from zero [Core].
 
@@ -42,7 +42,7 @@ Parameter names, the Currency data type and the three rule strings come from cor
 - Measured step (2026-11-11, multicurrency org): one row, `NetUnitPrice` → `NetUnitPrice`,
   `halfUp`, no `Precision` and no `CurrencyIsoCode`, as a top-level step right after the
   non-contract volume discount group. USD and EUR nets landed on 2 places
-  [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org].
+  [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org].
 - Single-currency org: uses the `Precision` input; if none is passed the value is returned unchanged [Help][Core]. Core only accepts a numeric tag value; anything else leaves precision unset, and the value passes through without an error [Core].
 - Multicurrency org: ignores `Precision`; the currency defaults to the running user's currency, and the value is rounded to that currency's decimal places (Manage Currencies) [Help][Platform behaviour, traced]. The step cannot declare a currency as a step parameter; whether a per-line currency can reach it by another route is not established. A quote mixing currencies with different scales has not been measured, and USD and EUR both have 2 places, so the 2-place result does not distinguish the cases. Help's `ind.pricing_apply_the_rounding_values_element` carries the user-currency note. Treat the live org as truth.
 - No `Precision` in a single-currency org: the value is returned unrounded [Platform behaviour, traced].
@@ -64,7 +64,7 @@ Parameter names, the Currency data type and the three rule strings come from cor
 | Round a value that a later step recalculates | Accepted, but the later value is unrounded; core checks no position for Rounding Values itself [Core] |
 
 ## Metadata shape
-Skeleton built from the parameter names above (not from shipped XML or a saved step) [inferred]; placeholders marked. A step with the same parameter names minus `Precision`, plus `HideWaterfall` `false`, bound to `NetUnitPrice` → `NetUnitPrice` with `halfUp`, was created through an overlay and ran [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]:
+Skeleton built from the parameter names above (not from shipped XML or a saved step) [inferred]; placeholders marked. A step with the same parameter names minus `Precision`, plus `HideWaterfall` `false`, bound to `NetUnitPrice` → `NetUnitPrice` with `halfUp`, was created through an overlay and ran [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]:
 ```xml
 <steps>
     <actionType>RoundingValues</actionType>
@@ -95,7 +95,7 @@ None. A count of `RoundingValues` across the three shipped procedure directories
 | Value not rounded, no error shown | Single-currency org and no/non-numeric `Precision` | Pass a numeric `Precision` constant |
 | `Precision` seems ignored | Multicurrency org | Set decimal places in Manage Currencies |
 | Wrong currency scale | Multicurrency: the scale defaults to the running user's currency; a currency cannot be declared as a step parameter | Accept the user-currency scale; running as a user whose currency has the needed scale may help [inferred, not measured] |
-| `CurrencyIsoCode isn't a valid variable name` (`INVALID_INPUT`) at create | A `CurrencyIsoCode` parameter on the step | Drop the parameter [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org] |
+| `CurrencyIsoCode isn't a valid variable name` (`INVALID_INPUT`) at create | A `CurrencyIsoCode` parameter on the step | Drop the parameter [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org] |
 | `You can add the Discount Distribution Service element only before the Rounding Rules and Aggregate elements ...` | A step other than Aggregate Price or Rounding Values is ordered after DDS | Move that step before DDS (the message names DDS, not the offending step); see [discount-distribution-service](./discount-distribution-service.md) and ordering rule [Core] |
 | `SF-Pricing-00015: The rounding value specified isn’t valid.` | Rule string is not `roundUp`/`roundDown`/`halfUp` | Fix the literal [Core] |
 | Rule applied to the wrong row | Extra Literal parameter on the step | Remove it [Core] |

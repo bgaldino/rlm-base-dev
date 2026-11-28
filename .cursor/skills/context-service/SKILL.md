@@ -104,7 +104,13 @@ expression-set steps that consume it. This skill is consumable by any AI agent
     hydrates **zero** records silently (`isSuccess:true`).
     `build_hydration_data.py` emits the mapped name. Tag names are a **distinct
     namespace** from attribute names (attr `Quantity` → tag `LineItemQuantity`) —
-    query by tag name, read off the definition.
+    query by tag name, read off the definition. A pricing run that fails with
+    `Invalid tag attribute name key: [<name>]` means a tag the procedure reads
+    is not on the definition. Causes, in the order to check: (1) the context
+    attribute or tag was never applied in the target org; (2) the feature's
+    context plan was not wired into, or not run by, the build flow; (3) the
+    plan points at the wrong definition or mapping; (4) an attribute name was
+    used where the tag name is required.
 12. **Persist is asynchronous → confirm via `AsyncOperationTracker`, not the
     `referenceId`.** The `referenceId` **IS the `AsyncOperationTracker.Id`**, so
     poll `SELECT Id,Status,Response FROM AsyncOperationTracker WHERE Id =
